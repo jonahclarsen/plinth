@@ -24,7 +24,6 @@ pub struct Layout {
     pub gap: f64,
     pub row_gap: f64,
     pub top: f64,
-    pub bottom: f64,
     pub radius: f64,
     pub shadow: f64,
 }
@@ -35,7 +34,6 @@ impl Default for Layout {
             gap: 6.,
             row_gap: 14.,
             top: 42.,
-            bottom: 100.,
             radius: 5.,
             shadow: 0.4,
         }
@@ -257,13 +255,12 @@ pub fn replace_artwork(
 pub fn validate_settings(s: &Settings) -> Result<(), String> {
     for l in [&s.layout, &s.wide_layout] {
         if !(3..=30).contains(&l.columns)
-            || ![l.gap, l.row_gap, l.top, l.bottom, l.radius, l.shadow]
+            || ![l.gap, l.row_gap, l.top, l.radius, l.shadow]
                 .iter()
                 .all(|v| v.is_finite() && *v >= 0.)
             || l.gap > 40.
             || l.row_gap > 80.
             || l.top > 200.
-            || l.bottom > 2000.
             || l.radius > 40.
             || l.shadow > 1.
         {
@@ -330,6 +327,20 @@ mod tests {
         assert!(dir.join("originals").join(old.original).exists());
         assert_eq!(load(&dir).unwrap().albums.len(), 1);
         fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn legacy_bottom_spacing_is_ignored_on_load_and_removed_on_save() {
+        let settings: Settings = serde_json::from_value(serde_json::json!({
+            "layout": {"columns": 9, "bottom": 1800},
+            "wideLayout": {"columns": 20, "bottom": 2000}
+        }))
+        .unwrap();
+        assert_eq!(settings.layout.columns, 9);
+        assert_eq!(settings.wide_layout.columns, 20);
+        assert!(validate_settings(&settings).is_ok());
+        let saved = serde_json::to_value(&settings).unwrap();
+        assert!(saved["layout"].get("bottom").is_none());
+        assert!(saved["wideLayout"].get("bottom").is_none());
     }
     #[test]
     fn invalid_settings_rejected() {
