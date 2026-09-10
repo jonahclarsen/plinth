@@ -77,15 +77,21 @@ test('Option page navigation wraps, desktop toggle uses action labels, internal 
  await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click();await expect(page.locator('.editor-artwork>img')).toHaveAttribute('draggable','false');await expect(page.locator('.artwork-actions')).toHaveCSS('opacity','0');await page.locator('.editor-artwork').hover();await expect(page.locator('.artwork-actions')).toHaveCSS('opacity','1')
 })
 
-test('quit modal defaults to hide and provides keyboard actions without leaking shortcuts',async({page})=>{
+test('quit modal has no default action, puts Hide window in the middle, and retains keyboard shortcuts',async({page})=>{
  await page.goto('/?demo=1')
  const dialog=page.getByRole('dialog',{name:'Quit Plinth?'})
- const show=async()=>{await page.keyboard.press('Control+q');await expect(dialog).toBeVisible();await expect(page.getByRole('button',{name:'Hide window',exact:true})).toBeFocused()}
- await show();await page.keyboard.press('Enter');await expect(dialog).not.toBeVisible()
+ const show=async()=>{await page.keyboard.press('Control+q');await expect(dialog).toBeVisible();await expect(dialog.getByRole('heading')).toBeFocused()}
+ await show()
+ expect(await dialog.getByRole('button').evaluateAll(buttons=>buttons.map(button=>button.getAttribute('aria-label')))).toEqual(['Cancel','Hide window','Quit Plinth'])
+ await expect(dialog.locator('button:focus')).toHaveCount(0)
+ await expect(dialog.locator('button.primary')).toHaveCount(0)
+ await page.keyboard.press('Enter');await expect(dialog).toBeVisible()
+ await page.keyboard.press('Tab');await expect(dialog.getByRole('button',{name:'Cancel',exact:true})).toBeFocused()
+ await page.keyboard.press('Enter');await expect(dialog).not.toBeVisible()
  await show();await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible()
  await show();await page.keyboard.press('Control+w');await expect(dialog).not.toBeVisible()
  await show();await page.keyboard.press('Control+q');await expect(dialog).not.toBeVisible()
- await show();await page.keyboard.press('/');await expect(page.getByRole('button',{name:'Hide window',exact:true})).toBeFocused()
+ await show();await page.keyboard.press('/');await expect(dialog.getByRole('heading')).toBeFocused()
  await page.keyboard.press('Escape')
  await page.keyboard.down('Control');await page.keyboard.down('q');await page.keyboard.down('q');await expect(dialog).toBeVisible();await page.keyboard.up('q');await page.keyboard.up('Control')
 })
