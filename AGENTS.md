@@ -24,9 +24,12 @@
 - A missing album in Apple Music shows a native macOS alert, without a duplicate in-app notification.
 - Artwork import accepts image files only. Do not add folder-import controls or directory traversal.
 - Reuse the desktop renderer in the scaled screen preview. Keep the 250 ms / 251 ms jQuery swing hover timing consistent in both places.
-- Album editor uses original artwork with download and replacement controls; the collection and desktop use compressed copies.
+- Album editor uses original artwork with Finder reveal and upload controls; the collection and desktop use compressed copies.
 - Keep the whole top strip draggable and free of status copy.
 - Show a Dock icon while the main window is visible; hide it when the window closes. Command-W keeps the desktop running. Command-Q opens a Cancel / Hide window / Quit Plinth modal, with Hide window in the middle. Focus the heading initially, not an action; use no default button or purple focus outline.
 - Left-click the menu bar icon opens the window; right-click opens its menu. Use “Hide desktop” / “Show desktop” labels in both menu and UI, synchronized to saved state.
 - Original artwork in the modal is large, with two subtle hover actions across its bottom edge. Disable dragging internal images; accept external image drops.
 - Option-Q / Option-W navigate pages with wraparound. Remember the main window size; keep the collection full-width with modest gutters.
+
+- Collection cards edit from artwork, captions, and caption spacing; bottom artwork actions are Edit and View. View opens the original gallery directly. Keep the gallery cursor normal and return to the prior view on backdrop click or Escape.
+- Command-A adds artwork from Collection except inside text fields. Enter saves anywhere in the album editor; preserve gallery and quit-dialog keyboard behavior. Label the button Save with an Enter hint.
