@@ -44,7 +44,7 @@ test('README screenshots use only synthetic demo artwork',async({page})=>{
  await page.getByLabel('Release date').fill('2026-09-01')
  await page.getByRole('button',{name:'Save',exact:true}).click()
  await page.evaluate(()=>{Date.now=()=>Date.UTC(2026,8,10,17,18)})
- await page.getByRole('button',{name:'Hide desktop',exact:true}).click()
+ await page.getByRole('button',{name:'Disable',exact:true}).click()
  await page.getByRole('button',{name:'History',exact:true}).click()
  await expect(page.locator('.history-list>li')).toHaveCount(3)
  await page.locator('.history-list summary').click()
