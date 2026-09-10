@@ -1,7 +1,7 @@
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
-pub fn rebuild(app: &AppHandle, enabled: bool) -> Result<(), String> {
+pub fn rebuild(app: &AppHandle, enabled: bool, all_spaces: bool) -> Result<(), String> {
     for (label, window) in app.webview_windows() {
         if label.starts_with("desktop-") {
             window.destroy().map_err(|e| e.to_string())?;
@@ -50,13 +50,24 @@ pub fn rebuild(app: &AppHandle, enabled: bool) -> Result<(), String> {
                 .ns_window()
                 .map_err(|e| e.to_string())?
                 .cast::<NSWindow>();
-            // Same public desktop-icon window level used for Plash's browsing mode.
-            ns.setLevel(-2147483602);
             ns.setCollectionBehavior(
-                NSWindowCollectionBehavior::CanJoinAllSpaces
-                    | NSWindowCollectionBehavior::Stationary
+                (if all_spaces {
+                    NSWindowCollectionBehavior::CanJoinAllSpaces
+                } else {
+                    NSWindowCollectionBehavior::Default
+                }) | NSWindowCollectionBehavior::Stationary
                     | NSWindowCollectionBehavior::IgnoresCycle,
             );
+            if !all_spaces {
+                // Establish membership in the active Space at the normal window level.
+                // Ordering a new window at the desktop level first leaves it off-Space.
+                // Keep it transparent during placement and never activate it.
+                ns.setAlphaValue(0.);
+                ns.orderFrontRegardless();
+            }
+            // Same public desktop-icon window level used for Plash's browsing mode.
+            ns.setLevel(-2147483602);
+            ns.setAlphaValue(1.);
             ns.setCanHide(false);
             ns.setAcceptsMouseMovedEvents(true);
             ns.setHidesOnDeactivate(false);

@@ -15,6 +15,11 @@ test('collection search, metadata edits, hiding and removal',async({page})=>{
 })
 test('appearance updates preview and theme without errors',async({page})=>{
  await page.goto('/?demo=1');await page.getByRole('button',{name:'Appearance',exact:true}).click()
+ const spaces=page.getByRole('combobox',{name:'Spaces',exact:true});await expect(spaces.locator('option:checked')).toHaveText('All Spaces')
+ await spaces.selectOption({label:'This Space'})
+ await page.getByRole('button',{name:'Collection',exact:true}).click();await page.getByRole('button',{name:'Appearance',exact:true}).click()
+ await expect(spaces.locator('option:checked')).toHaveText('This Space')
+ await spaces.selectOption({label:'All Spaces'})
  const slider=page.getByRole('slider',{name:'Columns',exact:true});await slider.fill('8');await expect(page.locator('.preview-render .desktop-grid')).toHaveCSS('grid-template-columns',/.* /)
  await expect(page.locator('.slider-field').filter({has:slider}).locator('output')).toHaveText('8')
  await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'Light',exact:true}).click();await expect(page.locator('html')).toHaveAttribute('data-theme','light')
