@@ -10,6 +10,8 @@
 
 ## Implementation notes
 
+- macOS development uses `scripts/macos-tauri-cargo.sh` and `run-macos-dev-app.sh` to run from a generated `PlinthDev.app` with its icon. Keep the Cargo executable as a physical hard link, not a symlink.
+
 - The desktop is a transparent Tauri window at the macOS desktop-icon level plus one. Native pointer tracking checks the topmost window; avoid changing focus to implement hover.
 - Production has no HTTP server. Native imports and metadata live under the `com.plinth.desktop` OS data directory. Never point test imports at the real library.
 - Browser demo mode (`?demo=1`) uses generated SVG artwork and fictional records. Keep README captures in this mode.

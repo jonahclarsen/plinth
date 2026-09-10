@@ -11,6 +11,7 @@
     "build:app": "tauri build --bundles app",
     "check": "svelte-check --tsconfig tsconfig.json",
     "test": "playwright test",
+    "test:dev-runner": "node --test scripts/tests/dev-runner.test.mjs",
     "test:native": "cargo test --manifest-path src-tauri/Cargo.toml",
     "screenshots": "playwright test tests/screenshots.spec.ts",
     "tauri": "tauri"
