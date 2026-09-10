@@ -53,6 +53,7 @@ pub struct Settings {
     pub shuffle_seed: u32,
     pub theme: String,
     pub desktop_enabled: bool,
+    pub all_spaces: bool,
     pub open_mode: String,
 }
 impl Default for Settings {
@@ -72,6 +73,7 @@ impl Default for Settings {
             shuffle_seed: 0,
             theme: "dark".into(),
             desktop_enabled: true,
+            all_spaces: true,
             open_mode: "library".into(),
         }
     }
@@ -287,6 +289,16 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn spaces_setting_defaults_for_existing_libraries_and_round_trips() {
+        let mut library: Library =
+            serde_json::from_str(r#"{"settings":{"desktopEnabled":true}}"#).unwrap();
+        assert!(library.settings.all_spaces);
+        library.settings.all_spaces = false;
+        let saved = serde_json::to_string(&library).unwrap();
+        let restored: Library = serde_json::from_str(&saved).unwrap();
+        assert!(!restored.settings.all_spaces);
+    }
     #[test]
     fn imports_legacy_metadata() {
         let (t, a, d, u) = metadata("Artist - Title - EP (2025:04:03) =album=title=123.png");
