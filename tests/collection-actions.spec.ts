@@ -30,6 +30,10 @@ test('collection captions and their padding edit while View opens only the galle
 
 test('Command-A adds artwork from Collection and keeps Select All in text fields',async({page})=>{
  await page.goto('/?demo=1')
+ const add=page.locator('.header-actions').getByRole('button',{name:'Add artwork',exact:true})
+ await expect(add.locator('kbd')).toHaveText('Cmd A')
+ await expect(add).toHaveAttribute('aria-keyshortcuts','Meta+A Control+A')
+ await expect(add.locator('svg')).toHaveCount(0)
  let pickers=0;page.on('filechooser',()=>pickers++)
  const picker=page.waitForEvent('filechooser')
  await page.keyboard.press('Meta+a');await picker
