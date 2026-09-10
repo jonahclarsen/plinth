@@ -26,3 +26,6 @@ dialog{width:min(510px,calc(100vw - 40px));padding:26px;border:1px solid var(--l
 .sort-picker{position:relative}.sort-trigger{font-size:12px;min-width:128px;justify-content:space-between;border-color:transparent;padding:8px 10px}.sort-trigger svg{width:14px;height:14px}.sort-menu{position:absolute;z-index:30;right:0;top:calc(100% + 7px);width:175px;background:var(--paper-strong);border:1px solid var(--line);border-radius:9px;box-shadow:0 10px 30px #0004;padding:5px}.sort-menu button{width:100%;border:0;justify-content:space-between;border-radius:5px;font-size:12px;padding:10px}.sort-menu button[aria-checked=true]{color:var(--accent)}.sort-menu button:hover{background:var(--paper)}.sort-menu button svg{width:14px;height:14px}@media(max-width:760px){.toolbar-right{flex-wrap:wrap;justify-content:flex-end}.desktop-toggle{min-width:90px}.sort-trigger{min-width:105px}}
 
 .quit-actions{flex-wrap:wrap}.quit-actions kbd{color:inherit;font-size:10px;white-space:nowrap}.quit-actions .primary kbd{border-color:#ffffff55}
+
+/* Album lists stay fixed; overflow is clipped rather than scrollable. */
+.collection-document,.collection-document body{height:100%;overflow:clip;overscroll-behavior:none}.collection-document body{position:fixed;inset:0}.collection-document .app-shell{height:100dvh;overflow:clip}
