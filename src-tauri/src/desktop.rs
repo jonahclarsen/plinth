@@ -50,6 +50,7 @@ pub fn rebuild(
             .shadow(false)
             .skip_taskbar(true)
             .focused(false)
+            .focusable(false)
             .visible(false)
             .position(pos.x as f64 / scale, pos.y as f64 / scale)
             .inner_size(size.width as f64 / scale, size.height as f64 / scale)
@@ -102,7 +103,11 @@ pub fn rebuild(
                 ns.setCanHide(false);
                 ns.setAcceptsMouseMovedEvents(true);
                 ns.setHidesOnDeactivate(false);
+                // Tauri show() makes this the key window on macOS. Order it without
+                // activation so enabling artwork preserves the editor and app focus.
+                ns.orderFrontRegardless();
             }
+            #[cfg(not(target_os = "macos"))]
             window.show().map_err(|e| e.to_string())?;
             #[cfg(target_os = "macos")]
             if let Some(space) = &target {

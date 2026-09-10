@@ -11,7 +11,7 @@
 
 - macOS development uses `scripts/macos-tauri-cargo.sh` and `run-macos-dev-app.sh` to run from a generated `PlinthDev.app` with its icon. Keep the Cargo executable as a physical hard link, not a symlink.
 
-- The desktop is a transparent Tauri window at the macOS desktop-icon level plus one. Native pointer tracking checks the topmost window; avoid changing focus to implement hover.
+- The desktop is a transparent Tauri window at the macOS desktop-icon level plus one. Native pointer tracking checks the topmost window; avoid changing focus to implement hover. Desktop windows must be nonfocusable and appear via `orderFrontRegardless` on macOS; Tauri `show()` makes a window key. Verify enable/disable focus with the isolated `desktop-focus` example.
 - Production has no HTTP server. Native imports and metadata live under the `com.plinth.desktop` OS data directory. Never point test imports at the real library.
 - Browser demo mode (`?demo=1`) uses generated SVG artwork and fictional records. Keep README captures in this mode.
 - Load sharp with `createRequire` in Playwright tests; Node 24.2 has an ESM/semver loader issue with direct imports under Playwright.
@@ -32,7 +32,7 @@
 - Option-Q / Option-W navigate pages with wraparound. Remember the main window size; keep the collection full-width with modest gutters.
 
 - Collection cards edit from artwork, captions, and caption spacing; bottom artwork actions are Edit and View. View opens the original gallery directly. Keep the gallery cursor normal and return to the prior view on any click (including the image) or Escape.
-- Command-A adds artwork from Collection except inside text fields. Add artwork shows a Cmd A hint on Collection, with no plus icon. Enter saves anywhere in the album editor; preserve gallery and quit-dialog keyboard behavior. Label the button Save with an Enter hint.
+- Command-A adds artwork from Collection except inside text fields. Add artwork shows a Cmd + A hint on Collection, with an SVG plus between the keys and no leading icon. Enter saves anywhere in the album editor; preserve gallery and quit-dialog keyboard behavior. Label the button Save with an Enter hint.
 
 - History sits between Appearance and Settings. Record every saved library mutation through `library::save`; active data and history must remain in one atomic `library.json` write. Preserve abandoned states and retained artwork, and apply native desktop/branding/menu effects when restoring. Command-Z / Shift-Command-Z navigate saved states outside text fields and modals.
 - Row spacing defaults to Auto (`rowGap: null`), balancing clearance below the menu bar with clearance below the last row. Share the geometry between desktop and preview; preserve saved numeric overrides. Do not reintroduce artwork opacity or surrounding-cover dimming.
