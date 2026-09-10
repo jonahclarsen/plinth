@@ -9,15 +9,17 @@ Plinth is a macOS menu bar app that turns your album artwork into an interactive
 ## What it does
 
 - **Drop artwork in.** Import individual images. Plinth preserves originals, creates optimized JPEGs up to 1200 px, and skips exact duplicates. PNG, JPEG, WebP, GIF (first frame), TIFF, and BMP are supported.
-- **Make it yours.** Change columns, spacing, top clearance, scroll space, corner radius, shadow, opacity, hover size, and ordering in the UI. Choose a Mac display or 4K monitor preview with the actual display proportions and a separate layout for each.
-- **Keep your music close.** Click a desktop cover to reveal its album in Apple Music, or open its saved HTTPS link. Edit titles, artists, release dates, links, and desktop visibility in the collection. The editor shows original artwork, with download and replace buttons; drop a single image onto it to replace it. The collection and desktop use optimized copies.
+- **Make it yours.** Change columns, spacing, top clearance, scroll space, corner radius, shadow, opacity, hover size, and ordering in the UI. Sort by artist, title, newest date, oldest date, or shuffle; choosing Shuffled again creates a new order. Choose a Mac display or 4K monitor preview with the actual display proportions and a separate layout for each.
+- **Keep your music close.** Click a desktop cover to reveal its album in Apple Music, or open its saved HTTPS link. Edit titles, artists, release dates, links, and desktop visibility in the collection. The editor shows large original artwork, with download and replace controls that fade in on hover; drop a single image onto it to replace it. The collection and desktop use optimized copies.
 - **Hover without switching apps.** Native macOS pointer tracking enlarges covers over exposed desktop areas while another app retains focus. Covers stay behind normal windows; moving over another window clears the hover.
-- **Stay in the menu bar.** Plinth appears in the Dock while its window is open. Closing the window or pressing Command-W hides it and keeps the desktop running. Command-Q offers Hide window, Quit Plinth, and Cancel. The menu bar icon opens Plinth, pauses the desktop, refreshes displays, or quits.
+- **Stay in the menu bar.** Plinth appears in the Dock while its window is open. Closing the window or pressing Command-W hides it and keeps the desktop running. Command-Q offers Hide window, Quit Plinth, and Cancel. Left-click the menu bar icon to open Plinth. Right-click for Open Plinth, Hide desktop / Show desktop, and Quit Plinth.
 - **Keep everything local.** No account, cloud service, analytics, or encryption setup. The production app does not run an HTTP server or depend on Plash or Python.
 
 ![Live appearance controls](docs/screenshots/appearance.webp)
 
 ![App settings](docs/screenshots/settings.webp)
+
+![Original artwork and hover controls](docs/screenshots/album.webp)
 
 The screenshots contain only synthetic artwork and fictional album metadata. No personal music collection is included in this repository.
 
@@ -27,7 +29,9 @@ Launch `Plinth.app`, choose **Add artwork**, or drop image files into the librar
 
 Missing albums show a native macOS alert. The first Music action may ask for macOS Automation permission. Library mode searches album titles in your local Music library; link mode opens the URL you saved. No Apple Music API credentials are needed.
 
-The desktop is a transparent native window above the wallpaper and desktop icons, below ordinary windows. It can receive clicks and scrolling. Covers enlarge without activating Plinth; this does not draw over your foreground apps. Use the menu bar’s **Refresh displays** after changing monitor arrangements. Add Plinth in **System Settings → General → Login Items** if you want it to start at login.
+The desktop is a transparent native window above the wallpaper and desktop icons, below ordinary windows. It can receive clicks and scrolling. Covers enlarge without activating Plinth; this does not draw over your foreground apps. Restart Plinth after changing monitor arrangements. Add Plinth in **System Settings → General → Login Items** if you want it to start at login.
+
+Option-Q and Option-W move to the previous or next page, wrapping at either end. Window size is remembered when you close or quit; new installations open at 900 × 720 points.
 
 ## Local data and backups
 
@@ -37,6 +41,7 @@ On macOS, data is stored under:
 ~/Library/Application Support/com.plinth.desktop/
   library.json           # Album metadata and appearance settings
   library.previous.json  # Previous saved database
+  window.json            # Remembered main-window size
   originals/             # Unmodified imported images
   covers/                # Optimized desktop JPEGs
 ```

@@ -5,9 +5,17 @@ use library::{Album, Library, Settings};
 use std::{path::PathBuf, process::Command, sync::Mutex};
 use tauri::{
     menu::{Menu, MenuItem},
-    tray::TrayIconBuilder,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, State,
 };
+struct DesktopMenu(MenuItem<tauri::Wry>);
+fn desktop_action(enabled: bool) -> &'static str {
+    if enabled {
+        "Hide desktop"
+    } else {
+        "Show desktop"
+    }
+}
 struct Store {
     dir: PathBuf,
     library: Mutex<Library>,
@@ -20,6 +28,13 @@ fn editor(window: &tauri::WebviewWindow) -> Result<(), String> {
     }
 }
 fn broadcast(app: &tauri::AppHandle, library: &Library) {
+    let handle = app.clone();
+    let enabled = library.settings.desktop_enabled;
+    let _ = app.run_on_main_thread(move || {
+        if let Some(menu) = handle.try_state::<DesktopMenu>() {
+            let _ = menu.0.set_text(desktop_action(enabled));
+        }
+    });
     let _ = app.emit("library-changed", library);
 }
 #[tauri::command]
@@ -282,6 +297,44 @@ fn reveal_data(window: tauri::WebviewWindow, store: State<Store>) -> Result<(), 
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+fn remember_window_size(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        if let (Ok(size), Ok(scale)) = (w.inner_size(), w.scale_factor()) {
+            if size.width == 0 || size.height == 0 {
+                return;
+            }
+            let dir = library::data_dir();
+            let _ = std::fs::create_dir_all(&dir);
+            let value = serde_json::json!({"width":size.width as f64/scale,"height":size.height as f64/scale});
+            if std::fs::write(dir.join("window.json.tmp"), value.to_string()).is_ok() {
+                let _ = std::fs::rename(dir.join("window.json.tmp"), dir.join("window.json"));
+            }
+        }
+    }
+}
+fn restore_window_size(app: &tauri::AppHandle) {
+    let result = (|| -> Option<()> {
+        let data = std::fs::read(library::data_dir().join("window.json")).ok()?;
+        let size: serde_json::Value = serde_json::from_slice(&data).ok()?;
+        let w = app.get_webview_window("main")?;
+        let width = size["width"].as_f64()?;
+        let height = size["height"].as_f64()?;
+        if !width.is_finite() || !height.is_finite() {
+            return None;
+        }
+        let monitor = w.current_monitor().ok()??;
+        let scale = monitor.scale_factor();
+        let max_width = (monitor.size().width as f64 / scale).max(640.);
+        let max_height = (monitor.size().height as f64 / scale - 50.).max(500.);
+        let _ = w.set_size(tauri::LogicalSize::new(
+            width.clamp(640., max_width),
+            height.clamp(500., max_height),
+        ));
+        let _ = w.center();
+        Some(())
+    })();
+    let _ = result;
+}
 fn show_main(app: &tauri::AppHandle) {
     #[cfg(target_os = "macos")]
     let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
@@ -291,6 +344,7 @@ fn show_main(app: &tauri::AppHandle) {
     }
 }
 fn hide_main(app: &tauri::AppHandle) {
+    remember_window_size(app);
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.hide();
     }
@@ -312,6 +366,7 @@ fn hide_window(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<()
 #[tauri::command]
 fn quit_app(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
     editor(&window)?;
+    remember_window_size(&app);
     app.exit(0);
     Ok(())
 }
@@ -375,12 +430,18 @@ fn main() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let open = MenuItem::with_id(app, "open", "Open Plinth", true, None::<&str>)?;
+            let enabled = app
+                .state::<Store>()
+                .library
+                .lock()
+                .unwrap()
+                .settings
+                .desktop_enabled;
             let toggle =
-                MenuItem::with_id(app, "toggle", "Show / hide desktop", true, None::<&str>)?;
-            let refresh =
-                MenuItem::with_id(app, "refresh", "Refresh displays", true, None::<&str>)?;
+                MenuItem::with_id(app, "toggle", desktop_action(enabled), true, None::<&str>)?;
+            app.manage(DesktopMenu(toggle.clone()));
             let quit = MenuItem::with_id(app, "quit", "Quit Plinth", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open, &toggle, &refresh, &quit])?;
+            let menu = Menu::with_items(app, &[&open, &toggle, &quit])?;
             TrayIconBuilder::new()
                 .icon(tauri::image::Image::from_bytes(include_bytes!(
                     "../icons/tray.png"
@@ -388,6 +449,17 @@ fn main() {
                 .icon_as_template(true)
                 .tooltip("Plinth — your records, on your desktop")
                 .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        show_main(tray.app_handle());
+                    }
+                })
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "open" => show_main(app),
                     "quit" => request_quit(app),
@@ -401,15 +473,6 @@ fn main() {
                             }
                         };
                     }
-                    "refresh" => {
-                        let store = app.state::<Store>();
-                        let enabled = store
-                            .library
-                            .lock()
-                            .map(|l| l.settings.desktop_enabled)
-                            .unwrap_or(false);
-                        let _ = desktop::rebuild(app, enabled);
-                    }
                     _ => {}
                 })
                 .build(app)?;
@@ -422,6 +485,7 @@ fn main() {
                 .desktop_enabled;
             desktop::rebuild(app.handle(), enabled)?;
             desktop::start_pointer_tracking(app.handle().clone());
+            restore_window_size(app.handle());
             show_main(app.handle());
             Ok(())
         })
