@@ -15,8 +15,8 @@
       {
         "label": "main",
         "title": "Plinth",
-        "width": 900,
-        "height": 720,
+        "width": 1550,
+        "height": 840,
         "minWidth": 640,
         "minHeight": 500,
         "titleBarStyle": "Overlay",
