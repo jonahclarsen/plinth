@@ -86,3 +86,5 @@ Work on a task branch in a separate Git worktree, verify it, merge into `main`, 
 This is the first local macOS build. Distribution signing, notarization, automatic updates, automatic display hot-plug handling, and a packaged Windows/Linux desktop implementation are not included. Transparent macOS webviews use Tauri’s `macos-private-api` feature; this build targets direct local installation.
 
 Inspired by [Plash](https://github.com/sindresorhus/Plash) and Desktop Album Art. Plash’s preserved MIT-licensed source informed the native desktop window behavior; its notice is retained in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Trilly inspired the UI’s typography, iridescent palette, and controls. No Plash telemetry, service credentials, or app identity is reused.
+
+On macOS, `pnpm run dev` launches the Cargo executable from a generated `PlinthDev.app` in the build directory, with Plinth’s Dock icon and bundle metadata. The runner preserves hot reload and terminal output. The bundle is a build artifact and is never installed automatically.
