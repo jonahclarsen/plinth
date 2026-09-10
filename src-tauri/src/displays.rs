@@ -9,6 +9,8 @@ pub struct DisplayInfo {
     pub height: u64,
     pub logical_width: u64,
     pub logical_height: u64,
+    #[serde(default)]
+    pub menu_bar_height: f64,
     pub built_in: bool,
     pub current: bool,
     pub remembered: bool,
@@ -50,7 +52,8 @@ fn remember_internal(displays: &mut Vec<DisplayInfo>, path: &Path) {
 #[cfg(target_os = "macos")]
 pub fn detect(window: &tauri::WebviewWindow, dir: &Path) -> Result<Vec<DisplayInfo>, String> {
     use core_graphics::display::CGDisplay;
-    use objc2_app_kit::NSWindow;
+    use objc2::MainThreadMarker;
+    use objc2_app_kit::{NSScreen, NSWindow};
     use objc2_foundation::{ns_string, NSNumber};
     // Unlike NSScreen / available_monitors, this includes sleeping and mirrored panels.
     #[link(name = "CoreGraphics", kind = "framework")]
@@ -73,6 +76,8 @@ pub fn detect(window: &tauri::WebviewWindow, dir: &Path) -> Result<Vec<DisplayIn
         return Err("Could not detect displays".into());
     }
     ids.truncate(count as usize);
+    let mtm = MainThreadMarker::new().ok_or("Display detection requires the main thread")?;
+    let screens = NSScreen::screens(mtm);
     let mut displays = Vec::new();
     for id in ids {
         let display = CGDisplay::new(id);
@@ -83,6 +88,28 @@ pub fn detect(window: &tauri::WebviewWindow, dir: &Path) -> Result<Vec<DisplayIn
                 height: mode.pixel_height(),
                 logical_width: mode.width(),
                 logical_height: mode.height(),
+                menu_bar_height: screens
+                    .iter()
+                    .find(|screen| {
+                        screen
+                            .deviceDescription()
+                            .objectForKey(ns_string!("NSScreenNumber"))
+                            .and_then(|number| {
+                                number
+                                    .downcast_ref::<NSNumber>()
+                                    .map(|number| number.unsignedIntValue())
+                            })
+                            == Some(id)
+                    })
+                    .map(|screen| {
+                        let frame = screen.frame();
+                        let visible = screen.visibleFrame();
+                        (frame.origin.y + frame.size.height
+                            - visible.origin.y
+                            - visible.size.height)
+                            .max(0.)
+                    })
+                    .unwrap_or(0.),
                 built_in: display.is_builtin(),
                 current: current == Some(id),
                 remembered: false,
@@ -111,6 +138,7 @@ pub fn detect(window: &tauri::WebviewWindow, _dir: &Path) -> Result<Vec<DisplayI
             height: m.size().height as u64,
             logical_width: (m.size().width as f64 / m.scale_factor()) as u64,
             logical_height: (m.size().height as f64 / m.scale_factor()) as u64,
+            menu_bar_height: 0.,
             built_in: false,
             current: current.as_ref() == Some(m),
             remembered: false,
@@ -130,6 +158,7 @@ mod tests {
             height: 1964,
             logical_width: 1512,
             logical_height: 982,
+            menu_bar_height: 37.,
             built_in: true,
             current: true,
             remembered: false,

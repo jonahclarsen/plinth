@@ -9,13 +9,16 @@ Plinth is a macOS menu bar app that turns your album artwork into an interactive
 ## What it does
 
 - **Drop artwork in.** Import individual images. Plinth preserves originals, creates optimized JPEGs up to 1200 px, and skips exact duplicates. PNG, JPEG, WebP, GIF (first frame), TIFF, and BMP are supported.
-- **Make it yours.** Change columns, spacing, top clearance, corner radius, shadow, opacity, hover size, and ordering in the UI. Sort by artist, title, newest date, oldest date, or shuffle; choosing Shuffled again creates a new order. Choose a Mac display or 4K monitor preview with a separate layout for each. Appearance selects the display containing the Plinth window and uses detected pixel dimensions and scaling. The Mac preview identifies the built-in panel, even when another display is primary. If macOS hides that panel with the lid closed, Plinth uses its last detected dimensions; before the first detection, it shows “Not detected.”
+- **Make it yours.** Change columns, spacing, top clearance, corner radius, shadow, hover size, and ordering in the UI. Sort by artist, title, newest date, oldest date, or shuffle; choosing Shuffled again creates a new order. Choose a Mac display or 4K monitor preview with a separate layout for each. Appearance selects the display containing the Plinth window and uses detected pixel dimensions and scaling. The Mac preview identifies the built-in panel, even when another display is primary. If macOS hides that panel with the lid closed, Plinth uses its last detected dimensions; before the first detection, it shows “Not detected.”
 - **Keep your music close.** Click a desktop cover to reveal its album in Apple Music, or open its saved HTTPS link. Edit titles, artists, release dates, links, and desktop visibility in the collection. The editor shows large original artwork, with Finder and upload controls that fade in on hover; drop a single image onto it to replace it. Click the artwork to view it nearly full screen, then click the dimmed background or press Escape to return to the editor. The folder button reveals the original in Finder; the upload button replaces it. Open in Music has a padded button, and Save also responds to Enter anywhere in the editor. The collection and desktop use optimized copies.
 - **Hover without switching apps.** Hold the Hover size slider to preview a randomly selected album at the chosen enlargement; release to return it to normal. Native macOS pointer tracking enlarges covers over exposed desktop areas while another app retains focus. Covers stay behind normal windows; moving over another window clears the hover.
 - **Stay in the menu bar.** Plinth appears in the Dock while its window is open. Closing the window or pressing Command-W hides it and keeps the desktop running. Command-Q opens a dialog with Cancel (Escape), Hide window (Command-W) in the middle, and Quit Plinth (Command-Q). No action is selected by default; Return does nothing until you focus a button. Left-click the menu bar icon to open Plinth. Right-click for Open Plinth, Hide desktop / Show desktop, and Quit Plinth.
+- **Revisit every saved change.** History sits between Appearance and Settings. Undo with Command-Z, redo with Shift-Command-Z, or restore any listed state. Imports, removals, metadata, artwork replacements, appearance, and app settings are included. Each entry shows when it was saved and what changed. New edits after undo keep the abandoned states available to restore. Text fields keep their normal text undo.
 - **Keep everything local.** No account, cloud service, analytics, or encryption setup. The production app does not run an HTTP server or depend on Plash or Python.
 
 ![Live appearance controls](docs/screenshots/appearance.webp)
+
+![Saved changes and earlier states](docs/screenshots/history.webp)
 
 ![App settings](docs/screenshots/settings.webp)
 
@@ -33,7 +36,9 @@ Launch `Plinth.app`, choose **Add artwork**, or drop image files into the librar
 
 Missing albums show a native macOS alert. The first Music action may ask for macOS Automation permission. Library mode searches album titles in your local Music library; link mode opens the URL you saved. No Apple Music API credentials are needed.
 
-The Collection page and desktop album list do not scroll. Albums beyond the visible area are clipped; use Collection search to find a specific record. Appearance controls and album editors remain scrollable when needed.
+Collection and History scroll to show every album and saved state. The desktop album list does not scroll; albums beyond its visible area are clipped. Appearance controls and album editors remain scrollable when needed.
+
+Space between rows defaults to **Auto**, which balances the gap below the menu bar with the gap below the last row using each display’s size. A single row is centered vertically. Crowded layouts use zero spacing instead of overlapping; increase Columns if the albums cannot fit. Existing saved numeric spacing remains manual; choose Auto or Layout Reset to use balanced spacing. Artwork opacity and surrounding-cover dimming are no longer applied.
 
 The desktop is a transparent native window above the wallpaper and desktop icons, below ordinary windows. It receives clicks and does not scroll. Incomplete rows are centered; use the Columns setting to fit more covers on screen. Covers enlarge without activating Plinth; this does not draw over your foreground apps. Restart Plinth after changing monitor arrangements. Add Plinth in **System Settings → General → Login Items** if you want it to start at login.
 
@@ -45,7 +50,7 @@ On macOS, data is stored under:
 
 ```text
 ~/Library/Application Support/com.plinth.desktop/
-  library.json           # Album metadata and appearance settings
+  library.json           # Current library, settings, and saved history
   library.previous.json  # Previous saved database
   window.json            # Remembered main-window size
   internal-display.json  # Last detected built-in panel dimensions
@@ -54,6 +59,8 @@ On macOS, data is stored under:
 ```
 
 Use **Settings → Local storage → Open folder** to find it. Back up the entire folder. Removing an album removes it from the collection but retains its stored image files. Imports copy files; they never move or delete the source images.
+
+History starts with your current collection when this version first opens; changes made before that cannot be reconstructed. History and the active state are saved together in `library.json` and survive restarts, including the undo/redo position. Snapshots reference retained artwork files, so keep the `originals/` and `covers/` directories with your backup. Restoring a state updates the desktop, app logo, and menu-bar visibility setting too. Unsaved editor text, temporary hover previews, page navigation, and window size are outside library history. Browser demo history lasts for the current session.
 
 Existing Desktop Album Art filenames such as `Artist - Album (2025-04-03) =album=album-slug=123.png` are understood automatically. Ordinary filenames also work; fill in their metadata in the editor.
 

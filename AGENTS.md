@@ -33,3 +33,6 @@
 
 - Collection cards edit from artwork, captions, and caption spacing; bottom artwork actions are Edit and View. View opens the original gallery directly. Keep the gallery cursor normal and return to the prior view on backdrop click or Escape.
 - Command-A adds artwork from Collection except inside text fields. Enter saves anywhere in the album editor; preserve gallery and quit-dialog keyboard behavior. Label the button Save with an Enter hint.
+
+- History sits between Appearance and Settings. Record every saved library mutation through `library::save`; active data and history must remain in one atomic `library.json` write. Preserve abandoned states and retained artwork, and apply native desktop/branding/menu effects when restoring. Command-Z / Shift-Command-Z navigate saved states outside text fields and modals.
+- Row spacing defaults to Auto (`rowGap: null`), balancing clearance below the menu bar with clearance below the last row. Share the geometry between desktop and preview; preserve saved numeric overrides. Do not reintroduce artwork opacity or surrounding-cover dimming.

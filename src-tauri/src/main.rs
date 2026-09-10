@@ -2,6 +2,7 @@
 mod branding;
 mod desktop;
 mod displays;
+mod history;
 mod library;
 use library::{Album, Library, Settings};
 use std::{path::PathBuf, process::Command, sync::Mutex};
@@ -62,18 +63,28 @@ fn save_settings(
     editor(&window)?;
     library::validate_settings(&settings)?;
     let mut lib = store.library.lock().map_err(|e| e.to_string())?;
-    let changed = lib.settings.desktop_enabled != settings.desktop_enabled
-        || lib.settings.all_spaces != settings.all_spaces;
-    let logo_changed = lib.settings.logo != settings.logo;
-    let logo = settings.logo;
+    let before = lib.settings.clone();
     let mut updated = lib.clone();
     updated.settings = settings;
     library::save(&store.dir, &updated)?;
     *lib = updated;
     broadcast(&app, &lib);
-    let enabled = lib.settings.desktop_enabled;
-    let all_spaces = lib.settings.all_spaces;
+    let after = lib.settings.clone();
     drop(lib);
+    apply_settings_effects(&app, &before, &after)
+}
+
+fn apply_settings_effects(
+    app: &tauri::AppHandle,
+    before: &Settings,
+    after: &Settings,
+) -> Result<(), String> {
+    let logo_changed = before.logo != after.logo;
+    let changed =
+        before.desktop_enabled != after.desktop_enabled || before.all_spaces != after.all_spaces;
+    let logo = after.logo;
+    let enabled = after.desktop_enabled;
+    let all_spaces = after.all_spaces;
     if logo_changed {
         let a = app.clone();
         app.run_on_main_thread(move || {
@@ -93,6 +104,43 @@ fn save_settings(
         .map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+#[tauri::command]
+async fn get_history(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+) -> Result<history::HistoryView, String> {
+    editor(&window)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let store = app.state::<Store>();
+        let _library = store.library.lock().map_err(|e| e.to_string())?;
+        history::list(&store.dir)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn navigate_history(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+    action: String,
+    id: Option<usize>,
+) -> Result<history::HistoryView, String> {
+    editor(&window)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let store = app.state::<Store>();
+        let mut library = store.library.lock().map_err(|e| e.to_string())?;
+        let before = library.settings.clone();
+        let (restored, history) = history::navigate(&store.dir, &action, id)?;
+        *library = restored;
+        broadcast(&app, &library);
+        let after = library.settings.clone();
+        drop(library);
+        apply_settings_effects(&app, &before, &after)?;
+        Ok(history)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 #[tauri::command]
 async fn import_images(
@@ -435,6 +483,8 @@ fn main() {
             show_alert,
             get_displays,
             get_library,
+            get_history,
+            navigate_history,
             save_settings,
             import_images,
             choose_images,
@@ -482,8 +532,10 @@ fn main() {
                     "toggle" => {
                         let store = app.state::<Store>();
                         if let Ok(mut lib) = store.library.lock() {
-                            lib.settings.desktop_enabled = !lib.settings.desktop_enabled;
-                            if library::save(&store.dir, &lib).is_ok() {
+                            let mut updated = lib.clone();
+                            updated.settings.desktop_enabled = !updated.settings.desktop_enabled;
+                            if library::save(&store.dir, &updated).is_ok() {
+                                *lib = updated;
                                 broadcast(app, &lib);
                                 let _ = desktop::rebuild(
                                     app,

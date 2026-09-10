@@ -2,11 +2,13 @@ import { invoke, convertFileSrc, isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { defaultSettings, type Album, type Library, type Settings } from './types'
 import { demoAlbums } from './demo'
+import { BrowserHistory, type HistoryView } from './history'
 export const native = isTauri()
 let dataDir = ''
 let browserLibrary: Library = { albums: new URLSearchParams(location.search).has('demo') ? demoAlbums : [], settings: structuredClone(defaultSettings) }
+const browserHistory=new BrowserHistory(browserLibrary)
 const listeners = new Set<(library: Library)=>void>()
-function changed() { for(const listener of listeners) listener(structuredClone(browserLibrary)) }
+function changed(record=true) { if(record)browserHistory.record(browserLibrary);for(const listener of listeners) listener(structuredClone(browserLibrary)) }
 export async function loadLibrary(): Promise<Library> {
  if (!native) return structuredClone(browserLibrary)
  const result = await invoke<{library: Library; dataDir:string}>('get_library'); dataDir=result.dataDir; return result.library
@@ -41,3 +43,9 @@ export async function replaceArtwork(album:Album,input:string|File):Promise<Albu
  const updated={...album,cover:canvas.toDataURL('image/jpeg',.9),original};browserLibrary.albums=browserLibrary.albums.map(a=>a.id===album.id?updated:a);changed();return updated
 }
 export async function showAlert(message:string){if(native)await invoke('show_alert',{message});else window.alert(message)}
+
+export async function getHistory():Promise<HistoryView>{return native?invoke('get_history'):browserHistory.view()}
+export async function navigateHistory(action:'undo'|'redo'|'restore',id?:number):Promise<HistoryView>{
+ if(native)return invoke('navigate_history',{action,id:id??null})
+ browserLibrary=browserHistory.navigate(action,id);changed(false);return browserHistory.view()
+}
