@@ -10,6 +10,8 @@
  export let viewportHeight:number|undefined=undefined
  let width=window.innerWidth
  let hovered=''
+ let sample=''
+ $: activeHover=preview&&sample?sample:(settings.hoverEnabled?hovered:'')
  let grid:HTMLDivElement
  let error=''
  $: settings=library.settings
@@ -22,6 +24,18 @@
   hovered=''
   for(const el of items) {const r=el.getBoundingClientRect();if(x>=r.left&&x<r.right&&y>=r.top&&y<r.bottom){hovered=el.dataset.id??'';break}}
  }
+ export function startHoverPreview() {
+  if(!preview||!grid)return
+  const surface=grid.parentElement!.getBoundingClientRect()
+  const cells=Array.from(grid.querySelectorAll<HTMLElement>('.desktop-cell'))
+  const visible=cells.filter(el=>{const r=el.getBoundingClientRect();return r.left>=surface.left&&r.right<=surface.right&&r.top>=surface.top&&r.bottom<=surface.bottom})
+  // Prefer artwork with room for the slider's maximum enlargement.
+  const roomy=visible.filter(el=>{const r=el.getBoundingClientRect();return r.left-r.width>=surface.left&&r.right+r.width<=surface.right&&r.top-r.height>=surface.top&&r.bottom+r.height<=surface.bottom})
+  const intersecting=cells.filter(el=>{const r=el.getBoundingClientRect();return r.right>surface.left&&r.left<surface.right&&r.bottom>surface.top&&r.top<surface.bottom})
+  const candidates=roomy.length?roomy:visible.length?visible:intersecting
+  sample=candidates[Math.floor(Math.random()*candidates.length)]?.dataset.id??''
+ }
+ export function stopHoverPreview() {sample=''}
  async function open(id:string) {try {if(!preview)await openAlbum(id)}catch(e){error=String(e);setTimeout(()=>error='',8000)}}
  onMount(()=>{let dispose=()=>{};let alive=true;if(native&&!preview) listen<{x:number;y:number;visible:boolean}>('desktop-pointer',e=>hoverAt(e.payload.x,e.payload.y,e.payload.visible)).then(fn=>{if(alive)dispose=fn;else fn()});return ()=>{alive=false;dispose()}})
 </script>
@@ -30,7 +44,7 @@
  <div class="desktop-grid" bind:this={grid} style={`--columns:${layout.columns};--gap:${layout.gap}px;--row-gap:${layout.rowGap}px;--top:${layout.top}px;--radius:${layout.radius}px;--shadow:${layout.shadow};--scale:${settings.hoverScale};--opacity:${settings.opacity}`}>
  {#each albums as album (album.id)}
   <div class="desktop-cell" data-id={album.id}>
-   <button use:swingScale={{active:hovered===album.id&&settings.hoverEnabled,factor:settings.hoverScale}} class:enlarged={hovered===album.id} class:dimmed={settings.dimOthers&&hovered!==''&&hovered!==album.id} class="desktop-cover" onclick={()=>open(album.id)} onfocus={()=>hovered=album.id} onblur={()=>hovered=''} aria-label={`Open ${album.title} by ${album.artist}`} title={`${album.artist} — ${album.title}`}><img src={coverUrl(album)} alt={album.title} draggable="false"/></button>
+   <button use:swingScale={{active:activeHover===album.id,factor:settings.hoverScale}} class:enlarged={activeHover===album.id} class:dimmed={settings.dimOthers&&activeHover!==''&&activeHover!==album.id} class="desktop-cover" onclick={()=>open(album.id)} onfocus={()=>hovered=album.id} onblur={()=>hovered=''} aria-label={`Open ${album.title} by ${album.artist}`} title={`${album.artist} — ${album.title}`}><img src={coverUrl(album)} alt={album.title} draggable="false"/></button>
   </div>
  {/each}
  </div>
