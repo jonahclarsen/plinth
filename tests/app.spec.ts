@@ -20,7 +20,7 @@ test('appearance updates preview and theme without errors',async({page})=>{
  await page.getByRole('button',{name:'Collection',exact:true}).click();await page.getByRole('button',{name:'Appearance',exact:true}).click()
  await expect(spaces.locator('option:checked')).toHaveText('This Space')
  await spaces.selectOption({label:'All Spaces'})
- const slider=page.getByRole('slider',{name:'Columns',exact:true});await slider.fill('8');await expect(page.locator('.preview-render .desktop-grid')).toHaveCSS('grid-template-columns',/.* /)
+ const slider=page.getByRole('slider',{name:'Columns',exact:true});await slider.fill('8');await expect(page.locator('.preview-render .desktop-grid')).toHaveCSS('--columns','8')
  await expect(page.locator('.slider-field').filter({has:slider}).locator('output')).toHaveText('8')
  await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'Light',exact:true}).click();await expect(page.locator('html')).toHaveAttribute('data-theme','light')
 })
@@ -93,4 +93,33 @@ test('quit modal defaults to hide and provides keyboard actions without leaking 
  await show();await page.keyboard.press('/');await expect(page.getByRole('button',{name:'Hide window',exact:true})).toBeFocused()
  await page.keyboard.press('Escape')
  await page.keyboard.down('Control');await page.keyboard.down('q');await page.keyboard.down('q');await expect(dialog).toBeVisible();await page.keyboard.up('q');await page.keyboard.up('Control')
+})
+
+test('desktop rows have equal margins, center incomplete rows, and cannot scroll',async({page})=>{
+ for(const width of [1180,1550,2560]) {
+  await page.setViewportSize({width,height:180})
+  await page.goto('/?demo=1&desktop=1')
+  await expect(page.locator('.desktop-cell')).toHaveCount(18)
+  const rows=await page.locator('.desktop-cell').evaluateAll(cells=>{
+   const rows:Record<string,{left:number;right:number;width:number}[]>={}
+   for(const cell of cells){const r=cell.getBoundingClientRect();(rows[r.top]??=[]).push({left:r.left,right:r.right,width:r.width})}
+   return Object.values(rows)
+  })
+  for(const row of rows){expect(Math.abs(row[0].left-(width-row.at(-1)!.right))).toBeLessThan(1);for(const cell of row)expect(cell.width).toBeCloseTo(rows[0][0].width,1)}
+  const surface=page.locator('.desktop-surface')
+  await expect(surface).toHaveCSS('overflow','clip')
+  await page.mouse.move(width/2,100);await page.mouse.wheel(0,600)
+  await surface.evaluate(el=>el.scrollTo(0,600))
+  expect(await surface.evaluate(el=>el.scrollTop)).toBe(0)
+  expect(await page.evaluate(()=>window.scrollY)).toBe(0)
+ }
+ await page.goto('/?demo=1');await page.getByRole('button',{name:'Appearance',exact:true}).click()
+ await expect(page.getByRole('slider',{name:'Bottom scroll space'})).toHaveCount(0)
+ await page.getByRole('slider',{name:'Columns',exact:true}).fill('7')
+ const rows=await page.locator('.preview-render .desktop-cell').evaluateAll(cells=>{
+  const rows:Record<string,DOMRect[]>={};for(const cell of cells){const r=cell.getBoundingClientRect();(rows[r.top]??=[]).push(r)}
+  return Object.values(rows).map(row=>({center:(row[0].left+row.at(-1)!.right)/2,count:row.length}))
+ })
+ expect(rows.map(row=>row.count)).toEqual([7,7,4])
+ for(const row of rows)expect(row.center).toBeCloseTo(rows[0].center,1)
 })
