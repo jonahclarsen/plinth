@@ -151,14 +151,18 @@ fn display(value: &Value) -> String {
     }
 }
 fn settings_details(before: &Settings, after: &Settings) -> Vec<String> {
+    let before_space = crate::spaces::label(before.all_spaces, before.target_space);
+    let after_space = crate::spaces::label(after.all_spaces, after.target_space);
     let before = serde_json::to_value(before).unwrap();
     let after = serde_json::to_value(after).unwrap();
     let mut details = vec![];
+    if before_space != after_space {
+        details.push(format!("Spaces: {before_space} → {after_space}"));
+    }
     let names = [
         ("theme", "App appearance"),
         ("logo", "App logo"),
         ("desktopEnabled", "Show desktop"),
-        ("allSpaces", "All Spaces"),
         ("openMode", "Music behavior"),
         ("sort", "Sort order"),
         ("shuffleSeed", "Shuffle order"),

@@ -52,6 +52,7 @@ pub struct Settings {
     pub theme: String,
     pub desktop_enabled: bool,
     pub all_spaces: bool,
+    pub target_space: Option<u8>,
     pub open_mode: String,
 }
 impl Default for Settings {
@@ -70,6 +71,7 @@ impl Default for Settings {
             theme: "dark".into(),
             desktop_enabled: true,
             all_spaces: true,
+            target_space: None,
             open_mode: "library".into(),
         }
     }
@@ -245,6 +247,11 @@ pub fn replace_artwork(
     Ok(library.albums[index].clone())
 }
 pub fn validate_settings(s: &Settings) -> Result<(), String> {
+    if s.target_space
+        .is_some_and(|number| !(1..=3).contains(&number) || s.all_spaces)
+    {
+        return Err("Choose All Spaces, This Space, or Space 1–3".into());
+    }
     for l in [&s.layout, &s.wide_layout] {
         if !(3..=30).contains(&l.columns)
             || ![l.gap, l.top, l.radius, l.shadow]
@@ -297,6 +304,45 @@ mod tests {
         let saved = serde_json::to_string(&library).unwrap();
         let restored: Library = serde_json::from_str(&saved).unwrap();
         assert!(!restored.settings.all_spaces);
+    }
+    #[test]
+    fn numbered_spaces_validate_migrate_and_round_trip_through_history() {
+        let legacy: Settings = serde_json::from_str(r#"{"allSpaces":false}"#).unwrap();
+        assert!(!legacy.all_spaces);
+        assert_eq!(legacy.target_space, None);
+        let dir =
+            std::env::temp_dir().join(format!("plinth-numbered-spaces-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let mut library = Library::default();
+        library.settings.all_spaces = false;
+        for number in 1..=3 {
+            library.settings.target_space = Some(number);
+            assert!(validate_settings(&library.settings).is_ok());
+            save(&dir, &library).unwrap();
+            assert_eq!(load(&dir).unwrap().settings.target_space, Some(number));
+        }
+        assert_eq!(
+            crate::history::navigate(&dir, "undo", None)
+                .unwrap()
+                .0
+                .settings
+                .target_space,
+            Some(2)
+        );
+        assert_eq!(
+            crate::history::navigate(&dir, "redo", None)
+                .unwrap()
+                .0
+                .settings
+                .target_space,
+            Some(3)
+        );
+        library.settings.all_spaces = true;
+        assert!(validate_settings(&library.settings).is_err());
+        library.settings.all_spaces = false;
+        library.settings.target_space = Some(4);
+        assert!(validate_settings(&library.settings).is_err());
+        fs::remove_dir_all(dir).unwrap();
     }
     #[test]
     fn imports_legacy_metadata() {
