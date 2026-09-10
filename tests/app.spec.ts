@@ -161,3 +161,54 @@ test('Collection scrolls to every album with wheel, keyboard and focus, includin
  await page.mouse.wheel(0,2400)
  await expect(last).toBeInViewport()
 })
+
+test('artwork gallery preserves editor changes and closes only the top modal',async({page})=>{
+ await page.goto('/?demo=1');await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
+ await page.getByLabel('Album title').fill('Unsaved title')
+ const artwork=page.locator('.editor-artwork'),viewer=page.getByRole('button',{name:'View original artwork',exact:true}),gallery=page.getByRole('dialog',{name:'Original artwork',exact:true})
+ await expect(viewer).toHaveCSS('cursor','default')
+ await artwork.hover()
+ const bounds=(await artwork.boundingBox())!
+ // The old controls captured this point, well above their visible icons.
+ await page.mouse.click(bounds.x+bounds.width/4,bounds.y+bounds.height-65)
+ await expect(gallery).toBeVisible()
+ const image=gallery.locator('img')
+ await expect(image).toHaveAttribute('src',(await artwork.locator('img').getAttribute('src'))!)
+ await expect(image).toHaveAttribute('draggable','false')
+ await expect(gallery).toHaveCSS('border-top-width','0px')
+ await expect(gallery).toHaveCSS('cursor','default')
+ const size=(await image.boundingBox())!
+ expect(size.height).toBeCloseTo(852,0);expect(size.width).toBeCloseTo(size.height,0)
+ await image.click();await expect(gallery).toBeVisible()
+ await page.mouse.move(size.x+size.width/2,size.y+size.height/2);await page.mouse.down();await page.mouse.move(5,5);await page.mouse.up()
+ await expect(gallery).toBeVisible()
+ await page.mouse.click(5,5);await expect(gallery).not.toBeVisible()
+ await expect(page.getByLabel('Album title')).toHaveValue('Unsaved title')
+ await expect(viewer).toBeFocused()
+ await page.keyboard.press('Enter');await expect(gallery).toBeVisible()
+ await page.keyboard.press('Escape');await expect(gallery).not.toBeVisible()
+ await expect(page.locator('.album-dialog')).toBeVisible()
+ await expect(page.getByLabel('Album title')).toHaveValue('Unsaved title')
+ const chooser=page.waitForEvent('filechooser')
+ await page.getByRole('button',{name:'Replace artwork',exact:true}).click();await chooser
+ await expect(gallery).not.toBeVisible()
+ const download=page.waitForEvent('download')
+ await page.getByRole('button',{name:'Download original artwork',exact:true}).click();await download
+ await expect(gallery).not.toBeVisible()
+ await page.keyboard.press('Escape');await expect(page.locator('.album-dialog')).not.toBeVisible()
+})
+
+test('gallery fits landscape and portrait originals without distortion',async({page})=>{
+ await page.goto('/?demo=1');await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
+ for(const [width,height] of [[160,80],[80,160]]){
+  await page.getByLabel('Replacement image').setInputFiles({name:'aspect.png',mimeType:'image/png',buffer:await sharp({create:{width,height,channels:3,background:'#c8724c'}}).png().toBuffer()})
+  await expect(page.locator('.editor-artwork')).not.toHaveClass(/replacing/)
+  await page.getByRole('button',{name:'View original artwork',exact:true}).click()
+  const image=page.locator('.artwork-gallery img')
+  await expect.poll(async()=>{const box=(await image.boundingBox())!;return box.width/box.height}).toBeCloseTo(width/height,2)
+  const box=(await image.boundingBox())!
+  expect(box.width).toBeLessThanOrEqual(1132);expect(box.height).toBeLessThanOrEqual(852)
+  expect(Math.max(box.width/1132,box.height/852)).toBeCloseTo(1,2)
+  await page.keyboard.press('Escape')
+ }
+})
