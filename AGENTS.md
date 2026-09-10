@@ -20,7 +20,7 @@
 
 - Use concise labels instead of promotional taglines, especially in Settings.
 - App appearance uses clickable System, Light, and Dark circles.
-- Clicking a modal backdrop closes the modal; interacting inside it does not.
+- Clicking a modal backdrop closes the modal; interacting inside it does not, except the artwork gallery, which closes on any click including the image.
 - A missing album in Apple Music shows a native macOS alert, without a duplicate in-app notification.
 - Artwork import accepts image files only. Do not add folder-import controls or directory traversal.
 - Reuse the desktop renderer in the scaled screen preview. Keep the 250 ms / 251 ms jQuery swing hover timing consistent in both places.
@@ -31,7 +31,7 @@
 - Original artwork in the modal is large, with two subtle hover actions across its bottom edge. Disable dragging internal images; accept external image drops.
 - Option-Q / Option-W navigate pages with wraparound. Remember the main window size; keep the collection full-width with modest gutters.
 
-- Collection cards edit from artwork, captions, and caption spacing; bottom artwork actions are Edit and View. View opens the original gallery directly. Keep the gallery cursor normal and return to the prior view on backdrop click or Escape.
+- Collection cards edit from artwork, captions, and caption spacing; bottom artwork actions are Edit and View. View opens the original gallery directly. Keep the gallery cursor normal and return to the prior view on any click (including the image) or Escape.
 - Command-A adds artwork from Collection except inside text fields. Enter saves anywhere in the album editor; preserve gallery and quit-dialog keyboard behavior. Label the button Save with an Enter hint.
 
 - History sits between Appearance and Settings. Record every saved library mutation through `library::save`; active data and history must remain in one atomic `library.json` write. Preserve abandoned states and retained artwork, and apply native desktop/branding/menu effects when restoring. Command-Z / Shift-Command-Z navigate saved states outside text fields and modals.
