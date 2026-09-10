@@ -8,6 +8,9 @@
  import Logo from './lib/Logo.svelte'
  import { logos, logoUrl } from './lib/logos'
  import Desktop from './lib/Desktop.svelte'
+ import { desktopSpacing } from './lib/spacing'
+ import History from './lib/History.svelte'
+ import { emptyHistory, type HistoryView } from './lib/history'
  import * as api from './lib/api'
  import { defaultSettings, ordered, type Library, type Album, type Layout } from './lib/types'
  const desktop=new URLSearchParams(location.search).has('desktop')
@@ -16,6 +19,8 @@
  const sortOptions=[{value:'artist',label:'Artist'},{value:'title',label:'Title'},{value:'date',label:'Newest date'},{value:'oldest',label:'Oldest date'},{value:'shuffle',label:'Shuffled'}]
  function chooseSort(value:string){library.settings.sort=value;if(value==='shuffle'){const next=new Uint32Array(1);do{crypto.getRandomValues(next)}while(next[0]===library.settings.shuffleSeed);library.settings.shuffleSeed=next[0]}sortOpen=false;persist()}
  let page='collection',query='',busy=false,loaded=false,error='',notice='',dragging=false
+ let history:HistoryView=emptyHistory,historyBusy=false,historyLoading=false
+ let historyRequest=0
  let edit:Album|null=null,confirmRemove=false
  let profile:'layout'|'wideLayout'='layout'
  let replacementFiles:HTMLInputElement
@@ -33,6 +38,7 @@
  let galleryBackdropDown=false
  let artworkRatio=1
  let backdropPointerDown=false
+ function editingText(target:EventTarget|null){return target instanceof Element&&(!!target.closest('textarea,[contenteditable]')||(target instanceof HTMLInputElement&&!['range','checkbox','radio','file','button','submit','reset','color'].includes(target.type)))}
  function outsideDialog(dialog:HTMLDialogElement,e:PointerEvent) {const r=dialog.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom}
  let desktopPreview:Desktop|undefined
  function startHoverPreview(event:PointerEvent) {
@@ -42,7 +48,7 @@
  }
  function stopHoverPreview(){desktopPreview?.stopHoverPreview()}
  let previewWidth=0
- let screens=api.native?previewDisplays([]).screens:{layout:{width:1280,height:800,pixels:'2560 × 1600'},wideLayout:{width:1920,height:1080,pixels:'3840 × 2160'}}
+ let screens=api.native?previewDisplays([]).screens:{layout:{width:1280,height:800,menuBarHeight:24,pixels:'2560 × 1600'},wideLayout:{width:1920,height:1080,menuBarHeight:24,pixels:'3840 × 2160'}}
  let currentDisplayId:number|undefined
  let displayRequest=0
  async function refreshDisplays(selectCurrent=false) {
@@ -56,7 +62,7 @@
   } catch { /* Keep the last preview if a display is disconnected during detection. */ }
  }
  let previousPage=page
- $: if(page!==previousPage){previousPage=page;if(page==='appearance'&&api.native)void refreshDisplays(true)}
+ $: if(page!==previousPage){previousPage=page;if(page==='appearance'&&api.native)void refreshDisplays(true);if(page==='history')void loadHistoryPage()}
  $: screen=screens[profile]
  let mediaDark=window.matchMedia('(prefers-color-scheme: dark)').matches
  let saveQueue=Promise.resolve()
@@ -65,6 +71,7 @@
  $: settings=library.settings
  $: layout=settings[profile]
  $: enabled=library.albums.filter(a=>a.enabled)
+ $: rowSpacing=desktopSpacing(layout,screen.width,screen.height,enabled.length,screen.menuBarHeight)
  $: filtered=ordered(library.albums.filter(a=>`${a.title} ${a.artist}`.toLowerCase().includes(query.toLowerCase())),settings.sort,settings.shuffleSeed)
  $: artists=new Set(library.albums.map(a=>a.artist).filter(Boolean)).size
  $: if(typeof document!=='undefined') {document.documentElement.dataset.theme=settings.theme==='system'?(mediaDark?'dark':'light'):settings.theme;document.documentElement.classList.toggle('desktop-document',desktop)}
@@ -76,7 +83,7 @@
   const snapshot=structuredClone(library.settings)
   saveTimer=setTimeout(()=>{saveQueue=saveQueue.then(()=>api.saveSettings(snapshot)).then(()=>{if(revision===settingsRevision)settingsDirty=false}).catch(e=>{error=String(e)})},100)
  }
- function changeLayout(key:keyof Layout,value:number) {library.settings[profile]={...layout,[key]:value};persist()}
+ function changeLayout(key:keyof Layout,value:number|null) {library.settings[profile]={...layout,[key]:value};persist()}
  async function importPaths(paths:string[]) {if(!paths.length)return;busy=true;error='';try{const r=await api.importPaths(paths);message(`${r.added} artwork${r.added===1?'':'s'} added${r.duplicates?` · ${r.duplicates} already in your collection`:''}`);if(r.errors.length)error=r.errors.join('\n')}catch(e){error=String(e)}finally{busy=false}}
  async function choose() {if(!api.native){files.click();return}try{await importPaths(await api.chooseImages())}catch(e){error=String(e)}}
  async function browserFiles(selected:File[]) {busy=true;try{const r=await api.importBrowserFiles(selected);message(`${r.added} artworks added${r.duplicates?` · ${r.duplicates} already in your collection`:''}`);if(r.errors.length)error=r.errors.join('\n')}catch(e){error=String(e)}finally{busy=false}}
@@ -88,6 +95,26 @@
  function closeGallery(){gallery.close();galleryAlbum=null}
  function showQuit(){if(!quitDialog?.open){quitDialog?.showModal();quitHeading?.focus()}}
  async function flushSettings(){clearTimeout(saveTimer);await saveQueue;if(settingsDirty){await api.saveSettings(structuredClone(library.settings));settingsDirty=false}}
+ async function refreshHistory(){
+  if(desktop)return
+  const request=++historyRequest;historyLoading=true
+  try{const result=await api.getHistory();if(request===historyRequest)history=result??emptyHistory}catch(e){if(request===historyRequest)error=String(e)}finally{if(request===historyRequest)historyLoading=false}
+ }
+ async function loadHistoryPage(){try{await flushSettings();await refreshHistory()}catch(e){error=String(e)}}
+ async function moveHistory(action:'undo'|'redo'|'restore',id?:number){
+  if(historyBusy||busy||saving||replacing||modal?.open||gallery?.open||quitDialog?.open)return
+  historyBusy=true;error=''
+  try{
+   await flushSettings()
+   const current=await api.getHistory()
+   if((action==='undo'&&!current.canUndo)||(action==='redo'&&!current.canRedo))return
+   history=await api.navigateHistory(action,id)
+   library=await api.loadLibrary()
+   await refreshHistory()
+   message(action==='undo'?'Change undone':action==='redo'?'Change redone':'History state restored')
+  }catch(e){error=String(e)}finally{historyBusy=false}
+ }
+
  async function hideWindow(){try{await flushSettings();quitDialog?.close();if(api.native)await invoke('hide_window')}catch{await api.showAlert('The window could not be hidden.')}}
  async function quitApp(){try{await flushSettings();if(api.native)await invoke('quit_app');else quitDialog.close()}catch{await api.showAlert('Plinth could not quit.')}}
  function closeEditor(){gallery?.close();edit=null;confirmRemove=false;modal?.close()}
@@ -99,8 +126,8 @@
   const media=window.matchMedia('(prefers-color-scheme: dark)');const updateMedia=()=>mediaDark=media.matches;media.addEventListener('change',updateMedia)
   ;(async()=>{try{
    // Subscribe before loading so imports from another window cannot be missed.
-   const sub=await api.subscribe(next=>{library=settingsDirty?{...next,settings:library.settings}:next});if(!live){sub();return}disposers.push(sub)
-   library=await api.loadLibrary();loaded=true
+   const sub=await api.subscribe(next=>{library=settingsDirty?{...next,settings:library.settings}:next;void refreshHistory()});if(!live){sub();return}disposers.push(sub)
+   library=await api.loadLibrary();loaded=true;void refreshHistory()
    if(api.native){
     if(!desktop){
      await refreshDisplays(true)
@@ -129,18 +156,19 @@
 </script>
 
  <svelte:head><link rel="icon" type="image/png" href={logoUrl(settings.logo)}/><link rel="apple-touch-icon" href={logoUrl(settings.logo)}/></svelte:head>
- <svelte:window onpointerup={stopHoverPreview} onpointercancel={stopHoverPreview} onblur={stopHoverPreview} onpointerdown={(e)=>{if(!(e.target instanceof Element)||!e.target.closest('.sort-picker'))sortOpen=false}} onkeydown={(e)=>{if(desktop)return;if(quitDialog?.open){if(e.repeat){e.preventDefault();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();void quitApp()}else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow()}else if(e.key==='Escape'){e.preventDefault();quitDialog.close()}return}if(e.repeat&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();return}if(e.key==='Escape'&&sortOpen){sortOpen=false;return}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&(e.code==='KeyQ'||e.code==='KeyW')){if(modal?.open||quitDialog?.open)return;e.preventDefault();const pages=['collection','appearance','settings'];page=pages[(pages.indexOf(page)+(e.code==='KeyQ'?-1:1)+pages.length)%pages.length];return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();showQuit();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow();return}if(gallery?.open){if(e.key==='Escape'){e.preventDefault();closeGallery()}return}if(modal?.open&&e.key==='Enter'&&!e.isComposing&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.shiftKey&&!confirmRemove){e.preventDefault();if(!e.repeat&&!saving&&!replacing)editorForm.requestSubmit();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='a'&&page==='collection'&&!modal?.open&&!(e.target instanceof Element&&e.target.closest('input,textarea,[contenteditable]'))){e.preventDefault();if(!e.repeat&&!busy)void choose();return}if(e.key==='/' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)){e.preventDefault();document.querySelector<HTMLInputElement>('.search input')?.focus()}if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();void choose()}if(e.key==='Escape'){if(quitDialog?.open)quitDialog.close();else closeEditor()}}}/>
+ <svelte:window onpointerup={stopHoverPreview} onpointercancel={stopHoverPreview} onblur={stopHoverPreview} onpointerdown={(e)=>{if(!(e.target instanceof Element)||!e.target.closest('.sort-picker'))sortOpen=false}} onkeydown={(e)=>{if(desktop)return;if(quitDialog?.open){if(e.repeat){e.preventDefault();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();void quitApp()}else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow()}else if(e.key==='Escape'){e.preventDefault();quitDialog.close()}return}if(e.repeat&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();return}if(e.key==='Escape'&&sortOpen){sortOpen=false;return}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&(e.code==='KeyQ'||e.code==='KeyW')){if(modal?.open||quitDialog?.open)return;e.preventDefault();const pages=['collection','appearance','history','settings'];page=pages[(pages.indexOf(page)+(e.code==='KeyQ'?-1:1)+pages.length)%pages.length];return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();showQuit();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow();return}if(gallery?.open){if(e.key==='Escape'){e.preventDefault();closeGallery()}return}if(modal?.open&&e.key==='Enter'&&!e.isComposing&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.shiftKey&&!confirmRemove){e.preventDefault();if(!e.repeat&&!saving&&!replacing)editorForm.requestSubmit();return}if((e.metaKey||e.ctrlKey)&&!e.altKey&&e.key.toLowerCase()==='z'&&!modal?.open&&!editingText(e.target)){e.preventDefault();if(!e.repeat)void moveHistory(e.shiftKey?'redo':'undo');return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='a'&&page==='collection'&&!modal?.open&&!(e.target instanceof Element&&e.target.closest('input,textarea,[contenteditable]'))){e.preventDefault();if(!e.repeat&&!busy)void choose();return}if(e.key==='/' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)){e.preventDefault();document.querySelector<HTMLInputElement>('.search input')?.focus()}if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();void choose()}if(e.key==='Escape'){if(quitDialog?.open)quitDialog.close();else closeEditor()}}}/>
 {#if desktop}
  <Desktop {library}/>
 {:else}
 
- <div class="app-shell" class:dragging ondragover={(e)=>{e.preventDefault();if(!api.native)dragging=true}} ondragleave={(e)=>{if(!e.relatedTarget)dragging=false}} ondrop={(e)=>{e.preventDefault();dragging=false;if(!api.native&&e.dataTransfer)void browserFiles(Array.from(e.dataTransfer.files))}} role="presentation">
+ <div class="app-shell" inert={historyBusy} aria-busy={historyBusy} class:dragging ondragover={(e)=>{e.preventDefault();if(!api.native)dragging=true}} ondragleave={(e)=>{if(!e.relatedTarget)dragging=false}} ondrop={(e)=>{e.preventDefault();dragging=false;if(!api.native&&e.dataTransfer)void browserFiles(Array.from(e.dataTransfer.files))}} role="presentation">
   <div class="titlebar" role="presentation" onmousedown={(e)=>{if(api.native&&e.button===0&&e.detail===1)void getCurrentWebviewWindow().startDragging()}}></div>
   <header>
    <a class="brand" href="/" onclick={(e)=>{e.preventDefault();page='collection'}}><span class="brand-mark" data-logo={settings.logo}><Logo logo={settings.logo}/></span>plinth</a>
    <nav aria-label="Main navigation">
     <button class:active={page==='collection'} onclick={()=>page='collection'}><Icon name="grid"/>Collection</button>
     <button class:active={page==='appearance'} onclick={()=>page='appearance'}><Icon name="settings"/>Appearance</button>
+    <button class:active={page==='history'} onclick={()=>page='history'}><Icon name="history"/>History</button>
     <button class:active={page==='settings'} onclick={()=>page='settings'}><Icon name="info"/>Settings</button>
    </nav>
    <button class="primary" onclick={()=>choose()} disabled={busy}><Icon name="plus"/>{busy?'Importing…':'Add artwork'}</button>
@@ -161,11 +189,14 @@
      <button class:chosen={profile==='wideLayout'} aria-pressed={profile==='wideLayout'} onclick={()=>profile='wideLayout'}><svg width="54" height="40" viewBox="0 0 54 40" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="48" height="27" rx="2"/><path d="M27 31v5m-9 0h18"/></svg><span>4K monitor<small>{screens.wideLayout.pixels}</small></span></button>
     </div>
     <div class="screen-frame"><div class="screen-preview" bind:clientWidth={previewWidth} style:aspect-ratio={`${screen.width}/${screen.height}`}>
-     <div class="preview-render" style={`width:${screen.width}px;height:${screen.height}px;transform:scale(${previewWidth/screen.width})`}><Desktop bind:this={desktopPreview} {library} preview forcedLayout={layout} viewportHeight={screen.height}/></div>
+     <div class="preview-render" style={`width:${screen.width}px;height:${screen.height}px;transform:scale(${previewWidth/screen.width})`}><Desktop bind:this={desktopPreview} {library} preview forcedLayout={layout} viewportHeight={screen.height} viewportWidth={screen.width} menuBarHeight={screen.menuBarHeight}/></div>
     </div></div><p class="preview-note">{enabled.length} albums · {screen.pixels}</p></section>
     <section class="controls panel"><label>Spaces<select aria-label="Spaces" bind:value={settings.allSpaces} onchange={persist}><option value={true}>All Spaces</option><option value={false}>This Space</option></select></label><p class="field-note">This Space uses the active desktop when albums are shown or Plinth starts.</p><div class="control-divider"></div><div class="panel-heading" style="margin-top:24px"><h2>Layout</h2><button class="text-button" onclick={resetLayout}>Reset</button></div>
-    {#each [{key:'columns',label:'Columns',min:3,max:30,step:1,unit:''},{key:'gap',label:'Space between covers',min:0,max:40,step:1,unit:'px'},{key:'rowGap',label:'Space between rows',min:0,max:80,step:1,unit:'px'},{key:'top',label:'Top clearance',min:0,max:200,step:1,unit:'px'},{key:'radius',label:'Rounded corners',min:0,max:40,step:1,unit:'px'},{key:'shadow',label:'Shadow',min:0,max:1,step:.05,unit:''}] as control}<label class="slider-field"><span>{control.label}<output>{layout[control.key as keyof Layout]}{control.unit}</output></span><input type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step} value={layout[control.key as keyof Layout]} oninput={(e)=>changeLayout(control.key as keyof Layout,Number(e.currentTarget.value))}/></label>{/each}
-    <div class="control-divider"></div><label class="toggle-row"><span>Enlarge on hover<small>Even while another app has focus</small></span><input class="switch" type="checkbox" bind:checked={settings.hoverEnabled} onchange={persist}/></label><label class="slider-field"><span>Hover size<output>{settings.hoverScale.toFixed(1)}×</output></span><input aria-label="Hover size" onpointerdown={startHoverPreview} onlostpointercapture={stopHoverPreview} type="range" min="1" max="3" step=".1" bind:value={settings.hoverScale} oninput={persist}/></label><label class="toggle-row"><span>Dim surrounding covers</span><input class="switch" type="checkbox" bind:checked={settings.dimOthers} onchange={persist}/></label><label class="slider-field"><span>Artwork opacity<output>{Math.round(settings.opacity*100)}%</output></span><input aria-label="Artwork opacity" type="range" min=".1" max="1" step=".05" bind:value={settings.opacity} oninput={persist}/></label></section></div>
+    {#each [{key:'columns',label:'Columns',min:3,max:30,step:1,unit:''},{key:'gap',label:'Space between covers',min:0,max:40,step:1,unit:'px'},{key:'top',label:'Top clearance',min:0,max:200,step:1,unit:'px'},{key:'radius',label:'Rounded corners',min:0,max:40,step:1,unit:'px'},{key:'shadow',label:'Shadow',min:0,max:1,step:.05,unit:''}] as control}<label class="slider-field"><span>{control.label}<output>{layout[control.key as keyof Layout]}{control.unit}</output></span><input type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step} value={layout[control.key as keyof Layout]} oninput={(e)=>changeLayout(control.key as keyof Layout,Number(e.currentTarget.value))}/></label>{/each}
+    <div class="row-spacing-field"><div><label for="row-spacing">Space between rows</label><button class="text-button" aria-label="Automatic row spacing" aria-pressed={layout.rowGap===null} onclick={()=>changeLayout('rowGap',null)}>Auto</button><output for="row-spacing">{Math.round(rowSpacing.rowGap)}px</output></div><input id="row-spacing" aria-label="Space between rows" type="range" min="0" max={Math.max(80,Math.ceil(desktopSpacing({...layout,rowGap:null},screen.width,screen.height,enabled.length,screen.menuBarHeight).rowGap),layout.rowGap??0)} step="1" value={rowSpacing.rowGap} oninput={(e)=>changeLayout('rowGap',Number(e.currentTarget.value))}/></div>
+    <div class="control-divider"></div><label class="toggle-row"><span>Enlarge on hover<small>Even while another app has focus</small></span><input class="switch" type="checkbox" bind:checked={settings.hoverEnabled} onchange={persist}/></label><label class="slider-field"><span>Hover size<output>{settings.hoverScale.toFixed(1)}×</output></span><input aria-label="Hover size" onpointerdown={startHoverPreview} onlostpointercapture={stopHoverPreview} type="range" min="1" max="3" step=".1" bind:value={settings.hoverScale} oninput={persist}/></label></section></div>
+   {:else if page==='history'}
+    <History {history} busy={historyBusy||busy} loading={historyLoading} undo={()=>void moveHistory('undo')} redo={()=>void moveHistory('redo')} restore={(id)=>void moveHistory('restore',id)}/>
    {:else}
     <section class="panel settings-compact" aria-label="Settings">
      <div class="setting-row"><span>App appearance</span><div class="appearance-options" role="group" aria-label="App appearance">
@@ -186,10 +217,10 @@
  </div>
  <input class="visually-hidden" bind:this={files} type="file" accept="image/*" multiple onchange={(e)=>{void browserFiles(Array.from(e.currentTarget.files??[]));e.currentTarget.value=''}} aria-label="Artwork files"/>
  <input class="visually-hidden" bind:this={replacementFiles} type="file" accept="image/*" aria-label="Replacement image" onchange={(e)=>{const file=e.currentTarget.files?.[0];if(file)void replace(file);e.currentTarget.value=''}}/>
- <dialog class="album-dialog" bind:this={modal} onpointerdown={(e)=>backdropPointerDown=e.target===modal&&outsideDialog(modal,e)} onpointerup={(e)=>{if(backdropPointerDown&&e.target===modal&&outsideDialog(modal,e))closeEditor();backdropPointerDown=false}} onclose={()=>{gallery?.close();edit=null;confirmRemove=false}} oncancel={closeEditor}>
+ <dialog class="album-dialog" bind:this={modal} onpointerdown={(e)=>backdropPointerDown=e.target===modal&&outsideDialog(modal,e)} onpointerup={(e)=>{if(backdropPointerDown&&e.target===modal&&outsideDialog(modal,e))closeEditor();backdropPointerDown=false}} onclose={()=>{if(!modal.open){gallery?.close();edit=null;confirmRemove=false}}} oncancel={closeEditor}>
  {#if edit}<form bind:this={editorForm} onsubmit={(e)=>{e.preventDefault();void saveAlbum()}}><div class="modal-heading"><button class="icon-only" type="button" aria-label="Close album editor" onclick={closeEditor}><Icon name="close"/></button></div><div class="editor-top"><div class="editor-artwork" bind:this={artworkTarget} class:replacing ondragover={(e)=>e.preventDefault()} ondrop={(e)=>{e.preventDefault();if(!api.native&&e.dataTransfer?.files.length===1)void replace(e.dataTransfer.files[0])}} role="presentation"><img draggable="false" ondragstart={(e)=>e.preventDefault()} src={api.originalUrl(edit)} alt={edit.title}/><button type="button" class="artwork-expand" aria-label="View original artwork" onclick={()=>edit&&showGallery(edit)}></button><div class="artwork-actions"><button type="button" class="icon-only" aria-label="Show original artwork in Finder" title="Show original artwork in Finder" onclick={revealArtwork} disabled={replacing||!api.native}><Icon name="folder"/></button><button type="button" class="icon-only" aria-label="Replace artwork" title="Replace artwork" onclick={chooseReplacement} disabled={replacing}><Icon name="upload"/></button></div>{#if replacing}<span class="replacement-progress">Replacing…</span>{/if}</div><div><h3>{edit.title}</h3><p>{edit.artist||'Make it your own.'}</p><button type="button" class="open-music" onclick={()=>edit&&open(edit)}><Icon name="music"/>Open in Music</button></div></div><label>Album title<input required bind:value={edit.title}/></label><div class="two-fields"><label>Artist<input bind:value={edit.artist}/></label><label>Release date<input type="date" bind:value={edit.date}/></label></div><label>Album link <span class="optional">optional</span><input type="url" placeholder="https://music.apple.com/…" bind:value={edit.url}/></label><label class="toggle-row"><span>Show on desktop</span><input class="switch" type="checkbox" bind:checked={edit.enabled}/></label><div class="editor-actions">{#if confirmRemove}<button type="button" class="danger" onclick={remove}>Remove this album</button><button type="button" onclick={()=>confirmRemove=false}>Keep it</button>{:else}<button type="button" class="icon-only danger" aria-label="Remove album" onclick={()=>confirmRemove=true}><Icon name="trash"/></button><button type="submit" class="primary" aria-label="Save" aria-keyshortcuts="Enter" disabled={saving||replacing}><Icon name="check"/>Save<kbd>Enter</kbd></button>{/if}</div></form>{/if}
  </dialog>
- <dialog class="artwork-gallery" bind:this={gallery} aria-label="Original artwork" onclose={()=>galleryAlbum=null} onpointerdown={(e)=>galleryBackdropDown=e.target===gallery&&outsideDialog(gallery,e)} onpointerup={(e)=>{if(galleryBackdropDown&&e.target===gallery&&outsideDialog(gallery,e))closeGallery();galleryBackdropDown=false}}>
+ <dialog class="artwork-gallery" bind:this={gallery} aria-label="Original artwork" onclose={()=>{if(!gallery.open)galleryAlbum=null}} onpointerdown={(e)=>galleryBackdropDown=e.target===gallery&&outsideDialog(gallery,e)} onpointerup={(e)=>{if(galleryBackdropDown&&e.target===gallery&&outsideDialog(gallery,e))closeGallery();galleryBackdropDown=false}}>
   {#if galleryAlbum}<img src={api.originalUrl(galleryAlbum)} alt={galleryAlbum.title} draggable="false" ondragstart={(e)=>e.preventDefault()} onload={(e)=>{const image=e.currentTarget as HTMLImageElement;artworkRatio=image.naturalWidth/image.naturalHeight}} style={`--artwork-ratio:${artworkRatio}`}/>{/if}
  </dialog>
  <dialog class="quit-dialog" bind:this={quitDialog} aria-labelledby="quit-title" onpointerdown={(e)=>quitBackdropDown=e.target===quitDialog&&outsideDialog(quitDialog,e)} onpointerup={(e)=>{if(quitBackdropDown&&e.target===quitDialog&&outsideDialog(quitDialog,e))quitDialog.close();quitBackdropDown=false}}>

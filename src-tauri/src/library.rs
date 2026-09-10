@@ -22,7 +22,7 @@ pub struct Album {
 pub struct Layout {
     pub columns: u32,
     pub gap: f64,
-    pub row_gap: f64,
+    pub row_gap: Option<f64>,
     pub top: f64,
     pub radius: f64,
     pub shadow: f64,
@@ -32,7 +32,7 @@ impl Default for Layout {
         Self {
             columns: 12,
             gap: 6.,
-            row_gap: 14.,
+            row_gap: None,
             top: 42.,
             radius: 5.,
             shadow: 0.4,
@@ -47,8 +47,6 @@ pub struct Settings {
     pub wide_layout: Layout,
     pub hover_scale: f64,
     pub hover_enabled: bool,
-    pub dim_others: bool,
-    pub opacity: f64,
     pub sort: String,
     pub shuffle_seed: u32,
     pub theme: String,
@@ -67,8 +65,6 @@ impl Default for Settings {
             },
             hover_scale: 2.1,
             hover_enabled: true,
-            dim_others: false,
-            opacity: 1.,
             sort: "artist".into(),
             shuffle_seed: 0,
             theme: "dark".into(),
@@ -105,19 +101,9 @@ pub fn load(dir: &Path) -> Result<Library, String> {
         .map_err(|e| format!("Cannot read saved library: {e}"))
 }
 pub fn save(dir: &Path, library: &Library) -> Result<(), String> {
-    fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-    let path = dir.join("library.json");
-    let temp = dir.join("library.json.tmp");
-    fs::write(
-        &temp,
-        serde_json::to_vec_pretty(library).map_err(|e| e.to_string())?,
-    )
-    .map_err(|e| e.to_string())?;
-    if path.exists() {
-        fs::copy(&path, dir.join("library.previous.json")).map_err(|e| e.to_string())?;
-    }
-    fs::rename(temp, path).map_err(|e| e.to_string())
+    crate::history::record(dir, library)
 }
+
 pub fn metadata(filename: &str) -> (String, String, String, String) {
     let stem = Path::new(filename)
         .file_stem()
@@ -205,6 +191,7 @@ pub fn import(
         duplicates: 0,
         errors: vec![],
     };
+    let mut updated = library.clone();
     let mut files = paths;
     files.sort();
     for path in files {
@@ -219,10 +206,10 @@ pub fn import(
                 "{:x}.jpg",
                 Sha256::digest(fs::read(&path).map_err(|e| e.to_string())?)
             );
-            if library.albums.iter().any(|a| a.cover == digest) {
+            if updated.albums.iter().any(|a| a.cover == digest) {
                 return Ok(false);
             }
-            library.albums.push(prepare_artwork(dir, &path)?);
+            updated.albums.push(prepare_artwork(dir, &path)?);
             Ok(true)
         })();
         match attempt {
@@ -234,7 +221,8 @@ pub fn import(
             )),
         }
     }
-    save(dir, library)?;
+    save(dir, &updated)?;
+    *library = updated;
     Ok(result)
 }
 pub fn replace_artwork(
@@ -259,11 +247,12 @@ pub fn replace_artwork(
 pub fn validate_settings(s: &Settings) -> Result<(), String> {
     for l in [&s.layout, &s.wide_layout] {
         if !(3..=30).contains(&l.columns)
-            || ![l.gap, l.row_gap, l.top, l.radius, l.shadow]
+            || ![l.gap, l.top, l.radius, l.shadow]
                 .iter()
                 .all(|v| v.is_finite() && *v >= 0.)
             || l.gap > 40.
-            || l.row_gap > 80.
+            || l.row_gap
+                .is_some_and(|gap| !gap.is_finite() || !(0.0..=32768.0).contains(&gap))
             || l.top > 200.
             || l.radius > 40.
             || l.shadow > 1.
@@ -271,11 +260,7 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
             return Err("Layout values are outside their supported range".into());
         }
     }
-    if !s.hover_scale.is_finite()
-        || !(1.0..=3.0).contains(&s.hover_scale)
-        || !s.opacity.is_finite()
-        || !(0.1..=1.).contains(&s.opacity)
-    {
+    if !s.hover_scale.is_finite() || !(1.0..=3.0).contains(&s.hover_scale) {
         return Err("Invalid appearance values".into());
     }
     if !["artist", "title", "date", "oldest", "shuffle"].contains(&s.sort.as_str())
@@ -289,6 +274,20 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn automatic_spacing_is_default_and_old_opacity_settings_are_ignored() {
+        assert_eq!(Settings::default().layout.row_gap, None);
+        let legacy: Settings = serde_json::from_value(serde_json::json!({
+            "layout": {"rowGap": 27}, "opacity": 0.2, "dimOthers": true
+        }))
+        .unwrap();
+        assert_eq!(legacy.layout.row_gap, Some(27.));
+        assert!(validate_settings(&legacy).is_ok());
+        let saved = serde_json::to_value(legacy).unwrap();
+        assert!(saved.get("opacity").is_none());
+        assert!(saved.get("dimOthers").is_none());
+        assert!(serde_json::to_value(Settings::default()).unwrap()["layout"]["rowGap"].is_null());
+    }
     #[test]
     fn spaces_setting_defaults_for_existing_libraries_and_round_trips() {
         let mut library: Library =

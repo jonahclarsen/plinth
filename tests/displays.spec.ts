@@ -1,11 +1,11 @@
 import {test,expect} from '@playwright/test'
 import {previewDisplays,type DetectedDisplay} from '../src/lib/displays'
-const internal:DetectedDisplay={id:1,width:3024,height:1964,logicalWidth:1512,logicalHeight:982,builtIn:true,current:false,remembered:false}
+const internal:DetectedDisplay={id:1,width:3024,height:1964,logicalWidth:1512,logicalHeight:982,menuBarHeight:37,builtIn:true,current:false,remembered:false}
 const external:DetectedDisplay={id:2,width:3840,height:2160,logicalWidth:1920,logicalHeight:1080,builtIn:false,current:true,remembered:false}
 test('external window selects external profile while retaining the actual internal panel size',()=>{
  const result=previewDisplays([external,internal])
  expect(result.profile).toBe('wideLayout')
- expect(result.screens.layout).toEqual({width:1512,height:982,pixels:'3024 × 1964'})
+ expect(result.screens.layout).toEqual({width:1512,height:982,menuBarHeight:37,pixels:'3024 × 1964'})
  expect(result.screens.wideLayout.width).toBe(1920)
 })
 test('moving to the internal display selects its profile regardless of pixel width',()=>{
