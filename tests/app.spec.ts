@@ -76,7 +76,7 @@ test('shuffle can be selected repeatedly and oldest date follows newest date',as
  await page.getByRole('menuitemradio',{name:'Oldest date',exact:true}).click();await expect(page.getByRole('button',{name:'Sort collection',exact:true})).toHaveText('Oldest date')
 })
 test('Option page navigation wraps, desktop toggle uses action labels, internal artwork cannot drag',async({page})=>{
- await page.goto('/?demo=1');await expect(page.locator('.header-actions').getByRole('button')).toHaveText(['Disable','Add artwork']);await page.getByRole('button',{name:'Disable',exact:true}).click();await expect(page.locator('.header-actions').getByRole('button',{name:'Enable',exact:true})).toBeVisible()
+ await page.goto('/?demo=1');await expect(page.locator('.header-actions').getByRole('button')).toHaveText(['Disable','Add artworkCmd A']);await page.getByRole('button',{name:'Disable',exact:true}).click();await expect(page.locator('.header-actions').getByRole('button',{name:'Enable',exact:true})).toBeVisible()
  await page.keyboard.press('Alt+KeyQ');await expect(page.getByRole('group',{name:'App appearance'})).toBeVisible();await page.keyboard.press('Alt+KeyW');await expect(page.locator('.album-grid')).toBeVisible()
  const image=page.locator('.artwork img').first();await expect(image).toHaveAttribute('draggable','false')
  await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click();await expect(page.locator('.editor-artwork>img')).toHaveAttribute('draggable','false');await expect(page.locator('.artwork-actions')).toHaveCSS('opacity','0');await page.locator('.editor-artwork').hover();await expect(page.locator('.artwork-actions')).toHaveCSS('opacity','1')
