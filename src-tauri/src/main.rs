@@ -4,6 +4,7 @@ mod desktop;
 mod displays;
 mod history;
 mod library;
+mod spaces;
 use library::{Album, Library, Settings};
 use std::{path::PathBuf, process::Command, sync::Mutex};
 use tauri::{
@@ -48,6 +49,11 @@ fn get_displays(
     displays::detect(&window, &store.dir)
 }
 #[tauri::command]
+fn get_spaces(window: tauri::WebviewWindow) -> Result<spaces::Availability, String> {
+    editor(&window)?;
+    Ok(spaces::availability())
+}
+#[tauri::command]
 fn get_library(store: State<Store>) -> Result<serde_json::Value, String> {
     Ok(
         serde_json::json!({"library":store.library.lock().map_err(|e|e.to_string())?.clone(),"dataDir":store.dir.to_string_lossy()}),
@@ -64,6 +70,13 @@ fn save_settings(
     library::validate_settings(&settings)?;
     let mut lib = store.library.lock().map_err(|e| e.to_string())?;
     let before = lib.settings.clone();
+    if settings.target_space != before.target_space
+        || (settings.desktop_enabled && !before.desktop_enabled)
+    {
+        if let Some(number) = settings.target_space {
+            spaces::resolve(number)?;
+        }
+    }
     let mut updated = lib.clone();
     updated.settings = settings;
     library::save(&store.dir, &updated)?;
@@ -80,11 +93,13 @@ fn apply_settings_effects(
     after: &Settings,
 ) -> Result<(), String> {
     let logo_changed = before.logo != after.logo;
-    let changed =
-        before.desktop_enabled != after.desktop_enabled || before.all_spaces != after.all_spaces;
+    let changed = before.desktop_enabled != after.desktop_enabled
+        || before.all_spaces != after.all_spaces
+        || before.target_space != after.target_space;
     let logo = after.logo;
     let enabled = after.desktop_enabled;
     let all_spaces = after.all_spaces;
+    let target_space = after.target_space;
     if logo_changed {
         let a = app.clone();
         app.run_on_main_thread(move || {
@@ -97,7 +112,7 @@ fn apply_settings_effects(
     if changed {
         let a = app.clone();
         app.run_on_main_thread(move || {
-            if let Err(e) = desktop::rebuild(&a, enabled, all_spaces) {
+            if let Err(e) = desktop::rebuild(&a, enabled, all_spaces, target_space) {
                 let _ = a.emit("app-error", e);
             }
         })
@@ -482,6 +497,7 @@ fn main() {
             reveal_artwork,
             show_alert,
             get_displays,
+            get_spaces,
             get_library,
             get_history,
             navigate_history,
@@ -534,14 +550,25 @@ fn main() {
                         if let Ok(mut lib) = store.library.lock() {
                             let mut updated = lib.clone();
                             updated.settings.desktop_enabled = !updated.settings.desktop_enabled;
+                            if updated.settings.desktop_enabled {
+                                if let Some(number) = updated.settings.target_space {
+                                    if let Err(error) = spaces::resolve(number) {
+                                        let _ = app.emit("app-error", error);
+                                        return;
+                                    }
+                                }
+                            }
                             if library::save(&store.dir, &updated).is_ok() {
                                 *lib = updated;
                                 broadcast(app, &lib);
-                                let _ = desktop::rebuild(
+                                if let Err(error) = desktop::rebuild(
                                     app,
                                     lib.settings.desktop_enabled,
                                     lib.settings.all_spaces,
-                                );
+                                    lib.settings.target_space,
+                                ) {
+                                    let _ = app.emit("app-error", error);
+                                }
                             }
                         };
                     }
@@ -555,7 +582,16 @@ fn main() {
                 .unwrap()
                 .settings
                 .clone();
-            desktop::rebuild(app.handle(), settings.desktop_enabled, settings.all_spaces)?;
+            if let Err(error) = desktop::rebuild(
+                app.handle(),
+                settings.desktop_enabled,
+                settings.all_spaces,
+                settings.target_space,
+            ) {
+                // A saved numbered Space may have been removed while Plinth was closed.
+                // Keep the main window usable so another destination can be selected.
+                eprintln!("{error}");
+            }
             desktop::start_pointer_tracking(app.handle().clone());
             if let Err(e) = branding::apply(app.handle(), logo, true) {
                 eprintln!("{e}");

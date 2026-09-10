@@ -22,7 +22,9 @@ function describe(before:Library,after:Library) {
  if(edited)labels.push(edited===1?'Edited album':`Edited ${edited} albums`)
  if(artwork)labels.push('Replaced artwork')
  const settings:string[]=[]
- for(const [key,label] of [['theme','App appearance'],['logo','App logo'],['desktopEnabled','Show desktop'],['allSpaces','All Spaces'],['openMode','Music behavior'],['sort','Sort order'],['shuffleSeed','Shuffle order'],['hoverScale','Hover size'],['hoverEnabled','Enlarge on hover']] as const){
+ const space=(settings:Library['settings'])=>settings.targetSpace?`Space ${settings.targetSpace}`:settings.allSpaces?'All Spaces':'This Space'
+ if(space(before.settings)!==space(after.settings))settings.push(`Spaces: ${space(before.settings)} → ${space(after.settings)}`)
+ for(const [key,label] of [['theme','App appearance'],['logo','App logo'],['desktopEnabled','Show desktop'],['openMode','Music behavior'],['sort','Sort order'],['shuffleSeed','Shuffle order'],['hoverScale','Hover size'],['hoverEnabled','Enlarge on hover']] as const){
   if(before.settings[key]!==after.settings[key])settings.push(`${label}: ${display(before.settings[key])} → ${display(after.settings[key])}`)
  }
  for(const [profile,name] of [['layout','Mac display'],['wideLayout','4K monitor']] as const){

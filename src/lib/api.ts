@@ -49,3 +49,5 @@ export async function navigateHistory(action:'undo'|'redo'|'restore',id?:number)
  if(native)return invoke('navigate_history',{action,id:id??null})
  browserLibrary=browserHistory.navigate(action,id);changed(false);return browserHistory.view()
 }
+
+export async function getSpaces():Promise<{available:number[];reason?:string|null}>{return native?invoke('get_spaces'):{available:[1,2,3]}}

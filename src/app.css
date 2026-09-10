@@ -39,3 +39,5 @@ dialog{width:min(510px,calc(100vw - 40px));padding:26px;border:1px solid var(--l
 .row-spacing-field{display:grid;gap:8px;margin:18px 0}.row-spacing-field>div{display:flex;align-items:center;gap:10px}.row-spacing-field label{flex:1}.row-spacing-field output{font-size:11px;color:var(--muted)}.row-spacing-field button[aria-pressed=true]{text-decoration:underline;text-underline-offset:3px}.row-spacing-field input{width:100%}
 
 .add-artwork kbd{color:inherit;white-space:nowrap;border-color:#ffffff45}
+
+.spaces-field{display:grid;gap:9px;font-size:12px}.space-options{display:flex;gap:4px}.space-options button{flex:1;min-width:0;white-space:nowrap;padding:8px 5px;font-size:11px}.space-options button:nth-child(-n+2){flex:2}.space-options button[aria-pressed=true]{background:var(--paper-strong);border-color:var(--accent);color:var(--accent)}

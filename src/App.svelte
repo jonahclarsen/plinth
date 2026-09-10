@@ -22,6 +22,12 @@
  let history:HistoryView=emptyHistory,historyBusy=false,historyLoading=false
  let historyRequest=0
  let edit:Album|null=null,confirmRemove=false
+ let availableSpaces:number[]=api.native?[]:[1,2,3],spaceSaving=false,spacesReason=''
+ async function refreshSpaces(){if(desktop)return;try{const result=await api.getSpaces();availableSpaces=result?.available??[];spacesReason=result?.reason??''}catch{availableSpaces=[];spacesReason='Numbered Spaces are unavailable.'}}
+ async function chooseSpace(value:'all'|'current'|number){
+  if(spaceSaving)return;spaceSaving=true;error=''
+  try{await flushSettings();await api.saveSettings({...settings,allSpaces:value==='all',targetSpace:typeof value==='number'?value:null});library=await api.loadLibrary();await refreshHistory()}catch(e){error=String(e)}finally{spaceSaving=false;void refreshSpaces()}
+ }
  let profile:'layout'|'wideLayout'='layout'
  let replacementFiles:HTMLInputElement
  let artworkTarget:HTMLDivElement
@@ -61,7 +67,7 @@
   } catch { /* Keep the last preview if a display is disconnected during detection. */ }
  }
  let previousPage=page
- $: if(page!==previousPage){previousPage=page;if(page==='appearance'&&api.native)void refreshDisplays(true);if(page==='history')void loadHistoryPage()}
+ $: if(page!==previousPage){previousPage=page;if(page==='appearance'){void refreshSpaces();if(api.native)void refreshDisplays(true)};if(page==='history')void loadHistoryPage()}
  $: screen=screens[profile]
  let mediaDark=window.matchMedia('(prefers-color-scheme: dark)').matches
  let saveQueue=Promise.resolve()
@@ -101,7 +107,7 @@
  }
  async function loadHistoryPage(){try{await flushSettings();await refreshHistory()}catch(e){error=String(e)}}
  async function moveHistory(action:'undo'|'redo'|'restore',id?:number){
-  if(historyBusy||busy||saving||replacing||modal?.open||gallery?.open||quitDialog?.open)return
+  if(historyBusy||spaceSaving||busy||saving||replacing||modal?.open||gallery?.open||quitDialog?.open)return
   historyBusy=true;error=''
   try{
    await flushSettings()
@@ -134,7 +140,7 @@
      let displayTimer:ReturnType<typeof setTimeout>
      const scheduleDisplayRefresh=()=>{clearTimeout(displayTimer);displayTimer=setTimeout(()=>void refreshDisplays(),150)}
      disposers.push(()=>{clearTimeout(displayTimer);displayRequest++})
-     for(const subscribe of [()=>nativeWindow.onMoved(scheduleDisplayRefresh),()=>nativeWindow.onScaleChanged(scheduleDisplayRefresh),()=>nativeWindow.onFocusChanged(e=>{if(e.payload)scheduleDisplayRefresh()})]) {
+     for(const subscribe of [()=>nativeWindow.onMoved(scheduleDisplayRefresh),()=>nativeWindow.onScaleChanged(scheduleDisplayRefresh),()=>nativeWindow.onFocusChanged(e=>{if(e.payload){scheduleDisplayRefresh();void refreshSpaces()}})]) {
       const unlisten=await subscribe();if(live)disposers.push(unlisten);else unlisten()
      }
     }
@@ -160,7 +166,7 @@
  <Desktop {library}/>
 {:else}
 
- <div class="app-shell" inert={historyBusy} aria-busy={historyBusy} class:dragging ondragover={(e)=>{e.preventDefault();if(!api.native)dragging=true}} ondragleave={(e)=>{if(!e.relatedTarget)dragging=false}} ondrop={(e)=>{e.preventDefault();dragging=false;if(!api.native&&e.dataTransfer)void browserFiles(Array.from(e.dataTransfer.files))}} role="presentation">
+ <div class="app-shell" inert={historyBusy||spaceSaving} aria-busy={historyBusy||spaceSaving} class:dragging ondragover={(e)=>{e.preventDefault();if(!api.native)dragging=true}} ondragleave={(e)=>{if(!e.relatedTarget)dragging=false}} ondrop={(e)=>{e.preventDefault();dragging=false;if(!api.native&&e.dataTransfer)void browserFiles(Array.from(e.dataTransfer.files))}} role="presentation">
   <div class="titlebar" role="presentation" onmousedown={(e)=>{if(api.native&&e.button===0&&e.detail===1)void getCurrentWebviewWindow().startDragging()}}></div>
   <header>
    <a class="brand" href="/" onclick={(e)=>{e.preventDefault();page='collection'}}><span class="brand-mark" data-logo={settings.logo}><Logo logo={settings.logo}/></span>plinth</a>
@@ -190,7 +196,7 @@
     <div class="screen-frame"><div class="screen-preview" bind:clientWidth={previewWidth} style:aspect-ratio={`${screen.width}/${screen.height}`}>
      <div class="preview-render" style={`width:${screen.width}px;height:${screen.height}px;transform:scale(${previewWidth/screen.width})`}><Desktop bind:this={desktopPreview} {library} preview forcedLayout={layout} viewportHeight={screen.height} viewportWidth={screen.width} menuBarHeight={screen.menuBarHeight}/></div>
     </div></div><p class="preview-note">{enabled.length} albums · {screen.pixels}</p></section>
-    <section class="controls panel"><label>Spaces<select aria-label="Spaces" bind:value={settings.allSpaces} onchange={persist}><option value={true}>All Spaces</option><option value={false}>This Space</option></select></label><p class="field-note">This Space uses the active desktop when albums are shown or Plinth starts.</p><div class="control-divider"></div><div class="panel-heading" style="margin-top:24px"><h2>Layout</h2><button class="text-button" onclick={resetLayout}>Reset</button></div>
+    <section class="controls panel"><div class="spaces-field"><span id="spaces-label">Spaces</span><div class="space-options" onpointerenter={()=>void refreshSpaces()} role="group" aria-labelledby="spaces-label"><button aria-pressed={settings.allSpaces&&!settings.targetSpace} disabled={spaceSaving} onclick={()=>void chooseSpace('all')}>All Spaces</button><button aria-pressed={!settings.allSpaces&&!settings.targetSpace} disabled={spaceSaving} onclick={()=>void chooseSpace('current')}>This Space</button>{#each [1,2,3] as number}<button aria-label={`Space ${number}`} aria-pressed={settings.targetSpace===number} disabled={spaceSaving||!availableSpaces.includes(number)} title={availableSpaces.includes(number)?`Desktop ${number}`:`Create Desktop ${number} in Mission Control`} onclick={()=>void chooseSpace(number)}>{number}</button>{/each}</div></div><p class="field-note">{spacesReason?spacesReason:settings.targetSpace?(availableSpaces.includes(settings.targetSpace)?`Keep artwork on Desktop ${settings.targetSpace}.`:`Desktop ${settings.targetSpace} is unavailable. Create it in Mission Control or choose another option.`):settings.allSpaces?'Show artwork on every desktop.':'Use the active desktop when artwork is enabled.'}</p><div class="control-divider"></div><div class="panel-heading" style="margin-top:24px"><h2>Layout</h2><button class="text-button" onclick={resetLayout}>Reset</button></div>
     {#each [{key:'columns',label:'Columns',min:3,max:30,step:1,unit:''},{key:'gap',label:'Space between covers',min:0,max:40,step:1,unit:'px'},{key:'top',label:'Top clearance',min:0,max:200,step:1,unit:'px'},{key:'radius',label:'Rounded corners',min:0,max:40,step:1,unit:'px'},{key:'shadow',label:'Shadow',min:0,max:1,step:.05,unit:''}] as control}<label class="slider-field"><span>{control.label}<output>{layout[control.key as keyof Layout]}{control.unit}</output></span><input type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step} value={layout[control.key as keyof Layout]} oninput={(e)=>changeLayout(control.key as keyof Layout,Number(e.currentTarget.value))}/></label>{/each}
     <div class="row-spacing-field"><div><label for="row-spacing">Space between rows</label><button class="text-button" aria-label="Automatic row spacing" aria-pressed={layout.rowGap===null} onclick={()=>changeLayout('rowGap',null)}>Auto</button><output for="row-spacing">{Math.round(rowSpacing.rowGap)}px</output></div><input id="row-spacing" aria-label="Space between rows" type="range" min="0" max={Math.max(80,Math.ceil(desktopSpacing({...layout,rowGap:null},screen.width,screen.height,enabled.length,screen.menuBarHeight).rowGap),layout.rowGap??0)} step="1" value={rowSpacing.rowGap} oninput={(e)=>changeLayout('rowGap',Number(e.currentTarget.value))}/></div>
     <div class="control-divider"></div><label class="toggle-row"><span>Enlarge on hover<small>Even while another app has focus</small></span><input class="switch" type="checkbox" bind:checked={settings.hoverEnabled} onchange={persist}/></label><label class="slider-field"><span>Hover size<output>{settings.hoverScale.toFixed(1)}×</output></span><input aria-label="Hover size" onpointerdown={startHoverPreview} onlostpointercapture={stopHoverPreview} type="range" min="1" max="3" step=".1" bind:value={settings.hoverScale} oninput={persist}/></label></section></div>
