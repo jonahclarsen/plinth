@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 const sharp: typeof import('sharp').default = createRequire(import.meta.url)('sharp')
 import { mkdir } from 'node:fs/promises'
 test('README screenshots use only synthetic demo artwork',async({page})=>{
+ await page.setViewportSize({width:1550,height:840})
  await page.goto('/?demo=1');await expect(page.locator('.album-card')).toHaveCount(18)
  await page.evaluate(async()=>{await Promise.all(Array.from(document.images).map(i=>i.decode()))})
  await mkdir('docs/screenshots',{recursive:true})

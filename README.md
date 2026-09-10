@@ -31,7 +31,7 @@ Missing albums show a native macOS alert. The first Music action may ask for mac
 
 The desktop is a transparent native window above the wallpaper and desktop icons, below ordinary windows. It can receive clicks and scrolling. Covers enlarge without activating Plinth; this does not draw over your foreground apps. Restart Plinth after changing monitor arrangements. Add Plinth in **System Settings → General → Login Items** if you want it to start at login.
 
-Option-Q and Option-W move to the previous or next page, wrapping at either end. Window size is remembered when you close or quit; new installations open at 900 × 720 points.
+Option-Q and Option-W move to the previous or next page, wrapping at either end. Window size is remembered when you close or quit; new installations open at 1550 × 840 points.
 
 ## Local data and backups
 
