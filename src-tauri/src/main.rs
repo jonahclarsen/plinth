@@ -338,6 +338,23 @@ fn restore_window_size(app: &tauri::AppHandle) {
 fn show_main(app: &tauri::AppHandle) {
     #[cfg(target_os = "macos")]
     let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+    #[cfg(all(dev, target_os = "macos"))]
+    {
+        use objc2::{AllocAnyThread, MainThreadMarker};
+        use objc2_app_kit::{NSApplication, NSImage};
+        use objc2_foundation::NSData;
+
+        // `tauri dev` runs an unbundled binary. Restore the logo whenever we
+        // bring its Dock icon back, rather than relying on bundle metadata.
+        if let Some(mtm) = MainThreadMarker::new() {
+            let data = NSData::with_bytes(include_bytes!("../icons/icon.icns"));
+            if let Some(icon) = NSImage::initWithData(NSImage::alloc(), &data) {
+                unsafe {
+                    NSApplication::sharedApplication(mtm).setApplicationIconImage(Some(&icon))
+                };
+            }
+        }
+    }
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
         let _ = w.set_focus();
