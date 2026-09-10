@@ -27,8 +27,5 @@ dialog{width:min(510px,calc(100vw - 40px));padding:26px;border:1px solid var(--l
 
 .quit-actions{flex-wrap:wrap}.quit-actions kbd{color:inherit;font-size:10px;white-space:nowrap}.quit-dialog h2:focus{outline:none}
 
-/* Album lists stay fixed; overflow is clipped rather than scrollable. */
-.collection-document,.collection-document body{height:100%;overflow:clip;overscroll-behavior:none}.collection-document body{position:fixed;inset:0}.collection-document .app-shell{height:100dvh;overflow:clip}
-
 .logo-options{display:flex;gap:16px}.logo-option{display:flex;flex-direction:column;gap:8px;padding:3px;border:0;background:none!important;font-size:10px;color:var(--muted)}.logo-preview{display:grid;place-items:center;width:64px;height:64px;border-radius:10px;border:1px solid var(--line);background:var(--paper)}.logo-option.chosen{color:var(--ink)}.logo-option.chosen .logo-preview{outline:2px solid var(--accent);outline-offset:2px}.logo-option:hover .logo-preview{background:var(--paper-strong)}.logo-preview svg{border-radius:8px;overflow:hidden}
 @media(max-width:420px){.logo-setting{flex-wrap:wrap}.logo-options{gap:12px}}
