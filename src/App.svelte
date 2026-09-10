@@ -19,6 +19,7 @@
  let artworkTarget:HTMLDivElement
  let replacing=false
  let files:HTMLInputElement
+ let hideButton:HTMLButtonElement
  let quitDialog:HTMLDialogElement
  let quitBackdropDown=false
  let modal:HTMLDialogElement
@@ -53,7 +54,7 @@
  async function replace(input:string|File){if(!edit)return;replacing=true;try{const result=await api.replaceArtwork(edit,input);edit={...edit,cover:result.cover,original:result.original}}catch{await api.showAlert('This image could not be used. Choose a supported image file.')}finally{replacing=false}}
  async function chooseReplacement(){if(!api.native){replacementFiles.click();return}try{const paths=await api.chooseImages(true);if(paths.length)await replace(paths[0])}catch{await api.showAlert('The image picker could not be opened.')}}
  async function download(){if(!edit)return;try{await api.downloadArtwork(edit)}catch{await api.showAlert('The original artwork could not be saved. Choose another location.')}}
- function showQuit(){if(!quitDialog?.open)quitDialog?.showModal()}
+ function showQuit(){if(!quitDialog?.open){quitDialog?.showModal();hideButton?.focus()}}
  async function flushSettings(){clearTimeout(saveTimer);await saveQueue;if(settingsDirty){await api.saveSettings(structuredClone(library.settings));settingsDirty=false}}
  async function hideWindow(){try{await flushSettings();quitDialog?.close();if(api.native)await invoke('hide_window')}catch{await api.showAlert('The window could not be hidden.')}}
  async function quitApp(){try{await flushSettings();if(api.native)await invoke('quit_app');else quitDialog.close()}catch{await api.showAlert('Plinth could not quit.')}}
@@ -87,7 +88,7 @@
  })
 </script>
 
- <svelte:window onpointerdown={(e)=>{if(!(e.target instanceof Element)||!e.target.closest('.sort-picker'))sortOpen=false}} onkeydown={(e)=>{if(desktop)return;if(e.key==='Escape'&&sortOpen){sortOpen=false;return}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&(e.code==='KeyQ'||e.code==='KeyW')){if(modal?.open||quitDialog?.open)return;e.preventDefault();const pages=['collection','appearance','settings'];page=pages[(pages.indexOf(page)+(e.code==='KeyQ'?-1:1)+pages.length)%pages.length];return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();showQuit();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow();return}if(e.key==='/' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)){e.preventDefault();document.querySelector<HTMLInputElement>('.search input')?.focus()}if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();void choose()}if(e.key==='Escape'){if(quitDialog?.open)quitDialog.close();else closeEditor()}}}/>
+ <svelte:window onpointerdown={(e)=>{if(!(e.target instanceof Element)||!e.target.closest('.sort-picker'))sortOpen=false}} onkeydown={(e)=>{if(desktop)return;if(quitDialog?.open){if(e.repeat){e.preventDefault();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();void quitApp()}else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow()}else if(e.key==='Escape'){e.preventDefault();quitDialog.close()}return}if(e.repeat&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();return}if(e.key==='Escape'&&sortOpen){sortOpen=false;return}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&(e.code==='KeyQ'||e.code==='KeyW')){if(modal?.open||quitDialog?.open)return;e.preventDefault();const pages=['collection','appearance','settings'];page=pages[(pages.indexOf(page)+(e.code==='KeyQ'?-1:1)+pages.length)%pages.length];return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();showQuit();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow();return}if(e.key==='/' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)){e.preventDefault();document.querySelector<HTMLInputElement>('.search input')?.focus()}if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();void choose()}if(e.key==='Escape'){if(quitDialog?.open)quitDialog.close();else closeEditor()}}}/>
 {#if desktop}
  <Desktop {library}/>
 {:else}
@@ -146,7 +147,7 @@
  </dialog>
  <dialog class="quit-dialog" bind:this={quitDialog} aria-labelledby="quit-title" onpointerdown={(e)=>quitBackdropDown=e.target===quitDialog&&outsideDialog(quitDialog,e)} onpointerup={(e)=>{if(quitBackdropDown&&e.target===quitDialog&&outsideDialog(quitDialog,e))quitDialog.close();quitBackdropDown=false}}>
   <h2 id="quit-title">Quit Plinth?</h2><p>Hide the window to keep your desktop running, or quit Plinth.</p>
-  <div class="quit-actions"><button onclick={()=>quitDialog.close()}>Cancel</button><button onclick={hideWindow}>Hide window</button><button class="primary" onclick={quitApp}>Quit Plinth</button></div>
+  <div class="quit-actions"><button aria-label="Cancel" aria-keyshortcuts="Escape" onclick={()=>quitDialog.close()}>Cancel<kbd aria-hidden="true">Esc</kbd></button><button aria-label="Quit Plinth" aria-keyshortcuts="Meta+Q Control+Q" onclick={quitApp}>Quit Plinth<kbd aria-hidden="true">Cmd Q</kbd></button><button bind:this={hideButton} class="primary" aria-label="Hide window" aria-keyshortcuts="Enter Meta+W Control+W" title="Hide window (Return or Command-W)" onclick={hideWindow}>Hide window<kbd aria-hidden="true">Return</kbd></button></div>
  </dialog>
 
 {/if}
