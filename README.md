@@ -25,7 +25,7 @@ The screenshots contain only synthetic artwork and fictional album metadata. No 
 
 ## Use it
 
-Launch `Plinth.app`, choose **Add artwork**, or drop image files into the library window. Imported records can be edited by clicking their artwork. Choose **Appearance** to adjust the desktop, and **Settings** for the app theme and Music behavior.
+Launch `Plinth.app`, choose **Add artwork**, or drop image files into the library window. Imported records can be edited by clicking their artwork. Choose **Appearance** to adjust the desktop, and **Settings** for the app theme, logo, and Music behavior. **App logo** offers the three supplied designs and remembers your choice. Switching updates the app header, browser icon, macOS Dock, menu bar, and Finder app icon.
 
 Missing albums show a native macOS alert. The first Music action may ask for macOS Automation permission. Library mode searches album titles in your local Music library; link mode opens the URL you saved. No Apple Music API credentials are needed.
 
@@ -88,3 +88,5 @@ This is the first local macOS build. Distribution signing, notarization, automat
 Inspired by [Plash](https://github.com/sindresorhus/Plash) and Desktop Album Art. Plash’s preserved MIT-licensed source informed the native desktop window behavior; its notice is retained in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Trilly inspired the UI’s typography, iridescent palette, and controls. No Plash telemetry, service credentials, or app identity is reused.
 
 On macOS, `pnpm run dev` launches the Cargo executable from a generated `PlinthDev.app` in the build directory, with Plinth’s Dock icon and bundle metadata. The runner preserves hot reload and terminal output. The bundle is a build artifact and is never installed automatically.
+
+Logo source artwork lives in `assets/logos/`. Run `pnpm icons` on macOS to regenerate the browser, menu bar, and packaged app icons. Logo 1 is the default for new installs and older settings. Logo 2 has transparent background and grooves, with black record centers.

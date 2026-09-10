@@ -5,6 +5,8 @@
  import { listen } from '@tauri-apps/api/event'
  import { previewDisplays, type DetectedDisplay } from './lib/displays'
  import Icon from './lib/Icon.svelte'
+ import Logo from './lib/Logo.svelte'
+ import { logos, logoUrl } from './lib/logos'
  import Desktop from './lib/Desktop.svelte'
  import * as api from './lib/api'
  import { defaultSettings, ordered, type Library, type Album, type Layout } from './lib/types'
@@ -117,6 +119,7 @@
  })
 </script>
 
+ <svelte:head><link rel="icon" type="image/png" href={logoUrl(settings.logo)}/><link rel="apple-touch-icon" href={logoUrl(settings.logo)}/></svelte:head>
  <svelte:window onpointerup={stopHoverPreview} onpointercancel={stopHoverPreview} onblur={stopHoverPreview} onpointerdown={(e)=>{if(!(e.target instanceof Element)||!e.target.closest('.sort-picker'))sortOpen=false}} onkeydown={(e)=>{if(desktop)return;if(quitDialog?.open){if(e.repeat){e.preventDefault();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();void quitApp()}else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow()}else if(e.key==='Escape'){e.preventDefault();quitDialog.close()}return}if(e.repeat&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();return}if(e.key==='Escape'&&sortOpen){sortOpen=false;return}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&(e.code==='KeyQ'||e.code==='KeyW')){if(modal?.open||quitDialog?.open)return;e.preventDefault();const pages=['collection','appearance','settings'];page=pages[(pages.indexOf(page)+(e.code==='KeyQ'?-1:1)+pages.length)%pages.length];return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();showQuit();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow();return}if(e.key==='/' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)){e.preventDefault();document.querySelector<HTMLInputElement>('.search input')?.focus()}if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();void choose()}if(e.key==='Escape'){if(quitDialog?.open)quitDialog.close();else closeEditor()}}}/>
 {#if desktop}
  <Desktop {library}/>
@@ -125,7 +128,7 @@
  <div class="app-shell" class:dragging ondragover={(e)=>{e.preventDefault();if(!api.native)dragging=true}} ondragleave={(e)=>{if(!e.relatedTarget)dragging=false}} ondrop={(e)=>{e.preventDefault();dragging=false;if(!api.native&&e.dataTransfer)void browserFiles(Array.from(e.dataTransfer.files))}} role="presentation">
   <div class="titlebar" role="presentation" onmousedown={(e)=>{if(api.native&&e.button===0&&e.detail===1)void getCurrentWebviewWindow().startDragging()}}></div>
   <header>
-   <a class="brand" href="/" onclick={(e)=>{e.preventDefault();page='collection'}}><span class="brand-mark"><Icon name="plinth"/></span>plinth</a>
+   <a class="brand" href="/" onclick={(e)=>{e.preventDefault();page='collection'}}><span class="brand-mark"><Logo logo={settings.logo}/></span>plinth</a>
    <nav aria-label="Main navigation">
     <button class:active={page==='collection'} onclick={()=>page='collection'}><Icon name="grid"/>Collection</button>
     <button class:active={page==='appearance'} onclick={()=>page='appearance'}><Icon name="settings"/>Appearance</button>
@@ -138,7 +141,7 @@
   <main>
    {#if page==='collection'}
     <section class="collection-toolbar"><div class="collection-tabs"><span class="collection-meta">{library.albums.length} albums</span><span class="collection-meta">{artists} artists</span></div><div class="toolbar-right"><button class="desktop-toggle" onclick={()=>{settings.desktopEnabled=!settings.desktopEnabled;persist()}}>{settings.desktopEnabled?'Hide desktop':'Show desktop'}</button><label class="search"><Icon name="search"/><input aria-label="Search collection" type="search" placeholder="Find a record…" bind:value={query}/><kbd>/</kbd></label><div class="sort-picker"><button class="sort-trigger" aria-label="Sort collection" aria-haspopup="menu" aria-expanded={sortOpen} onclick={()=>sortOpen=!sortOpen}>{sortOptions.find(o=>o.value===settings.sort)?.label}<Icon name="chevron"/></button>{#if sortOpen}<div class="sort-menu" role="menu" aria-label="Sort collection">{#each sortOptions as option}<button role="menuitemradio" aria-checked={settings.sort===option.value} onclick={()=>chooseSort(option.value)}>{option.label}{#if settings.sort===option.value}<Icon name="check"/>{/if}</button>{/each}</div>{/if}</div></div></section>
-    {#if !loaded}<div class="empty-state"><Icon name="plinth"/><h2>Opening your collection…</h2></div>
+    {#if !loaded}<div class="empty-state"><Logo logo={settings.logo}/><h2>Opening your collection…</h2></div>
     {:else if library.albums.length===0}<div class="empty-state"><div class="empty-art"><Icon name="music"/></div><span class="eyebrow">ROOM FOR YOUR FAVORITES</span><h2>Start with a record you love.</h2><p>Drop your artwork here, or choose images from your Mac.<br/>We’ll resize and organize everything for you.</p><div class="actions"><button class="primary" onclick={()=>choose()}><Icon name="plus"/>Add artwork</button></div><small>PNG, JPEG, WebP, GIF, TIFF, and BMP</small></div>
     {:else if filtered.length===0}<div class="empty-state"><Icon name="search"/><h2>No records found.</h2><button onclick={()=>query=''}>Clear search</button></div>
     {:else}<div class="album-grid">{#each filtered as album (album.id)}<article class="album-card" class:disabled={!album.enabled}><button class="artwork" onclick={()=>{edit={...album};confirmRemove=false}} aria-label={`Edit ${album.title}`}><img draggable="false" ondragstart={(e)=>e.preventDefault()} src={api.coverUrl(album)} alt={`${album.title} artwork`} loading="lazy"/><span class="artwork-edit"><Icon name="settings"/>Edit record</span>{#if !album.enabled}<span class="hidden-label">Hidden</span>{/if}</button><div class="album-caption"><div><h2 title={album.title}>{album.title}</h2><p title={album.artist}>{album.artist||'Unknown artist'}</p></div><button class="icon-only album-open" title="Open in Music" aria-label={`Open ${album.title} in Music`} onclick={()=>open(album)}><Icon name="arrow"/></button></div></article>{/each}</div>{/if}
@@ -158,6 +161,9 @@
     <section class="panel settings-compact" aria-label="Settings">
      <div class="setting-row"><span>App appearance</span><div class="appearance-options" role="group" aria-label="App appearance">
       {#each ['system','light','dark'] as theme}<button class="appearance-option" class:chosen={settings.theme===theme} aria-label={theme[0].toUpperCase()+theme.slice(1)} aria-pressed={settings.theme===theme} onclick={()=>{settings.theme=theme;persist()}}><svg class={`appearance-circle ${theme}`} width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill={theme==='dark'?'#25232a':'#faf9fc'}/>{#if theme==='system'}<path d="M15 2a13 13 0 0 1 0 26Z" fill="#25232a"/>{/if}<circle cx="15" cy="15" r="13" fill="none" stroke="#96909f" stroke-width="1"/></svg><span>{theme[0].toUpperCase()+theme.slice(1)}</span></button>{/each}
+     </div></div>
+     <div class="setting-row logo-setting"><span>App logo</span><div class="logo-options" role="group" aria-label="App logo">
+      {#each logos as logo}<button class="logo-option" class:chosen={settings.logo===logo.id} aria-label={logo.label} aria-pressed={settings.logo===logo.id} onclick={()=>{settings.logo=logo.id;persist()}}><span class="logo-preview"><Logo logo={logo.id} size={60}/></span><span>{logo.label}</span></button>{/each}
      </div></div>
      <label class="setting-row"><span>Clicking an album</span><select aria-label="Clicking an album" bind:value={settings.openMode} onchange={persist}><option value="library">Apple Music library</option><option value="link">Open saved album link</option></select></label>
      <label class="setting-row"><span>Show artwork on the desktop</span><input class="switch" type="checkbox" bind:checked={settings.desktopEnabled} onchange={persist}/></label>

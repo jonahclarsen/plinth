@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Plinth logo">
+  <defs>
+    <g id="record-mask">
+      <circle r="152" fill="white"/>
+      <g fill="none" stroke="black" stroke-width="10" stroke-linecap="round">
+        <path d="M -118 -34 A 124 124 0 0 1 -54 -114"/>
+        <path d="M -93 -31 A 99 99 0 0 1 -46 -88"/>
+        <path d="M 40 102 A 112 112 0 0 0 92 50"/>
+        <path d="M 55 124 A 137 137 0 0 0 116 62"/>
+      </g>
+    </g>
+    <mask id="records" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <use href="#record-mask" x="265" y="512"/>
+      <use href="#record-mask" x="512" y="512"/>
+      <use href="#record-mask" x="759" y="512"/>
+    </mask>
+    <g id="center">
+      <circle r="57" fill="black"/>
+      <circle r="8" fill="white"/>
+    </g>
+  </defs>
+  <rect width="1024" height="1024" fill="white" mask="url(#records)"/>
+  <use href="#center" x="265" y="512"/>
+  <use href="#center" x="512" y="512"/>
+  <use href="#center" x="759" y="512"/>
+</svg>

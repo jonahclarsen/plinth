@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod branding;
 mod desktop;
 mod displays;
 mod library;
@@ -62,6 +63,8 @@ fn save_settings(
     library::validate_settings(&settings)?;
     let mut lib = store.library.lock().map_err(|e| e.to_string())?;
     let changed = lib.settings.desktop_enabled != settings.desktop_enabled;
+    let logo_changed = lib.settings.logo != settings.logo;
+    let logo = settings.logo;
     let mut updated = lib.clone();
     updated.settings = settings;
     library::save(&store.dir, &updated)?;
@@ -69,6 +72,15 @@ fn save_settings(
     broadcast(&app, &lib);
     let enabled = lib.settings.desktop_enabled;
     drop(lib);
+    if logo_changed {
+        let a = app.clone();
+        app.run_on_main_thread(move || {
+            if let Err(e) = branding::apply(&a, logo, true) {
+                let _ = a.emit("app-error", e);
+            }
+        })
+        .map_err(|e| e.to_string())?;
+    }
     if changed {
         let a = app.clone();
         app.run_on_main_thread(move || {
@@ -342,22 +354,9 @@ fn restore_window_size(app: &tauri::AppHandle) {
 fn show_main(app: &tauri::AppHandle) {
     #[cfg(target_os = "macos")]
     let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
-    #[cfg(all(dev, target_os = "macos"))]
-    {
-        use objc2::{AllocAnyThread, MainThreadMarker};
-        use objc2_app_kit::{NSApplication, NSImage};
-        use objc2_foundation::NSData;
-
-        // `tauri dev` runs an unbundled binary. Restore the logo whenever we
-        // bring its Dock icon back, rather than relying on bundle metadata.
-        if let Some(mtm) = MainThreadMarker::new() {
-            let data = NSData::with_bytes(include_bytes!("../icons/icon.icns"));
-            if let Some(icon) = NSImage::initWithData(NSImage::alloc(), &data) {
-                unsafe {
-                    NSApplication::sharedApplication(mtm).setApplicationIconImage(Some(&icon))
-                };
-            }
-        }
+    let logo = app.state::<Store>().library.lock().unwrap().settings.logo;
+    if let Err(e) = branding::apply(app, logo, false) {
+        let _ = app.emit("app-error", e);
     }
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
@@ -463,11 +462,10 @@ fn main() {
             app.manage(DesktopMenu(toggle.clone()));
             let quit = MenuItem::with_id(app, "quit", "Quit Plinth", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &toggle, &quit])?;
-            TrayIconBuilder::new()
-                .icon(tauri::image::Image::from_bytes(include_bytes!(
-                    "../icons/tray.png"
-                ))?)
-                .icon_as_template(true)
+            let logo = app.state::<Store>().library.lock().unwrap().settings.logo;
+            TrayIconBuilder::with_id("plinth")
+                .icon(logo.tray()?)
+                .icon_as_template(false)
                 .tooltip("Plinth — your records, on your desktop")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
@@ -506,6 +504,9 @@ fn main() {
                 .desktop_enabled;
             desktop::rebuild(app.handle(), enabled)?;
             desktop::start_pointer_tracking(app.handle().clone());
+            if let Err(e) = branding::apply(app.handle(), logo, true) {
+                eprintln!("{e}");
+            }
             restore_window_size(app.handle());
             show_main(app.handle());
             Ok(())
