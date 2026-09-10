@@ -128,7 +128,7 @@
  <div class="app-shell" class:dragging ondragover={(e)=>{e.preventDefault();if(!api.native)dragging=true}} ondragleave={(e)=>{if(!e.relatedTarget)dragging=false}} ondrop={(e)=>{e.preventDefault();dragging=false;if(!api.native&&e.dataTransfer)void browserFiles(Array.from(e.dataTransfer.files))}} role="presentation">
   <div class="titlebar" role="presentation" onmousedown={(e)=>{if(api.native&&e.button===0&&e.detail===1)void getCurrentWebviewWindow().startDragging()}}></div>
   <header>
-   <a class="brand" href="/" onclick={(e)=>{e.preventDefault();page='collection'}}><span class="brand-mark"><Logo logo={settings.logo}/></span>plinth</a>
+   <a class="brand" href="/" onclick={(e)=>{e.preventDefault();page='collection'}}><span class="brand-mark" data-logo={settings.logo}><Logo logo={settings.logo}/></span>plinth</a>
    <nav aria-label="Main navigation">
     <button class:active={page==='collection'} onclick={()=>page='collection'}><Icon name="grid"/>Collection</button>
     <button class:active={page==='appearance'} onclick={()=>page='appearance'}><Icon name="settings"/>Appearance</button>
