@@ -76,3 +76,16 @@ test('Option page navigation wraps, desktop toggle uses action labels, internal 
  const image=page.locator('.artwork img').first();await expect(image).toHaveAttribute('draggable','false')
  await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click();await expect(page.locator('.editor-artwork>img')).toHaveAttribute('draggable','false');await expect(page.locator('.artwork-actions')).toHaveCSS('opacity','0');await page.locator('.editor-artwork').hover();await expect(page.locator('.artwork-actions')).toHaveCSS('opacity','1')
 })
+
+test('quit modal defaults to hide and provides keyboard actions without leaking shortcuts',async({page})=>{
+ await page.goto('/?demo=1')
+ const dialog=page.getByRole('dialog',{name:'Quit Plinth?'})
+ const show=async()=>{await page.keyboard.press('Control+q');await expect(dialog).toBeVisible();await expect(page.getByRole('button',{name:'Hide window',exact:true})).toBeFocused()}
+ await show();await page.keyboard.press('Enter');await expect(dialog).not.toBeVisible()
+ await show();await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible()
+ await show();await page.keyboard.press('Control+w');await expect(dialog).not.toBeVisible()
+ await show();await page.keyboard.press('Control+q');await expect(dialog).not.toBeVisible()
+ await show();await page.keyboard.press('/');await expect(page.getByRole('button',{name:'Hide window',exact:true})).toBeFocused()
+ await page.keyboard.press('Escape')
+ await page.keyboard.down('Control');await page.keyboard.down('q');await page.keyboard.down('q');await expect(dialog).toBeVisible();await page.keyboard.up('q');await page.keyboard.up('Control')
+})
