@@ -10,6 +10,7 @@ test('README screenshots use only synthetic demo artwork',async({page})=>{
  await page.mouse.move(0,0)
  await sharp(await page.screenshot({fullPage:true,animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/collection.webp')
  await page.getByRole('button',{name:'Appearance',exact:true}).click()
+ await page.getByRole('button',{name:/4K monitor/}).click()
  await page.mouse.move(0,0)
  await sharp(await page.screenshot({fullPage:true,animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/appearance.webp')
  await page.getByRole('button',{name:'Settings',exact:true}).click()
