@@ -29,6 +29,8 @@ Launch `Plinth.app`, choose **Add artwork**, or drop image files into the librar
 
 Missing albums show a native macOS alert. The first Music action may ask for macOS Automation permission. Library mode searches album titles in your local Music library; link mode opens the URL you saved. No Apple Music API credentials are needed.
 
+The Collection page and desktop album list do not scroll. Albums beyond the visible area are clipped; use Collection search to find a specific record. Appearance controls and album editors remain scrollable when needed.
+
 The desktop is a transparent native window above the wallpaper and desktop icons, below ordinary windows. It receives clicks and does not scroll. Incomplete rows are centered; use the Columns setting to fit more covers on screen. Covers enlarge without activating Plinth; this does not draw over your foreground apps. Restart Plinth after changing monitor arrangements. Add Plinth in **System Settings → General → Login Items** if you want it to start at login.
 
 Option-Q and Option-W move to the previous or next page, wrapping at either end. Window size is remembered when you close or quit; new installations open at 1550 × 840 points.

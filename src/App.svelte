@@ -52,7 +52,7 @@
  $: enabled=library.albums.filter(a=>a.enabled)
  $: filtered=ordered(library.albums.filter(a=>`${a.title} ${a.artist}`.toLowerCase().includes(query.toLowerCase())),settings.sort,settings.shuffleSeed)
  $: artists=new Set(library.albums.map(a=>a.artist).filter(Boolean)).size
- $: if(typeof document!=='undefined') {document.documentElement.dataset.theme=settings.theme==='system'?(mediaDark?'dark':'light'):settings.theme;document.documentElement.classList.toggle('desktop-document',desktop)}
+ $: if(typeof document!=='undefined') {document.documentElement.dataset.theme=settings.theme==='system'?(mediaDark?'dark':'light'):settings.theme;document.documentElement.classList.toggle('desktop-document',desktop);document.documentElement.classList.toggle('collection-document',!desktop&&page==='collection')}
  $: if(edit && modal && !modal.open) modal.showModal()
  function message(text:string) {notice=text;setTimeout(()=>{if(notice===text)notice=''},6000)}
  function persist() {
