@@ -20,7 +20,7 @@
  let artworkTarget:HTMLDivElement
  let replacing=false
  let files:HTMLInputElement
- let hideButton:HTMLButtonElement
+ let quitHeading:HTMLHeadingElement
  let quitDialog:HTMLDialogElement
  let quitBackdropDown=false
  let modal:HTMLDialogElement
@@ -76,7 +76,7 @@
  async function replace(input:string|File){if(!edit)return;replacing=true;try{const result=await api.replaceArtwork(edit,input);edit={...edit,cover:result.cover,original:result.original}}catch{await api.showAlert('This image could not be used. Choose a supported image file.')}finally{replacing=false}}
  async function chooseReplacement(){if(!api.native){replacementFiles.click();return}try{const paths=await api.chooseImages(true);if(paths.length)await replace(paths[0])}catch{await api.showAlert('The image picker could not be opened.')}}
  async function download(){if(!edit)return;try{await api.downloadArtwork(edit)}catch{await api.showAlert('The original artwork could not be saved. Choose another location.')}}
- function showQuit(){if(!quitDialog?.open){quitDialog?.showModal();hideButton?.focus()}}
+ function showQuit(){if(!quitDialog?.open){quitDialog?.showModal();quitHeading?.focus()}}
  async function flushSettings(){clearTimeout(saveTimer);await saveQueue;if(settingsDirty){await api.saveSettings(structuredClone(library.settings));settingsDirty=false}}
  async function hideWindow(){try{await flushSettings();quitDialog?.close();if(api.native)await invoke('hide_window')}catch{await api.showAlert('The window could not be hidden.')}}
  async function quitApp(){try{await flushSettings();if(api.native)await invoke('quit_app');else quitDialog.close()}catch{await api.showAlert('Plinth could not quit.')}}
@@ -175,8 +175,8 @@
  {#if edit}<form onsubmit={(e)=>{e.preventDefault();void saveAlbum()}}><div class="modal-heading"><button class="icon-only" type="button" aria-label="Close album editor" onclick={closeEditor}><Icon name="close"/></button></div><div class="editor-top"><div class="editor-artwork" bind:this={artworkTarget} class:replacing ondragover={(e)=>e.preventDefault()} ondrop={(e)=>{e.preventDefault();if(!api.native&&e.dataTransfer?.files.length===1)void replace(e.dataTransfer.files[0])}} role="presentation"><img draggable="false" ondragstart={(e)=>e.preventDefault()} src={api.originalUrl(edit)} alt={edit.title}/><div class="artwork-actions"><button type="button" class="icon-only" aria-label="Download original artwork" title="Download original artwork" onclick={download} disabled={replacing}><Icon name="download"/></button><button type="button" class="icon-only" aria-label="Replace artwork" title="Replace artwork" onclick={chooseReplacement} disabled={replacing}><Icon name="replace"/></button></div>{#if replacing}<span class="replacement-progress">Replacing…</span>{/if}</div><div><span class="eyebrow">IN YOUR COLLECTION</span><h3>{edit.title}</h3><p>{edit.artist||'Make it your own.'}</p><button type="button" class="text-button" onclick={()=>edit&&open(edit)}><Icon name="music"/>Open in Music</button></div></div><label>Album title<input required bind:value={edit.title}/></label><div class="two-fields"><label>Artist<input bind:value={edit.artist}/></label><label>Release date<input type="date" bind:value={edit.date}/></label></div><label>Album link <span class="optional">optional</span><input type="url" placeholder="https://music.apple.com/…" bind:value={edit.url}/></label><label class="toggle-row"><span>Show on desktop</span><input class="switch" type="checkbox" bind:checked={edit.enabled}/></label><div class="editor-actions">{#if confirmRemove}<button type="button" class="danger" onclick={remove}>Remove this album</button><button type="button" onclick={()=>confirmRemove=false}>Keep it</button>{:else}<button type="button" class="icon-only danger" aria-label="Remove album" onclick={()=>confirmRemove=true}><Icon name="trash"/></button><button type="submit" class="primary"><Icon name="check"/>Save changes</button>{/if}</div></form>{/if}
  </dialog>
  <dialog class="quit-dialog" bind:this={quitDialog} aria-labelledby="quit-title" onpointerdown={(e)=>quitBackdropDown=e.target===quitDialog&&outsideDialog(quitDialog,e)} onpointerup={(e)=>{if(quitBackdropDown&&e.target===quitDialog&&outsideDialog(quitDialog,e))quitDialog.close();quitBackdropDown=false}}>
-  <h2 id="quit-title">Quit Plinth?</h2><p>Hide the window to keep your desktop running, or quit Plinth.</p>
-  <div class="quit-actions"><button aria-label="Cancel" aria-keyshortcuts="Escape" onclick={()=>quitDialog.close()}>Cancel<kbd aria-hidden="true">Esc</kbd></button><button aria-label="Quit Plinth" aria-keyshortcuts="Meta+Q Control+Q" onclick={quitApp}>Quit Plinth<kbd aria-hidden="true">Cmd Q</kbd></button><button bind:this={hideButton} class="primary" aria-label="Hide window" aria-keyshortcuts="Enter Meta+W Control+W" title="Hide window (Return or Command-W)" onclick={hideWindow}>Hide window<kbd aria-hidden="true">Return</kbd></button></div>
+  <h2 id="quit-title" bind:this={quitHeading} tabindex="-1">Quit Plinth?</h2><p>Hide the window to keep your desktop running, or quit Plinth.</p>
+  <div class="quit-actions"><button aria-label="Cancel" aria-keyshortcuts="Escape" onclick={()=>quitDialog.close()}>Cancel<kbd aria-hidden="true">Esc</kbd></button><button aria-label="Hide window" aria-keyshortcuts="Meta+W Control+W" onclick={hideWindow}>Hide window<kbd aria-hidden="true">Cmd W</kbd></button><button aria-label="Quit Plinth" aria-keyshortcuts="Meta+Q Control+Q" onclick={quitApp}>Quit Plinth<kbd aria-hidden="true">Cmd Q</kbd></button></div>
  </dialog>
 
 {/if}
