@@ -13,6 +13,7 @@
     "test": "playwright test",
     "test:dev-runner": "node --test scripts/tests/dev-runner.test.mjs",
     "test:native": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "icons": "node scripts/icons.mjs",
     "screenshots": "playwright test tests/screenshots.spec.ts",
     "tauri": "tauri"
   },

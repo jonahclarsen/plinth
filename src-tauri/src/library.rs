@@ -42,6 +42,7 @@ impl Default for Layout {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
+    pub logo: crate::branding::Logo,
     pub layout: Layout,
     pub wide_layout: Layout,
     pub hover_scale: f64,
@@ -57,6 +58,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            logo: crate::branding::Logo::default(),
             layout: Layout::default(),
             wide_layout: Layout {
                 columns: 18,

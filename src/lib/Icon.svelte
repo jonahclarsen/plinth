@@ -10,7 +10,7 @@
   play:'m8 4 12 8-12 8V4Z',pause:'M8 5v14M16 5v14',upload:'M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6',
   trash:'M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7',external:'M14 3h7v7m0-7L10 14M10 3H3v18h18v-7',
   cursor:'m5 3 14 10-7 1-3 7L5 3Z',info:'M12 11v6m0-10h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0',
-  plinth:'M6 5h12v9H6zM4 19h16M8 14v5m8-5v5',chevron:'m8 10 4 4 4-4'
+  chevron:'m8 10 4 4 4-4'
  }
 </script>
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={paths[name] || paths.grid}/></svg>
