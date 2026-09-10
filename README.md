@@ -27,6 +27,8 @@ The screenshots contain only synthetic artwork and fictional album metadata. No 
 
 Launch `Plinth.app`, choose **Add artwork**, or drop image files into the library window. Imported records can be edited by clicking their artwork. Choose **Appearance** to adjust the desktop, and **Settings** for the app theme, logo, and Music behavior. **App logo** offers the three supplied designs and remembers your choice. Switching updates the app header, browser icon, macOS Dock, menu bar, and Finder app icon.
 
+**Appearance → Spaces** offers **All Spaces** or **This Space**. This Space places albums on the active desktop when you select it, show the desktop again, or launch Plinth; it does not remember a numbered Space across launches. To move albums to another Space, switch there and use Hide desktop followed by Show desktop.
+
 Missing albums show a native macOS alert. The first Music action may ask for macOS Automation permission. Library mode searches album titles in your local Music library; link mode opens the URL you saved. No Apple Music API credentials are needed.
 
 The Collection page and desktop album list do not scroll. Albums beyond the visible area are clipped; use Collection search to find a specific record. Appearance controls and album editors remain scrollable when needed.

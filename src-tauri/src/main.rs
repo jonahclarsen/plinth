@@ -62,7 +62,8 @@ fn save_settings(
     editor(&window)?;
     library::validate_settings(&settings)?;
     let mut lib = store.library.lock().map_err(|e| e.to_string())?;
-    let changed = lib.settings.desktop_enabled != settings.desktop_enabled;
+    let changed = lib.settings.desktop_enabled != settings.desktop_enabled
+        || lib.settings.all_spaces != settings.all_spaces;
     let logo_changed = lib.settings.logo != settings.logo;
     let logo = settings.logo;
     let mut updated = lib.clone();
@@ -71,6 +72,7 @@ fn save_settings(
     *lib = updated;
     broadcast(&app, &lib);
     let enabled = lib.settings.desktop_enabled;
+    let all_spaces = lib.settings.all_spaces;
     drop(lib);
     if logo_changed {
         let a = app.clone();
@@ -84,7 +86,7 @@ fn save_settings(
     if changed {
         let a = app.clone();
         app.run_on_main_thread(move || {
-            if let Err(e) = desktop::rebuild(&a, enabled) {
+            if let Err(e) = desktop::rebuild(&a, enabled, all_spaces) {
                 let _ = a.emit("app-error", e);
             }
         })
@@ -488,21 +490,25 @@ fn main() {
                             lib.settings.desktop_enabled = !lib.settings.desktop_enabled;
                             if library::save(&store.dir, &lib).is_ok() {
                                 broadcast(app, &lib);
-                                let _ = desktop::rebuild(app, lib.settings.desktop_enabled);
+                                let _ = desktop::rebuild(
+                                    app,
+                                    lib.settings.desktop_enabled,
+                                    lib.settings.all_spaces,
+                                );
                             }
                         };
                     }
                     _ => {}
                 })
                 .build(app)?;
-            let enabled = app
+            let settings = app
                 .state::<Store>()
                 .library
                 .lock()
                 .unwrap()
                 .settings
-                .desktop_enabled;
-            desktop::rebuild(app.handle(), enabled)?;
+                .clone();
+            desktop::rebuild(app.handle(), settings.desktop_enabled, settings.all_spaces)?;
             desktop::start_pointer_tracking(app.handle().clone());
             if let Err(e) = branding::apply(app.handle(), logo, true) {
                 eprintln!("{e}");

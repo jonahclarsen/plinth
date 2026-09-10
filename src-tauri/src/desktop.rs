@@ -1,7 +1,12 @@
-use std::time::Duration;
+use std::{
+    sync::atomic::{AtomicU64, Ordering},
+    time::Duration,
+};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
-pub fn rebuild(app: &AppHandle, enabled: bool) -> Result<(), String> {
+static DESKTOP_GENERATION: AtomicU64 = AtomicU64::new(0);
+
+pub fn rebuild(app: &AppHandle, enabled: bool, all_spaces: bool) -> Result<(), String> {
     for (label, window) in app.webview_windows() {
         if label.starts_with("desktop-") {
             window.destroy().map_err(|e| e.to_string())?;
@@ -10,6 +15,8 @@ pub fn rebuild(app: &AppHandle, enabled: bool) -> Result<(), String> {
     if !enabled {
         return Ok(());
     }
+    // Tauri destroys webviews asynchronously; old labels may still be registered.
+    let generation = DESKTOP_GENERATION.fetch_add(1, Ordering::Relaxed);
     for (i, monitor) in app
         .available_monitors()
         .map_err(|e| e.to_string())?
@@ -21,7 +28,7 @@ pub fn rebuild(app: &AppHandle, enabled: bool) -> Result<(), String> {
         let size = monitor.size();
         let window = WebviewWindowBuilder::new(
             app,
-            format!("desktop-{i}"),
+            format!("desktop-{generation}-{i}"),
             WebviewUrl::App("index.html?desktop=1".into()),
         )
         .title("Plinth Desktop")
@@ -50,13 +57,24 @@ pub fn rebuild(app: &AppHandle, enabled: bool) -> Result<(), String> {
                 .ns_window()
                 .map_err(|e| e.to_string())?
                 .cast::<NSWindow>();
-            // Same public desktop-icon window level used for Plash's browsing mode.
-            ns.setLevel(-2147483602);
             ns.setCollectionBehavior(
-                NSWindowCollectionBehavior::CanJoinAllSpaces
-                    | NSWindowCollectionBehavior::Stationary
+                (if all_spaces {
+                    NSWindowCollectionBehavior::CanJoinAllSpaces
+                } else {
+                    NSWindowCollectionBehavior::Default
+                }) | NSWindowCollectionBehavior::Stationary
                     | NSWindowCollectionBehavior::IgnoresCycle,
             );
+            if !all_spaces {
+                // Establish membership in the active Space at the normal window level.
+                // Ordering a new window at the desktop level first leaves it off-Space.
+                // Keep it transparent during placement and never activate it.
+                ns.setAlphaValue(0.);
+                ns.orderFrontRegardless();
+            }
+            // Same public desktop-icon window level used for Plash's browsing mode.
+            ns.setLevel(-2147483602);
+            ns.setAlphaValue(1.);
             ns.setCanHide(false);
             ns.setAcceptsMouseMovedEvents(true);
             ns.setHidesOnDeactivate(false);
