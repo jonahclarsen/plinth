@@ -179,9 +179,10 @@ test('artwork gallery preserves editor changes and closes only the top modal',as
  await expect(gallery).toHaveCSS('cursor','default')
  const size=(await image.boundingBox())!
  expect(size.height).toBeCloseTo(852,0);expect(size.width).toBeCloseTo(size.height,0)
- await image.click();await expect(gallery).toBeVisible()
- await page.mouse.move(size.x+size.width/2,size.y+size.height/2);await page.mouse.down();await page.mouse.move(5,5);await page.mouse.up()
- await expect(gallery).toBeVisible()
+ await image.click();await expect(gallery).not.toBeVisible()
+ await expect(page.locator('.album-dialog')).toBeVisible()
+ await expect(page.getByLabel('Album title')).toHaveValue('Unsaved title')
+ await viewer.click();await expect(gallery).toBeVisible()
  await page.mouse.click(5,5);await expect(gallery).not.toBeVisible()
  await expect(page.getByLabel('Album title')).toHaveValue('Unsaved title')
  await expect(viewer).toBeFocused()
