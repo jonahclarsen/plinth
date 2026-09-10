@@ -51,6 +51,7 @@ pub struct Settings {
     pub dim_others: bool,
     pub opacity: f64,
     pub sort: String,
+    pub shuffle_seed: u32,
     pub theme: String,
     pub desktop_enabled: bool,
     pub open_mode: String,
@@ -68,6 +69,7 @@ impl Default for Settings {
             dim_others: false,
             opacity: 1.,
             sort: "artist".into(),
+            shuffle_seed: 0,
             theme: "dark".into(),
             desktop_enabled: true,
             open_mode: "library".into(),
@@ -275,7 +277,7 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
     {
         return Err("Invalid appearance values".into());
     }
-    if !["artist", "title", "date", "shuffle"].contains(&s.sort.as_str())
+    if !["artist", "title", "date", "oldest", "shuffle"].contains(&s.sort.as_str())
         || !["dark", "light", "system"].contains(&s.theme.as_str())
         || !["library", "link"].contains(&s.open_mode.as_str())
     {

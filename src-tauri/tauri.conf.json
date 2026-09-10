@@ -15,13 +15,14 @@
       {
         "label": "main",
         "title": "Plinth",
-        "width": 1180,
-        "height": 820,
-        "minWidth": 800,
-        "minHeight": 620,
+        "width": 900,
+        "height": 720,
+        "minWidth": 640,
+        "minHeight": 500,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "visible": false
+        "visible": false,
+        "center": true
       }
     ],
     "security": {

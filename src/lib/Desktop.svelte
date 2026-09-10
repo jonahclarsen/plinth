@@ -15,7 +15,7 @@
  let lastPointer={x:0,y:0,visible:false}
  $: settings=library.settings
  $: layout=forcedLayout??(width>1900?settings.wideLayout:settings.layout)
- $: albums=ordered(library.albums.filter(a=>a.enabled),settings.sort)
+ $: albums=ordered(library.albums.filter(a=>a.enabled),settings.sort,settings.shuffleSeed)
  function hoverAt(x:number,y:number,visible:boolean) {
   lastPointer={x,y,visible}
   if(!visible || !settings.hoverEnabled) {hovered='';return}

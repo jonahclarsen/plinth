@@ -26,3 +26,6 @@
 - Album editor uses original artwork with download and replacement controls; the collection and desktop use compressed copies.
 - Keep the whole top strip draggable and free of status copy.
 - Show a Dock icon while the main window is visible; hide it when the window closes. Command-W keeps the desktop running. Command-Q opens a Hide window / Quit Plinth / Cancel modal.
+- Left-click the menu bar icon opens the window; right-click opens its menu. Use “Hide desktop” / “Show desktop” labels in both menu and UI, synchronized to saved state.
+- Original artwork in the modal is large, with two subtle hover actions across its bottom edge. Disable dragging internal images; accept external image drops.
+- Option-Q / Option-W navigate pages with wraparound. Remember the main window size; keep the collection full-width with modest gutters.
