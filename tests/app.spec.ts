@@ -70,9 +70,9 @@ test('quit modal supports cancel, backdrop dismissal and hide',async({page})=>{
 
 test('shuffle can be selected repeatedly and oldest date follows newest date',async({page})=>{
  await page.goto('/?demo=1');const titles=()=>page.locator('.album-title').allTextContents()
- await page.getByRole('button',{name:'Sort collection',exact:true}).click();await page.getByRole('menuitemradio',{name:'Shuffled',exact:true}).click();const first=await titles()
- await page.getByRole('button',{name:'Sort collection',exact:true}).click();await page.getByRole('menuitemradio',{name:'Shuffled',exact:true}).click();expect(await titles()).not.toEqual(first)
- await page.getByRole('button',{name:'Sort collection',exact:true}).click();await expect(page.getByRole('menuitemradio')).toHaveText(['Artist','Title','Newest date','Oldest date','Shuffled'])
+ await page.getByRole('button',{name:'Sort collection',exact:true}).click();await page.getByRole('menuitemradio',{name:'Shuffle',exact:true}).click();const first=await titles()
+ await page.getByRole('button',{name:'Sort collection',exact:true}).click();await page.getByRole('menuitemradio',{name:'Shuffle',exact:true}).click();expect(await titles()).not.toEqual(first)
+ await page.getByRole('button',{name:'Sort collection',exact:true}).click();await expect(page.getByRole('menuitemradio')).toHaveText(['Artist','Title','Newest date','Oldest date','Shuffle'])
  await page.getByRole('menuitemradio',{name:'Oldest date',exact:true}).click();await expect(page.getByRole('button',{name:'Sort collection',exact:true})).toHaveText('Oldest date')
 })
 test('Option page navigation wraps, desktop toggle uses action labels, internal artwork cannot drag',async({page})=>{
