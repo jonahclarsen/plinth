@@ -30,9 +30,9 @@ The screenshots contain only synthetic artwork and fictional album metadata. No 
 
 ## Use it
 
-Launch `Plinth.app`, choose **Add artwork**, or drop image files into the library window. Press Command-A on the Collection page to add artwork. Click a record’s artwork, caption, or caption spacing to edit it. The artwork’s bottom actions offer Edit and View; View opens the original directly in the borderless gallery. Choose **Appearance** to adjust the desktop, and **Settings** for the app theme, logo, and Music behavior. **App logo** offers the three supplied designs and remembers your choice. Switching updates the app header, browser icon, macOS Dock, menu bar, and Finder app icon.
+Launch `Plinth.app`, choose **Add artwork**, or drop image files into the library window. The Enable / Disable button beside Add artwork controls desktop artwork from any page. Press Command-A on the Collection page to add artwork. Click a record’s artwork, caption, or caption spacing to edit it. The artwork’s bottom actions offer Edit and View; View opens the original directly in the borderless gallery. Choose **Appearance** to adjust the desktop, and **Settings** for the app theme, logo, and Music behavior. **App logo** offers the three supplied designs and remembers your choice. Switching updates the app header, browser icon, macOS Dock, menu bar, and Finder app icon.
 
-**Appearance → Spaces** offers **All Spaces** or **This Space**. This Space places albums on the active desktop when you select it, show the desktop again, or launch Plinth; it does not remember a numbered Space across launches. To move albums to another Space, switch there and use Hide desktop followed by Show desktop.
+**Appearance → Spaces** offers **All Spaces** or **This Space**. This Space places albums on the active desktop when you select it, show the desktop again, or launch Plinth; it does not remember a numbered Space across launches. To move albums to another Space, switch there and use Disable followed by Enable.
 
 Missing albums show a native macOS alert. The first Music action may ask for macOS Automation permission. Library mode searches album titles in your local Music library; link mode opens the URL you saved. No Apple Music API credentials are needed.
 
