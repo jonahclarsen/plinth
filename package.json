@@ -1,0 +1,33 @@
+{
+  "name": "plinth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.13.1",
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:web": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "build:app": "tauri build --bundles app",
+    "check": "svelte-check --tsconfig tsconfig.json",
+    "test": "playwright test",
+    "test:native": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "screenshots": "playwright test tests/screenshots.spec.ts",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.10.1",
+    "svelte": "^5.55.5"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1",
+    "@playwright/test": "^1.60.0",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^24.12.3",
+    "sharp": "^0.35.4",
+    "svelte-check": "^4.4.8",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.12"
+  }
+}

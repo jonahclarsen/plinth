@@ -11,3 +11,5 @@ playwright-report/
 *.app/
 *.dmg
 .local/
+src-tauri/gen/
+src-tauri/icons/icon.iconset/

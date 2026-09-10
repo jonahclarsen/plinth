@@ -1,0 +1,12 @@
+{
+  "identifier": "default",
+  "description": "Local library and desktop events",
+  "windows": [
+    "main",
+    "desktop-*"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging"
+  ]
+}
