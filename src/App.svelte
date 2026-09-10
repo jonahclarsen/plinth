@@ -3,6 +3,7 @@
  import { invoke } from '@tauri-apps/api/core'
  import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
  import { listen } from '@tauri-apps/api/event'
+ import { previewDisplays, type DetectedDisplay } from './lib/displays'
  import Icon from './lib/Icon.svelte'
  import Desktop from './lib/Desktop.svelte'
  import * as api from './lib/api'
@@ -26,7 +27,21 @@
  let backdropPointerDown=false
  function outsideDialog(dialog:HTMLDialogElement,e:PointerEvent) {const r=dialog.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom}
  let previewWidth=0
- let screens={layout:{width:1280,height:800,pixels:'2560 × 1600'},wideLayout:{width:1920,height:1080,pixels:'3840 × 2160'}}
+ let screens=api.native?previewDisplays([]).screens:{layout:{width:1280,height:800,pixels:'2560 × 1600'},wideLayout:{width:1920,height:1080,pixels:'3840 × 2160'}}
+ let currentDisplayId:number|undefined
+ let displayRequest=0
+ async function refreshDisplays(selectCurrent=false) {
+  const request=++displayRequest
+  try {
+   const result=previewDisplays(await invoke<DetectedDisplay[]>('get_displays'))
+   if(request!==displayRequest)return
+   screens=result.screens
+   if(result.profile&&(selectCurrent||result.currentId!==currentDisplayId))profile=result.profile
+   currentDisplayId=result.currentId
+  } catch { /* Keep the last preview if a display is disconnected during detection. */ }
+ }
+ let previousPage=page
+ $: if(page!==previousPage){previousPage=page;if(page==='appearance'&&api.native)void refreshDisplays(true)}
  $: screen=screens[profile]
  let mediaDark=window.matchMedia('(prefers-color-scheme: dark)').matches
  let saveQueue=Promise.resolve()
@@ -70,9 +85,16 @@
    const sub=await api.subscribe(next=>{library=settingsDirty?{...next,settings:library.settings}:next});if(!live){sub();return}disposers.push(sub)
    library=await api.loadLibrary();loaded=true
    if(api.native){
-    const displays=await invoke<{width:number;height:number;scale:number}[]>('get_displays')
-    for(const d of displays){const key=d.width>=3840||d.width/d.height>1.7?'wideLayout':'layout';screens[key]={width:d.width/d.scale,height:d.height/d.scale,pixels:`${d.width} × ${d.height}`}}
-    screens={...screens}
+    if(!desktop){
+     await refreshDisplays(true)
+     const nativeWindow=getCurrentWebviewWindow()
+     let displayTimer:ReturnType<typeof setTimeout>
+     const scheduleDisplayRefresh=()=>{clearTimeout(displayTimer);displayTimer=setTimeout(()=>void refreshDisplays(),150)}
+     disposers.push(()=>{clearTimeout(displayTimer);displayRequest++})
+     for(const subscribe of [()=>nativeWindow.onMoved(scheduleDisplayRefresh),()=>nativeWindow.onScaleChanged(scheduleDisplayRefresh),()=>nativeWindow.onFocusChanged(e=>{if(e.payload)scheduleDisplayRefresh()})]) {
+      const unlisten=await subscribe();if(live)disposers.push(unlisten);else unlisten()
+     }
+    }
     if(!desktop){const quit=await listen('request-quit',showQuit);if(live)disposers.push(quit);else quit()}
     const err=await listen<string>('app-error',e=>error=e.payload);if(live)disposers.push(err);else err()
     if(!desktop){const nativeWindow=getCurrentWebviewWindow();const scale=await nativeWindow.scaleFactor();const drop=await nativeWindow.onDragDropEvent(e=>{

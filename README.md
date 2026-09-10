@@ -9,7 +9,7 @@ Plinth is a macOS menu bar app that turns your album artwork into an interactive
 ## What it does
 
 - **Drop artwork in.** Import individual images. Plinth preserves originals, creates optimized JPEGs up to 1200 px, and skips exact duplicates. PNG, JPEG, WebP, GIF (first frame), TIFF, and BMP are supported.
-- **Make it yours.** Change columns, spacing, top clearance, corner radius, shadow, opacity, hover size, and ordering in the UI. Sort by artist, title, newest date, oldest date, or shuffle; choosing Shuffled again creates a new order. Choose a Mac display or 4K monitor preview with the actual display proportions and a separate layout for each.
+- **Make it yours.** Change columns, spacing, top clearance, corner radius, shadow, opacity, hover size, and ordering in the UI. Sort by artist, title, newest date, oldest date, or shuffle; choosing Shuffled again creates a new order. Choose a Mac display or 4K monitor preview with a separate layout for each. Appearance selects the display containing the Plinth window and uses detected pixel dimensions and scaling. The Mac preview identifies the built-in panel, even when another display is primary. If macOS hides that panel with the lid closed, Plinth uses its last detected dimensions; before the first detection, it shows “Not detected.”
 - **Keep your music close.** Click a desktop cover to reveal its album in Apple Music, or open its saved HTTPS link. Edit titles, artists, release dates, links, and desktop visibility in the collection. The editor shows large original artwork, with download and replace controls that fade in on hover; drop a single image onto it to replace it. The collection and desktop use optimized copies.
 - **Hover without switching apps.** Native macOS pointer tracking enlarges covers over exposed desktop areas while another app retains focus. Covers stay behind normal windows; moving over another window clears the hover.
 - **Stay in the menu bar.** Plinth appears in the Dock while its window is open. Closing the window or pressing Command-W hides it and keeps the desktop running. Command-Q opens a dialog with Hide window selected by default (Return or Command-W), Quit Plinth (Command-Q), and Cancel (Escape). Left-click the menu bar icon to open Plinth. Right-click for Open Plinth, Hide desktop / Show desktop, and Quit Plinth.
@@ -42,6 +42,7 @@ On macOS, data is stored under:
   library.json           # Album metadata and appearance settings
   library.previous.json  # Previous saved database
   window.json            # Remembered main-window size
+  internal-display.json  # Last detected built-in panel dimensions
   originals/             # Unmodified imported images
   covers/                # Optimized desktop JPEGs
 ```

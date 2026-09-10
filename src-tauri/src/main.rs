@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod desktop;
+mod displays;
 mod library;
 use library::{Album, Library, Settings};
 use std::{path::PathBuf, process::Command, sync::Mutex};
@@ -38,8 +39,11 @@ fn broadcast(app: &tauri::AppHandle, library: &Library) {
     let _ = app.emit("library-changed", library);
 }
 #[tauri::command]
-fn get_displays(app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, String> {
-    Ok(app.available_monitors().map_err(|e|e.to_string())?.iter().map(|m|serde_json::json!({"width":m.size().width,"height":m.size().height,"scale":m.scale_factor()})).collect())
+fn get_displays(
+    window: tauri::WebviewWindow,
+    store: State<Store>,
+) -> Result<Vec<displays::DisplayInfo>, String> {
+    displays::detect(&window, &store.dir)
 }
 #[tauri::command]
 fn get_library(store: State<Store>) -> Result<serde_json::Value, String> {
