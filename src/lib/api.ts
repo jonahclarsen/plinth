@@ -33,7 +33,7 @@ export async function importBrowserFiles(files: File[]) {
 }
 
 export function originalUrl(album:Album){return native?convertFileSrc(`${dataDir}/originals/${album.original}`):(album.original||album.cover)}
-export async function downloadArtwork(album:Album){if(native)return invoke('download_artwork',{id:album.id});const a=document.createElement('a');a.href=originalUrl(album);a.download=`${album.title}.png`;a.click()}
+export async function revealArtwork(album:Album){if(native)return invoke('reveal_artwork',{id:album.id});throw new Error('Finder is available in the installed Plinth app.')}
 export async function replaceArtwork(album:Album,input:string|File):Promise<Album>{
  if(native)return invoke('replace_artwork',{id:album.id,path:input})
  const file=input as File;const original=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=reject;reader.readAsDataURL(file)})

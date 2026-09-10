@@ -257,44 +257,39 @@ async fn replace_artwork(
     .map_err(|e| e.to_string())?
 }
 #[tauri::command]
-async fn download_artwork(
+async fn reveal_artwork(
     window: tauri::WebviewWindow,
     app: tauri::AppHandle,
     id: String,
 ) -> Result<(), String> {
     editor(&window)?;
-    let (source, name) = {
+    let source = {
         let store = app.state::<Store>();
         let lib = store.library.lock().map_err(|e| e.to_string())?;
-        let a = lib
+        let album = lib
             .albums
             .iter()
-            .find(|a| a.id == id)
+            .find(|album| album.id == id)
             .ok_or("Album not found")?;
-        let ext = PathBuf::from(&a.original)
-            .extension()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .into_owned();
-        (
-            store.dir.join("originals").join(&a.original),
-            format!("{} - {}.{}", a.artist, a.title, ext).replace(['/', ':', '\\'], "_"),
-        )
+        store.dir.join("originals").join(&album.original)
     };
-    if let Some(file) = rfd::AsyncFileDialog::new()
-        .set_title("Save original artwork")
-        .set_file_name(name)
-        .save_file()
-        .await
-    {
-        let target = file.path().to_path_buf();
-        tauri::async_runtime::spawn_blocking(move || {
-            std::fs::copy(source, target).map_err(|e| e.to_string())
-        })
-        .await
-        .map_err(|e| e.to_string())??;
-    }
-    Ok(())
+    tauri::async_runtime::spawn_blocking(move || {
+        if !source.is_file() {
+            return Err("Original artwork not found".into());
+        }
+        let status = Command::new("open")
+            .arg("-R")
+            .arg(source)
+            .status()
+            .map_err(|e| e.to_string())?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err("Finder could not reveal the artwork".into())
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 #[tauri::command]
 async fn show_alert(message: String) -> Result<(), String> {
@@ -436,7 +431,7 @@ fn main() {
             hide_window,
             quit_app,
             replace_artwork,
-            download_artwork,
+            reveal_artwork,
             show_alert,
             get_displays,
             get_library,

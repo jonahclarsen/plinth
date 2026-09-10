@@ -8,7 +8,7 @@ test('collection search, metadata edits, hiding and removal',async({page})=>{
  await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
  await page.getByLabel('Album title').fill('New title')
  await page.getByLabel('Show on desktop',{exact:true}).uncheck()
- await page.getByRole('button',{name:'Save changes'}).click()
+ await page.getByRole('button',{name:'Save',exact:true}).click()
  await page.getByRole('searchbox').fill('New title');await expect(page.locator('.hidden-label')).toHaveText('Hidden')
  await page.getByRole('button',{name:'Edit New title'}).click();await page.getByRole('button',{name:'Remove album',exact:true}).click();await page.getByRole('button',{name:'Remove this album'}).click()
  await expect(page.getByRole('heading',{name:'No records found.'})).toBeVisible();expect(errors).toEqual([])
@@ -57,7 +57,7 @@ test('replacing artwork retains album fields and updates both image variants',as
  const image=page.locator('.editor-artwork>img'),before=await image.getAttribute('src')
  await page.getByLabel('Replacement image').setInputFiles({name:'replacement.png',mimeType:'image/png',buffer:await sharp({create:{width:90,height:70,channels:3,background:'#c8724c'}}).png().toBuffer()})
  await expect(image).not.toHaveAttribute('src',before!);await expect(image).toHaveAttribute('src',/^data:image\/png/)
- await expect(page.getByLabel('Album title')).toHaveValue('Soft Focus');await expect(page.getByRole('button',{name:'Download original artwork'})).toBeVisible()
+ await expect(page.getByLabel('Album title')).toHaveValue('Soft Focus');await expect(page.getByRole('button',{name:'Show original artwork in Finder'})).toBeVisible()
  await page.getByRole('button',{name:'Close album editor'}).click();await expect(page.getByRole('button',{name:'Edit Soft Focus',exact:true}).locator('img')).toHaveAttribute('src',/^data:image\/jpeg/)
 })
 
@@ -69,7 +69,7 @@ test('quit modal supports cancel, backdrop dismissal and hide',async({page})=>{
 })
 
 test('shuffle can be selected repeatedly and oldest date follows newest date',async({page})=>{
- await page.goto('/?demo=1');const titles=()=>page.locator('.album-caption h2').allTextContents()
+ await page.goto('/?demo=1');const titles=()=>page.locator('.album-title').allTextContents()
  await page.getByRole('button',{name:'Sort collection',exact:true}).click();await page.getByRole('menuitemradio',{name:'Shuffled',exact:true}).click();const first=await titles()
  await page.getByRole('button',{name:'Sort collection',exact:true}).click();await page.getByRole('menuitemradio',{name:'Shuffled',exact:true}).click();expect(await titles()).not.toEqual(first)
  await page.getByRole('button',{name:'Sort collection',exact:true}).click();await expect(page.getByRole('menuitemradio')).toHaveText(['Artist','Title','Newest date','Oldest date','Shuffled'])
@@ -137,7 +137,7 @@ test('Collection scrolls to every album with wheel, keyboard and focus, includin
  await page.setViewportSize({width:800,height:500})
  await page.goto('/?demo=1')
  await expect(page.locator('.album-card')).toHaveCount(18)
- const last=page.locator('.album-card .artwork').last()
+ const last=page.locator('.album-card .album-edit').last()
  await expect(last).not.toBeInViewport()
  await page.locator('.album-card').first().hover()
  await page.mouse.wheel(0,2400)
@@ -185,15 +185,14 @@ test('artwork gallery preserves editor changes and closes only the top modal',as
  await page.mouse.click(5,5);await expect(gallery).not.toBeVisible()
  await expect(page.getByLabel('Album title')).toHaveValue('Unsaved title')
  await expect(viewer).toBeFocused()
- await page.keyboard.press('Enter');await expect(gallery).toBeVisible()
+ await page.keyboard.press('Space');await expect(gallery).toBeVisible()
  await page.keyboard.press('Escape');await expect(gallery).not.toBeVisible()
  await expect(page.locator('.album-dialog')).toBeVisible()
  await expect(page.getByLabel('Album title')).toHaveValue('Unsaved title')
  const chooser=page.waitForEvent('filechooser')
  await page.getByRole('button',{name:'Replace artwork',exact:true}).click();await chooser
  await expect(gallery).not.toBeVisible()
- const download=page.waitForEvent('download')
- await page.getByRole('button',{name:'Download original artwork',exact:true}).click();await download
+ await expect(page.getByRole('button',{name:'Show original artwork in Finder',exact:true})).toBeDisabled()
  await expect(gallery).not.toBeVisible()
  await page.keyboard.press('Escape');await expect(page.locator('.album-dialog')).not.toBeVisible()
 })
