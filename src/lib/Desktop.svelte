@@ -3,7 +3,7 @@
  import { invoke } from '@tauri-apps/api/core'
  import type { DetectedDisplay } from './displays'
  import { desktopSpacing } from './spacing'
- import { listen } from '@tauri-apps/api/event'
+ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
  import { coverUrl, native, openAlbum } from './api'
  import { swingScale } from './motion'
  import { ordered, type Layout, type Library } from './types'
@@ -46,7 +46,7 @@
  }
  export function stopHoverPreview() {sample=''}
  async function open(id:string) {try {if(!preview)await openAlbum(id)}catch(e){error=String(e);setTimeout(()=>error='',8000)}}
- onMount(()=>{if(native&&!preview)void invoke<DetectedDisplay[]>('get_displays').then(displays=>{const current=displays.find(display=>display.current);detectedMenuBarHeight=current?.menuBarHeight??0;if(current)displayProfile=current.builtIn?'layout':'wideLayout'}).catch(()=>{});let dispose=()=>{};let alive=true;if(native&&!preview) listen<{x:number;y:number;visible:boolean}>('desktop-pointer',e=>hoverAt(e.payload.x,e.payload.y,e.payload.visible)).then(fn=>{if(alive)dispose=fn;else fn()});return ()=>{alive=false;dispose()}})
+ onMount(()=>{if(native&&!preview)void invoke<DetectedDisplay[]>('get_displays').then(displays=>{const current=displays.find(display=>display.current);detectedMenuBarHeight=current?.menuBarHeight??0;if(current)displayProfile=current.builtIn?'layout':'wideLayout'}).catch(()=>{});let dispose=()=>{};let alive=true;if(native&&!preview) getCurrentWebviewWindow().listen<{x:number;y:number;visible:boolean}>('desktop-pointer',e=>hoverAt(e.payload.x,e.payload.y,e.payload.visible)).then(fn=>{if(alive)dispose=fn;else fn()});return ()=>{alive=false;dispose()}})
 </script>
 <svelte:window bind:innerWidth={width} bind:innerHeight={height}/>
 <div class="desktop-surface" style:height={viewportHeight?`${viewportHeight}px`:undefined} onpointermove={(e)=>{if(!native||preview)hoverAt(e.clientX,e.clientY,true)}} onpointerleave={()=>{if(!native||preview)hovered=''}} role="presentation">
