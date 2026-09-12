@@ -254,18 +254,24 @@ pub fn rebuild(
     }
     Ok(())
 }
-pub(crate) fn emit_pointer(window: &tauri::WebviewWindow, x: f64, y: f64, visible: bool) {
+pub(crate) fn emit_pointer(
+    window: &tauri::WebviewWindow,
+    x: f64,
+    y: f64,
+    visible: bool,
+    foreground_allowed: bool,
+) {
     // Emitter::emit broadcasts even when called on a window. Each sample uses
     // this window's local coordinates, so it must never reach another display.
     let _ = window.emit_to(
         window.label(),
         "desktop-pointer",
-        serde_json::json!({ "x": x, "y": y, "visible": visible }),
+        serde_json::json!({ "x": x, "y": y, "visible": visible, "foregroundAllowed": foreground_allowed }),
     );
 }
 
 pub fn start_pointer_tracking(app: AppHandle) {
-    let previous = std::sync::Arc::new(std::sync::Mutex::new(None::<(f64, f64, isize)>));
+    let previous = std::sync::Arc::new(std::sync::Mutex::new(None::<(f64, f64, isize, bool)>));
     std::thread::spawn(move || {
         let mut ticks = 0u32;
         loop {
@@ -283,14 +289,23 @@ pub fn start_pointer_tracking(app: AppHandle) {
                         }
                     }
                     use objc2::MainThreadMarker;
-                    use objc2_app_kit::{NSEvent, NSWindow};
+                    use objc2_app_kit::{NSEvent, NSWindow, NSWorkspace};
                     let Some(mtm) = MainThreadMarker::new() else {
                         return;
                     };
                     let point = NSEvent::mouseLocation();
                     let top =
                         NSWindow::windowNumberAtPoint_belowWindowWithWindowNumber(point, 0, mtm);
-                    let sample = (point.x, point.y, top);
+                    let foreground_allowed = NSWorkspace::sharedWorkspace()
+                        .frontmostApplication()
+                        .is_some_and(|front| {
+                            front.processIdentifier() as u32 == std::process::id()
+                                || front
+                                    .bundleIdentifier()
+                                    .is_some_and(|id| id.to_string() == "com.apple.finder")
+                        });
+                    // Include focus so a stationary pointer responds to app switches.
+                    let sample = (point.x, point.y, top, foreground_allowed);
                     if let Ok(mut last) = previous.lock() {
                         if *last == Some(sample) {
                             return;
@@ -311,6 +326,7 @@ pub fn start_pointer_tracking(app: AppHandle) {
                                     local.x,
                                     ns.frame().size.height - local.y,
                                     visible,
+                                    foreground_allowed,
                                 );
                             }
                         }
