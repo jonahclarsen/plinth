@@ -28,7 +28,7 @@ function describe(before:Library,after:Library) {
   if(before.settings[key]!==after.settings[key])settings.push(`${label}: ${display(before.settings[key])} → ${display(after.settings[key])}`)
  }
  for(const [profile,name] of [['layout','Mac display'],['wideLayout','4K monitor']] as const){
-  for(const [key,label] of [['columns','Columns'],['gap','Space between covers'],['rowGap','Space between rows'],['top','Top clearance'],['radius','Rounded corners'],['shadow','Shadow']] as const){
+  for(const [key,label] of [['columns','Columns'],['gap','Space between covers'],['rowGap','Space between rows'],['top','Top clearance'],['radius','Rounded corners'],['roundedOnHover','Rounded corners when hovered'],['shadow','Shadow']] as const){
    if(before.settings[profile][key]!==after.settings[profile][key])settings.push(`${name} · ${label}: ${display(before.settings[profile][key])} → ${display(after.settings[profile][key])}`)
   }
  }
