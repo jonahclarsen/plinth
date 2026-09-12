@@ -46,6 +46,7 @@ pub struct Settings {
     pub layout: Layout,
     pub wide_layout: Layout,
     pub hover_scale: f64,
+    pub hover_speed: f64,
     pub hover_enabled: bool,
     pub sort: String,
     pub shuffle_seed: u32,
@@ -65,6 +66,7 @@ impl Default for Settings {
                 ..Layout::default()
             },
             hover_scale: 2.1,
+            hover_speed: 1.,
             hover_enabled: true,
             sort: "artist".into(),
             shuffle_seed: 0,
@@ -267,7 +269,11 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
             return Err("Layout values are outside their supported range".into());
         }
     }
-    if !s.hover_scale.is_finite() || !(1.0..=3.0).contains(&s.hover_scale) {
+    if !s.hover_scale.is_finite()
+        || !(1.0..=3.0).contains(&s.hover_scale)
+        || !s.hover_speed.is_finite()
+        || !(0.25..=3.0).contains(&s.hover_speed)
+    {
         return Err("Invalid appearance values".into());
     }
     if !["artist", "title", "date", "oldest", "shuffle"].contains(&s.sort.as_str())
@@ -281,6 +287,19 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn hover_speed_defaults_and_validates() {
+        let mut settings: Settings = serde_json::from_str("{}").unwrap();
+        assert_eq!(settings.hover_speed, 1.);
+        for speed in [0.25, 1., 3.] {
+            settings.hover_speed = speed;
+            assert!(validate_settings(&settings).is_ok());
+        }
+        for speed in [0., 3.25, f64::NAN] {
+            settings.hover_speed = speed;
+            assert!(validate_settings(&settings).is_err());
+        }
+    }
     #[test]
     fn automatic_spacing_is_default_and_old_opacity_settings_are_ignored() {
         assert_eq!(Settings::default().layout.row_gap, None);

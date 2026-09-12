@@ -167,6 +167,7 @@ fn settings_details(before: &Settings, after: &Settings) -> Vec<String> {
         ("sort", "Sort order"),
         ("shuffleSeed", "Shuffle order"),
         ("hoverScale", "Hover size"),
+        ("hoverSpeed", "Hover speed"),
         ("hoverEnabled", "Enlarge on hover"),
     ];
     for (key, name) in names {
