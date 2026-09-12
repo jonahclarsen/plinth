@@ -2686,6 +2686,7 @@ version = "0.1.0"
 dependencies = [
  "core-graphics",
  "dirs",
+ "dispatch2",
  "image",
  "objc2",
  "objc2-app-kit",

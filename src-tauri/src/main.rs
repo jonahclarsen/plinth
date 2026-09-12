@@ -599,8 +599,11 @@ fn main() {
             if let Err(e) = branding::apply(app.handle(), logo, true) {
                 eprintln!("{e}");
             }
-            restore_window_size(app.handle());
-            show_main(app.handle());
+            let handle = app.handle().clone();
+            window_placement::after_window_creation(move || {
+                restore_window_size(&handle);
+                show_main(&handle);
+            });
             Ok(())
         })
         .on_window_event(|window, event| {

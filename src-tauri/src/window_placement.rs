@@ -1,4 +1,13 @@
-// Called during setup, before the main window is shown.
+// Tao queues initial frame positioning during window creation. Finish startup on
+// the next main-queue turn so those updates cannot overwrite restored placement.
+pub fn after_window_creation(action: impl FnOnce() + Send + 'static) {
+    #[cfg(target_os = "macos")]
+    dispatch2::DispatchQueue::main().exec_async(action);
+    #[cfg(not(target_os = "macos"))]
+    action();
+}
+
+// Called after window creation settles, before the main window is shown.
 pub fn restore_size_and_center(
     window: &tauri::WebviewWindow,
     width: f64,
