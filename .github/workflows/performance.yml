@@ -21,17 +21,17 @@ jobs:
           workspaces: src-tauri
       - name: Record runner
         run: |
-          mkdir -p test-results/performance
-          sw_vers > test-results/performance/runner.txt
-          system_profiler SPHardwareDataType >> test-results/performance/runner.txt
-          node --version >> test-results/performance/runner.txt
-          rustc --version >> test-results/performance/runner.txt
-          git rev-parse HEAD >> test-results/performance/runner.txt
+          mkdir -p .local/performance
+          sw_vers > .local/performance/runner.txt
+          system_profiler SPHardwareDataType >> .local/performance/runner.txt
+          node --version >> .local/performance/runner.txt
+          rustc --version >> .local/performance/runner.txt
+          git rev-parse HEAD >> .local/performance/runner.txt
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install webkit
       - name: Build isolated frontend variants
         run: |
-          for variant in baseline radius pointer; do
+          for variant in baseline radius-css pointer cull; do
             node experiments/performance/prepare.mjs "$variant"
             pnpm check
             pnpm exec vite build --base="/$variant/" --outDir="dist/$variant"
@@ -44,6 +44,11 @@ jobs:
           pnpm check
           pnpm build
           pnpm exec playwright test --config experiments/performance/playwright.config.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-performance-results
+          path: .local/performance/*.json
+          retention-days: 30
       - name: Native save measurements and native regression tests
         if: ${{ !cancelled() }}
         run: node experiments/performance/native.mjs
@@ -52,6 +57,6 @@ jobs:
         with:
           name: performance-results
           path: |
-            test-results/performance/*.json
-            test-results/performance/runner.txt
+            .local/performance/*.json
+            .local/performance/runner.txt
           retention-days: 30

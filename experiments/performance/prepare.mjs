@@ -5,11 +5,27 @@ const variant=process.argv[2]
 const files=['src/lib/motion.ts','src/lib/Desktop.svelte','src-tauri/src/history.rs']
 for(const file of files)writeFileSync(file,execFileSync('git',['show',`HEAD:${file}`]))
 function replace(file,before,after){const text=readFileSync(file,'utf8');if(!text.includes(before))throw Error(`Patch no longer applies: ${file}`);writeFileSync(file,text.replace(before,after))}
-if(['radius','combined'].includes(variant))replace(files[0],
+if(variant==='radius')replace(files[0],
  'target=end;targetRadius=endRadius;speed=next.speed;cancelAnimationFrame(frame)',
  `target=end;targetRadius=endRadius;speed=next.speed;cancelAnimationFrame(frame)
   // Layout radius updates need no animation on resting covers; actual hover still swings.
   if(!next.active&&scale===1){radius=endRadius;paint();return}`)
+if(['radius-css','combined'].includes(variant)){
+ replace(files[0],'node.style.borderRadius=`${radius}px`',"node.style.borderRadius=scale===1&&target===1?'':`${radius}px`")
+ replace(files[0],
+ 'target=end;targetRadius=endRadius;speed=next.speed;cancelAnimationFrame(frame)',
+ `target=end;targetRadius=endRadius;speed=next.speed;cancelAnimationFrame(frame)
+  // Resting covers inherit the one grid CSS variable; only hover writes inline radius.
+  if(!next.active&&scale===1){radius=endRadius;if(node.style.borderRadius)node.style.borderRadius='';return}`)
+}
+if(['cull','combined'].includes(variant)){
+ replace(files[1],' function hoverAt(x:number,y:number,visible:boolean) {',` // Keep full album count for Auto spacing; render visible rows plus two rows for hover/shadow overflow.
+ $: coverSize=Math.max(0,((viewportWidth??width)-2*Math.max(6,layout.gap/2)-(layout.columns-1)*layout.gap)/layout.columns)
+ $: visibleCount=Math.max(0,Math.ceil(((viewportHeight??height)-spacing.top)/Math.max(1,coverSize+spacing.rowGap))+2)*layout.columns
+ $: renderedAlbums=albums.slice(0,visibleCount)
+ function hoverAt(x:number,y:number,visible:boolean) {`)
+ replace(files[1],'{#each albums as album (album.id)}','{#each renderedAlbums as album (album.id)}')
+}
 if(['pointer','combined'].includes(variant)){
  replace(files[1],"import { onMount } from 'svelte'","import { onMount } from 'svelte'")
  replace(files[1]," function hoverAt(x:number,y:number,visible:boolean) {",` let bounds:{id:string;rect:DOMRect}[]|undefined

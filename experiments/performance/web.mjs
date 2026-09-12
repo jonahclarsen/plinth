@@ -38,6 +38,10 @@ try{
   await page.goto(`${origin}/${variant}/index.html${kind==='pointer'?'?desktop=1':''}`)
   if(kind!=='pointer')await page.getByRole('button',{name:'Appearance',exact:true}).click()
   await page.locator('.desktop-cell').first().waitFor()
+  if(kind==='Hover size'){
+   const slider=page.getByRole('slider',{name:kind,exact:true});await slider.scrollIntoViewIfNeeded()
+   const box=await slider.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down()
+  }
   await page.waitForTimeout(350)
   const result=await page.evaluate(async({kind})=>{
    const raf=()=>new Promise(resolve=>requestAnimationFrame(resolve))
@@ -49,6 +53,7 @@ try{
    let mutations=0;const observer=new MutationObserver(list=>mutations+=list.filter(x=>x.attributeName==='style').length)
    observer.observe(document.querySelector('.desktop-grid'),{subtree:true,attributes:true,attributeFilter:['style']})
    window.__metrics={rects:0,frames:0,paints:0,saves:0}
+   const renderedCells=cells.length;
    const costs=[],intervals=[];let last=performance.now(),correct=0
    // Warm caches once; retain cold measurements separately.
    const coldStart=performance.now()
@@ -74,15 +79,15 @@ try{
    await new Promise(r=>setTimeout(r,350));observer.disconnect()
    const quantile=(a,p)=>[...a].sort((a,b)=>a-b)[Math.ceil(a.length*p)-1]
    if(kind==='pointer'&&correct!==90)throw Error(`Incorrect hit testing: ${correct}/90`)
-   return {medianMs:quantile(costs,.5),p95Ms:quantile(costs,.95),frameP95Ms:quantile(intervals.slice(1),.95),framesOver25ms:intervals.slice(1).filter(t=>t>25).length,styleMutations:mutations,...window.__metrics,coldMs,coldRects,correct,costs,intervals}
+   return {renderedCells,medianMs:quantile(costs,.5),p95Ms:quantile(costs,.95),frameP95Ms:quantile(intervals.slice(1),.95),framesOver25ms:intervals.slice(1).filter(t=>t>25).length,styleMutations:mutations,...window.__metrics,coldMs,coldRects,correct,costs,intervals}
   },{kind})
   await page.close();return result
  }
  // AB/BA order, five paired repeats. One untimed warmup per variant/case.
- for(const count of [96,480])for(const [kind,candidate] of [['Rounded corners','radius'],['Space between covers','radius'],['Hover size','radius'],['pointer','pointer']]){
+ for(const count of [96,480])for(const [kind,candidate] of [['Rounded corners','radius-css'],['Space between covers','cull'],['Hover size','cull'],['pointer','pointer'],['pointer','cull']]){
   for(const variant of ['baseline',candidate])await sample(variant,count,kind)
   for(let repeat=0;repeat<5;repeat++)for(const variant of repeat%2? [candidate,'baseline']:['baseline',candidate]){
-   const result=await sample(variant,count,kind);rows.push({variant,count,kind,repeat,...result});console.log(JSON.stringify({...rows.at(-1),costs:undefined,intervals:undefined}))
+   const result=await sample(variant,count,kind);rows.push({variant,candidate,count,kind,repeat,...result});console.log(JSON.stringify({...rows.at(-1),costs:undefined,intervals:undefined}))
   }
  }
-}finally{await browser?.close();server.kill();mkdirSync('test-results/performance',{recursive:true});writeFileSync('test-results/performance/web.json',JSON.stringify({node:process.version,platform:process.platform,arch:process.arch,rows},null,2))}
+}finally{await browser?.close();server.kill();mkdirSync('.local/performance',{recursive:true});writeFileSync('.local/performance/web.json',JSON.stringify({node:process.version,platform:process.platform,arch:process.arch,rows},null,2))}
