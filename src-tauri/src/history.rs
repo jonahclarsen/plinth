@@ -187,6 +187,7 @@ fn settings_details(before: &Settings, after: &Settings) -> Vec<String> {
             ("rowGap", "Space between rows"),
             ("top", "Top clearance"),
             ("radius", "Rounded corners"),
+            ("roundedOnHover", "Rounded corners when hovered"),
             ("shadow", "Shadow"),
         ] {
             if before[key][field] != after[key][field] {

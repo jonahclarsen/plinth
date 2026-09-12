@@ -25,6 +25,7 @@ pub struct Layout {
     pub row_gap: Option<f64>,
     pub top: f64,
     pub radius: f64,
+    pub rounded_on_hover: bool,
     pub shadow: f64,
 }
 impl Default for Layout {
@@ -35,6 +36,7 @@ impl Default for Layout {
             row_gap: None,
             top: 42.,
             radius: 5.,
+            rounded_on_hover: false,
             shadow: 0.4,
         }
     }
@@ -289,6 +291,17 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn rounded_hover_defaults_and_round_trips() {
+        let mut settings: Settings = serde_json::from_str(r#"{"layout":{"radius":20}}"#).unwrap();
+        assert!(!settings.layout.rounded_on_hover);
+        assert!(!settings.wide_layout.rounded_on_hover);
+        settings.layout.rounded_on_hover = true;
+        let restored: Settings =
+            serde_json::from_str(&serde_json::to_string(&settings).unwrap()).unwrap();
+        assert!(restored.layout.rounded_on_hover);
+        assert!(!restored.wide_layout.rounded_on_hover);
+    }
     #[test]
     fn hover_speed_defaults_and_validates() {
         let mut settings: Settings = serde_json::from_str("{}").unwrap();
