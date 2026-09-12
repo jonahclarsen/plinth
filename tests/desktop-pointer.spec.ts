@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test'
 import { demoAlbums } from '../src/lib/demo'
 import { defaultSettings } from '../src/lib/types'
 
-for (const builtIn of [false, true]) {
- test(`native pointer events stay on their display (${builtIn ? 'Mac' : '4K'})`, async ({ page }) => {
+for (const builtIn of [false, true]) for(const hoverInBackground of [false,true]) {
+ test(`native pointer events stay on their display (${builtIn ? 'Mac' : '4K'}, background=${hoverInBackground})`, async ({ page }) => {
   await page.setViewportSize({ width: builtIn ? 1512 : 1920, height: 1080 })
   await page.addInitScript(({ albums, settings, builtIn }) => {
    const callbacks = new Map<number, (event: unknown) => void>()
@@ -38,14 +38,14 @@ for (const builtIn of [false, true]) {
      }
     }
    })
-  }, { albums: demoAlbums, settings: defaultSettings, builtIn })
+  }, { albums: demoAlbums, settings: {...defaultSettings,hoverInBackground}, builtIn })
   await page.goto('/?desktop=1')
   const cells = page.locator('.desktop-cell')
   await expect(cells).toHaveCount(demoAlbums.length)
   await expect(page.locator('.desktop-grid')).toHaveCSS('--columns', String((builtIn ? defaultSettings.layout : defaultSettings.wideLayout).columns))
   const box = (await cells.first().boundingBox())!
   const pointer = { x: box.x + box.width / 2, y: box.y + box.height / 2, visible: true }
-  const emit = async (label: string, visible: boolean) => page.evaluate(detail => window.dispatchEvent(new CustomEvent('test-pointer', { detail })), { ...pointer, label, visible })
+  const emit = async (label: string, visible: boolean, foregroundAllowed=true) => page.evaluate(detail => window.dispatchEvent(new CustomEvent('test-pointer', { detail })), { ...pointer, label, visible, foregroundAllowed })
   await emit('desktop-other', true)
   await expect(page.locator('.enlarged')).toHaveCount(0)
   await emit('desktop-test', true)
@@ -54,6 +54,10 @@ for (const builtIn of [false, true]) {
   await expect(cells.first().locator('button')).toHaveClass(/enlarged/)
   await page.mouse.click(pointer.x, pointer.y)
   await expect.poll(() => page.evaluate(() => (window as any).opened)).toEqual([await cells.first().getAttribute('data-id')])
+  await emit('desktop-test', true, false)
+  await expect(page.locator('.enlarged')).toHaveCount(hoverInBackground?1:0)
+  await emit('desktop-test', true, true)
+  await expect(cells.first().locator('button')).toHaveClass(/enlarged/)
   await emit('desktop-test', false)
   await expect(page.locator('.enlarged')).toHaveCount(0)
  })

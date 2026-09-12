@@ -11,9 +11,11 @@ test('covers stay square across cover spacing and column settings',async({page})
   })
   for(const columns of ['3','12','30']){
    await page.getByRole('slider',{name:'Columns',exact:true}).fill(columns)
-   for(const gap of ['0','6','40']){
+   let previous=Infinity
+   for(const gap of ['0','6','20','40']){
     await page.getByRole('slider',{name:'Space between covers',exact:true}).fill(gap)
     const sizes=await page.locator('.preview-render .desktop-cover').evaluateAll(covers=>covers.map(cover=>{const r=cover.getBoundingClientRect();return {width:r.width,height:r.height}}))
+    expect(sizes[0].width).toBeLessThan(previous);previous=sizes[0].width
     for(const size of sizes)expect(Math.abs(size.width-size.height),JSON.stringify({columns,gap,size})).toBeLessThan(.1)
    }
   }

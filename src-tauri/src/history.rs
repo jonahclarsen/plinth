@@ -169,6 +169,7 @@ fn settings_details(before: &Settings, after: &Settings) -> Vec<String> {
         ("hoverScale", "Hover size"),
         ("hoverSpeed", "Hover speed"),
         ("hoverEnabled", "Enlarge on hover"),
+        ("hoverInBackground", "While another app has focus"),
     ];
     for (key, name) in names {
         if before[key] != after[key] {

@@ -182,7 +182,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     editor.listen("desktop-pointer", move |_| {
         count.fetch_add(1, Ordering::SeqCst);
     });
-    desktop::emit_pointer(&repaired[0].1, 10., 20., true);
+    desktop::emit_pointer(&repaired[0].1, 10., 20., true, true);
     assert_eq!(received.load(Ordering::SeqCst), 1);
     assert_eq!(
         leaked.load(Ordering::SeqCst),

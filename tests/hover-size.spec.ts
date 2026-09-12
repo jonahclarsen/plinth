@@ -64,3 +64,17 @@ test('hover speed is saved in history and corners animate with scale',async({pag
  await page.getByRole('button',{name:'History',exact:true}).click()
  await expect(page.locator('.history-list')).toContainText('Hover speed: 1 → 0.25')
 })
+
+
+test('background hover option sits beneath enlarge and restores through history',async({page})=>{
+ await page.goto('/?demo=1');await page.getByRole('button',{name:'Appearance',exact:true}).click()
+ const enlarge=page.getByRole('checkbox',{name:'Enlarge on hover',exact:true})
+ const background=page.getByRole('checkbox',{name:'While another app has focus',exact:true})
+ await expect(background).toBeChecked()
+ await expect(page.locator('.toggle-row').filter({has:enlarge}).locator('+ .toggle-row')).toContainText('While another app has focus')
+ await background.uncheck()
+ await page.keyboard.press('Meta+z');await expect(background).toBeChecked()
+ await page.keyboard.press('Meta+Shift+z');await expect(background).not.toBeChecked()
+ await enlarge.uncheck();await expect(background).toBeDisabled()
+ await enlarge.check();await expect(background).toBeEnabled();await expect(background).not.toBeChecked()
+})

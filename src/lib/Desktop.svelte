@@ -2,7 +2,7 @@
  import { onMount } from 'svelte'
  import { invoke } from '@tauri-apps/api/core'
  import type { DetectedDisplay } from './displays'
- import { desktopSpacing } from './spacing'
+ import { desktopCoverSize, desktopSpacing } from './spacing'
  import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
  import { coverUrl, native, openAlbum } from './api'
  import { swingScale } from './motion'
@@ -19,7 +19,8 @@
  let height=window.innerHeight
  let hovered=''
  let sample=''
- $: activeHover=preview&&sample?sample:(settings.hoverEnabled?hovered:'')
+ let foregroundAllowed=false
+ $: activeHover=preview&&sample?sample:(settings.hoverEnabled&&(preview||!native||settings.hoverInBackground!==false||foregroundAllowed)?hovered:'')
  let grid:HTMLDivElement
  let error=''
  $: settings=library.settings
@@ -46,11 +47,11 @@
  }
  export function stopHoverPreview() {sample=''}
  async function open(id:string) {try {if(!preview)await openAlbum(id)}catch(e){error=String(e);setTimeout(()=>error='',8000)}}
- onMount(()=>{if(native&&!preview)void invoke<DetectedDisplay[]>('get_displays').then(displays=>{const current=displays.find(display=>display.current);detectedMenuBarHeight=current?.menuBarHeight??0;if(current)displayProfile=current.builtIn?'layout':'wideLayout'}).catch(()=>{});let dispose=()=>{};let alive=true;if(native&&!preview) getCurrentWebviewWindow().listen<{x:number;y:number;visible:boolean}>('desktop-pointer',e=>hoverAt(e.payload.x,e.payload.y,e.payload.visible)).then(fn=>{if(alive)dispose=fn;else fn()});return ()=>{alive=false;dispose()}})
+ onMount(()=>{if(native&&!preview)void invoke<DetectedDisplay[]>('get_displays').then(displays=>{const current=displays.find(display=>display.current);detectedMenuBarHeight=current?.menuBarHeight??0;if(current)displayProfile=current.builtIn?'layout':'wideLayout'}).catch(()=>{});let dispose=()=>{};let alive=true;if(native&&!preview) getCurrentWebviewWindow().listen<{x:number;y:number;visible:boolean;foregroundAllowed:boolean}>('desktop-pointer',e=>{foregroundAllowed=e.payload.foregroundAllowed;hoverAt(e.payload.x,e.payload.y,e.payload.visible)}).then(fn=>{if(alive)dispose=fn;else fn()});return ()=>{alive=false;dispose()}})
 </script>
 <svelte:window bind:innerWidth={width} bind:innerHeight={height}/>
 <div class="desktop-surface" style:height={viewportHeight?`${viewportHeight}px`:undefined} onpointermove={(e)=>{if(!native||preview)hoverAt(e.clientX,e.clientY,true)}} onpointerleave={()=>{if(!native||preview)hovered=''}} role="presentation">
- <div class="desktop-grid" bind:this={grid} style={`--columns:${layout.columns};--gap:${layout.gap}px;--row-gap:${spacing.rowGap}px;--top:${spacing.top}px;--radius:${layout.radius}px;--shadow:${layout.shadow};--scale:${settings.hoverScale}`}>
+ <div class="desktop-grid" bind:this={grid} style={`--columns:${layout.columns};--cover-size:${desktopCoverSize(layout,viewportWidth??width)}px;--gap:${layout.gap}px;--row-gap:${spacing.rowGap}px;--top:${spacing.top}px;--radius:${layout.radius}px;--shadow:${layout.shadow};--scale:${settings.hoverScale}`}>
  {#each albums as album (album.id)}
   <div class="desktop-cell" data-id={album.id}>
    <button use:swingScale={{active:activeHover===album.id,factor:settings.hoverScale,speed:settings.hoverSpeed??1,radius:layout.radius}} class:enlarged={activeHover===album.id} class="desktop-cover" onclick={()=>open(album.id)} onfocus={()=>hovered=album.id} onblur={()=>hovered=''} aria-label={`Open ${album.title} by ${album.artist}`} title={`${album.artist} — ${album.title}`}><img src={coverUrl(album)} alt={album.title} draggable="false"/></button>

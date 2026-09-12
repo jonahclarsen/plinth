@@ -48,6 +48,7 @@ pub struct Settings {
     pub hover_scale: f64,
     pub hover_speed: f64,
     pub hover_enabled: bool,
+    pub hover_in_background: bool,
     pub sort: String,
     pub shuffle_seed: u32,
     pub theme: String,
@@ -68,6 +69,7 @@ impl Default for Settings {
             hover_scale: 2.1,
             hover_speed: 1.,
             hover_enabled: true,
+            hover_in_background: true,
             sort: "artist".into(),
             shuffle_seed: 0,
             theme: "dark".into(),
@@ -291,6 +293,11 @@ mod tests {
     fn hover_speed_defaults_and_validates() {
         let mut settings: Settings = serde_json::from_str("{}").unwrap();
         assert_eq!(settings.hover_speed, 1.);
+        assert!(settings.hover_in_background);
+        settings.hover_in_background = false;
+        let reloaded: Settings =
+            serde_json::from_str(&serde_json::to_string(&settings).unwrap()).unwrap();
+        assert!(!reloaded.hover_in_background);
         for speed in [0.25, 1., 3.] {
             settings.hover_speed = speed;
             assert!(validate_settings(&settings).is_ok());
