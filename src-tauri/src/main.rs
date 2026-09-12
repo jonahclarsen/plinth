@@ -5,6 +5,7 @@ mod displays;
 mod history;
 mod library;
 mod spaces;
+mod window_placement;
 use library::{Album, Library, Settings};
 use std::{path::PathBuf, process::Command, sync::Mutex};
 use tauri::{
@@ -402,11 +403,13 @@ fn restore_window_size(app: &tauri::AppHandle) {
         let scale = monitor.scale_factor();
         let max_width = (monitor.size().width as f64 / scale).max(640.);
         let max_height = (monitor.size().height as f64 / scale - 50.).max(500.);
-        let _ = w.set_size(tauri::LogicalSize::new(
+        if let Err(error) = window_placement::restore_size_and_center(
+            &w,
             width.clamp(640., max_width),
             height.clamp(500., max_height),
-        ));
-        let _ = w.center();
+        ) {
+            eprintln!("Could not restore window size: {error}");
+        }
         Some(())
     })();
     let _ = result;
