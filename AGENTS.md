@@ -9,6 +9,8 @@
 
 ## Implementation notes
 
+- Restore the main window size and center synchronously on the macOS main thread before showing it; Tao queues `set_size`, so following it immediately with `center()` can center the old dimensions. Verify with the isolated `window-placement` example.
+
 - macOS development uses `scripts/macos-tauri-cargo.sh` and `run-macos-dev-app.sh` to run from a generated `PlinthDev.app` with its icon. Keep the Cargo executable as a physical hard link, not a symlink.
 
 - The desktop is a transparent Tauri window at the macOS desktop-icon level plus one. Native pointer tracking checks the topmost window; avoid changing focus to implement hover. Desktop windows must be nonfocusable and appear via `orderFrontRegardless` on macOS; Tauri `show()` makes a window key. Verify enable/disable focus with the isolated `desktop-focus` example.
