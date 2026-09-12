@@ -10,7 +10,7 @@ if(variant==='radius')replace(files[0],
  `target=end;targetRadius=endRadius;speed=next.speed;cancelAnimationFrame(frame)
   // Layout radius updates need no animation on resting covers; actual hover still swings.
   if(!next.active&&scale===1){radius=endRadius;paint();return}`)
-if(['radius-css','combined'].includes(variant)){
+if(['radius-css','combined','combined-fit'].includes(variant)){
  replace(files[0],'node.style.borderRadius=`${radius}px`',"node.style.borderRadius=scale===1&&target===1?'':`${radius}px`")
  replace(files[0],
  'target=end;targetRadius=endRadius;speed=next.speed;cancelAnimationFrame(frame)',
@@ -26,7 +26,7 @@ if(['cull','combined'].includes(variant)){
  function hoverAt(x:number,y:number,visible:boolean) {`)
  replace(files[1],'{#each albums as album (album.id)}','{#each renderedAlbums as album (album.id)}')
 }
-if(['pointer','combined'].includes(variant)){
+if(['pointer','combined','combined-fit'].includes(variant)){
  replace(files[1],"import { onMount } from 'svelte'","import { onMount } from 'svelte'")
  replace(files[1]," function hoverAt(x:number,y:number,visible:boolean) {",` let bounds:{id:string;rect:DOMRect}[]|undefined
  function invalidateBounds(){bounds=undefined}

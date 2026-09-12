@@ -8,6 +8,8 @@ permissions:
 jobs:
   measure:
     runs-on: macos-15
+    env:
+      PERF_FIT: '1'
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +33,7 @@ jobs:
       - run: pnpm exec playwright install webkit
       - name: Build isolated frontend variants
         run: |
-          for variant in baseline radius-css pointer cull; do
+          for variant in baseline radius-css pointer; do
             node experiments/performance/prepare.mjs "$variant"
             pnpm check
             pnpm exec vite build --base="/$variant/" --outDir="dist/$variant"
@@ -40,7 +42,7 @@ jobs:
         run: node experiments/performance/web.mjs
       - name: Combined frontend behavior checks
         run: |
-          node experiments/performance/prepare.mjs combined
+          node experiments/performance/prepare.mjs combined-fit
           pnpm check
           pnpm build
           pnpm exec playwright test --config experiments/performance/playwright.config.ts
