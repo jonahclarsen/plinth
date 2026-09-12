@@ -9,7 +9,7 @@
 
 ## Implementation notes
 
-- Restore the main window size and center synchronously on the macOS main thread before showing it; Tao queues `set_size`, so following it immediately with `center()` can center the old dimensions. Verify with the isolated `window-placement` example.
+- Defer startup restoration/show until Tao’s queued window-creation positioning finishes, then restore size and center synchronously on the macOS main thread. Tao also queues `set_size`, so following it immediately with `center()` can center the old dimensions. Verify startup and visible placement with the isolated `window-placement` example, including the macOS dev app runner.
 
 - macOS development uses `scripts/macos-tauri-cargo.sh` and `run-macos-dev-app.sh` to run from a generated `PlinthDev.app` with its icon. Keep the Cargo executable as a physical hard link, not a symlink.
 
