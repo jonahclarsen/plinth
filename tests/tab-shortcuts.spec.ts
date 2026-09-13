@@ -7,6 +7,7 @@ test('tab shortcuts use physical letters and respect text fields, modifiers and 
  for(const [name,key] of [['Appearance','A'],['Settings','S'],['Collection','C']]){
   const button=nav.getByRole('button',{name,exact:true})
   await expect(button).toHaveAttribute('aria-keyshortcuts','Alt+'+key)
+  await expect(button.locator('kbd')).toHaveText('⌥ '+key)
   await expect(button.locator('kbd')).toBeVisible()
   // macOS Option can change event.key into a symbol; event.code stays the letter.
   await page.evaluate(key=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'å',code:'Key'+key,altKey:true,bubbles:true})),key)
