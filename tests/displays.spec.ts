@@ -34,7 +34,7 @@ test('Appearance follows the native window display while manual selection lasts 
    unregisterCallback:(id:number)=>callbacks.delete(id),
    invoke:async(command:string,args:Record<string,any>={})=>{
     if(command==='get_displays')return displays
-    if(command==='get_library')return {dataDir:'/synthetic-demo',library:{albums:[],settings:{layout:{columns:12,gap:6,rowGap:14,top:42,radius:5,shadow:.4},wideLayout:{columns:18,gap:6,rowGap:14,top:42,radius:5,shadow:.4},hoverScale:2.1,hoverEnabled:true,dimOthers:false,opacity:1,sort:'artist',shuffleSeed:0,theme:'dark',desktopEnabled:true,openMode:'library'}}}
+    if(command==='get_library')return {dataDir:'/synthetic-demo',library:{albums:[],settings:{layout:{columns:12,gap:6,rowGap:14,top:42,radius:5,shadow:.4},wideLayout:{columns:18,gap:6,rowGap:14,top:42,radius:5,shadow:.4},hoverScale:2.1,hoverEnabled:true,dimOthers:false,opacity:1,sort:'artist',shuffleSeed:0,theme:'dark',desktopEnabled:true}}}
     if(command==='plugin:event|listen'){listeners.set(args.event,[...(listeners.get(args.event)??[]),args.handler]);return next++}
     if(command==='plugin:window|scale_factor')return 2
     return null

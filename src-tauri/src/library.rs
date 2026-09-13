@@ -57,7 +57,6 @@ pub struct Settings {
     pub desktop_enabled: bool,
     pub all_spaces: bool,
     pub target_space: Option<u8>,
-    pub open_mode: String,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -78,7 +77,6 @@ impl Default for Settings {
             desktop_enabled: true,
             all_spaces: true,
             target_space: None,
-            open_mode: "library".into(),
         }
     }
 }
@@ -282,7 +280,6 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
     }
     if !["artist", "title", "date", "oldest", "shuffle"].contains(&s.sort.as_str())
         || !["dark", "light", "system"].contains(&s.theme.as_str())
-        || !["library", "link"].contains(&s.open_mode.as_str())
     {
         return Err("Invalid setting".into());
     }
@@ -291,6 +288,17 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn obsolete_open_mode_is_ignored() {
+        for mode in ["library", "link"] {
+            let settings: Settings =
+                serde_json::from_value(serde_json::json!({"openMode": mode})).unwrap();
+            assert!(serde_json::to_value(settings)
+                .unwrap()
+                .get("openMode")
+                .is_none());
+        }
+    }
     #[test]
     fn rounded_hover_defaults_and_round_trips() {
         let mut settings: Settings = serde_json::from_str(r#"{"layout":{"radius":20}}"#).unwrap();

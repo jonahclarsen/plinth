@@ -163,7 +163,6 @@ fn settings_details(before: &Settings, after: &Settings) -> Vec<String> {
         ("theme", "App appearance"),
         ("logo", "App logo"),
         ("desktopEnabled", "Show desktop"),
-        ("openMode", "Music behavior"),
         ("sort", "Sort order"),
         ("shuffleSeed", "Shuffle order"),
         ("hoverScale", "Hover size"),

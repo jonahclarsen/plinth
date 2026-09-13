@@ -4,6 +4,7 @@ mod desktop;
 mod displays;
 mod history;
 mod library;
+mod music;
 mod spaces;
 mod window_placement;
 use library::{Album, Library, Settings};
@@ -260,15 +261,10 @@ async fn open_album(app: tauri::AppHandle, id: String) -> Result<(), String> {
             .find(|a| a.id == id)
             .ok_or("Album not found")?
             .clone();
-        let mode = lib.settings.open_mode.clone();
         drop(lib);
-        if mode == "link" && !album.url.is_empty() {
-            let u = tauri::Url::parse(&album.url).map_err(|e| e.to_string())?;
-            if u.scheme() != "https" {
-                return Err("Only HTTPS album links are supported".into());
-            }
+        if let Some(url) = music::apple_music_link(&album.url) {
             let status = Command::new("open")
-                .arg(&album.url)
+                .arg(url.as_str())
                 .status()
                 .map_err(|e| e.to_string())?;
             return if status.success() {
