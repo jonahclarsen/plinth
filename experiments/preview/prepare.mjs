@@ -5,11 +5,12 @@ import {execFileSync} from 'node:child_process'
 const baseline='.local/preview-source'
 mkdirSync(baseline,{recursive:true})
 execFileSync('tar',['-x','-C',baseline],{input:execFileSync('git',['archive','90157b7','src','tsconfig.json','package.json','index.html'])})
-const variants=process.env.PREVIEW_ADOPTION?['baseline','adopted']:['baseline','pixels','layers','defer-save']
+const focused=!!process.env.PREVIEW_FOCUSED
+const variants=focused?['baseline','active-layer','sample-layers']:process.env.PREVIEW_ADOPTION?['baseline','adopted']:['baseline','pixels','layers','defer-save']
 function replace(file,a,b){const s=readFileSync(file,'utf8');if(!s.includes(a))throw Error(`Patch missing in ${file}: ${a}`);writeFileSync(file,s.replace(a,b))}
 for(const variant of variants){
  const root=`.local/preview/${variant}`;mkdirSync(root,{recursive:true})
- const source=variant==='adopted'?'.':baseline
+ const source=variant==='adopted'||focused?'.':baseline
  cpSync(`${source}/src`,`${root}/src`,{recursive:true})
  for(const file of ['tsconfig.json','package.json'])cpSync(`${source}/${file}`,`${root}/${file}`)
  writeFileSync(`${root}/index.html`,readFileSync(`${source}/index.html`,'utf8').replace('src="/src/main.ts"','src="./src/main.ts"'))
@@ -31,6 +32,8 @@ for(const variant of variants){
   replace(css,'box-shadow:0 5px 4px rgb(0 0 0 / var(--shadow))','box-shadow:0 var(--shadow-y) var(--shadow-blur) rgb(0 0 0 / var(--shadow))')
  }
  if(variant==='layers')writeFileSync(css,readFileSync(css,'utf8')+'\n.preview-render .desktop-cover{will-change:transform}\n')
+ if(variant==='active-layer')writeFileSync(css,readFileSync(css,'utf8')+'\n.preview-render .desktop-cover.enlarged{will-change:transform}\n')
+ if(variant==='sample-layers')writeFileSync(css,readFileSync(css,'utf8')+'\n.preview-render:has(.desktop-cover.enlarged) .desktop-cover{will-change:transform}\n')
  if(variant==='defer-save'){
   replace(app,' let settingsRevision=0,settingsDirty=false',' let settingsRevision=0,settingsDirty=false\n let draggingAppearance=false\n function finishAppearanceDrag(){if(!draggingAppearance)return;draggingAppearance=false;if(settingsDirty)persist()}')
   replace(app,'  const snapshot=structuredClone(library.settings)','  if(draggingAppearance)return\n  const snapshot=structuredClone(library.settings)')

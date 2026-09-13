@@ -3,7 +3,8 @@ import {spawn} from 'node:child_process'
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs'
 const {port}=JSON.parse(readFileSync('port.json','utf8')),origin=`http://127.0.0.1:${port}`
 const server=spawn('pnpm',['exec','vite','--host','127.0.0.1'],{stdio:'inherit'}),rows=[]
-const adoption=!!process.env.PREVIEW_ADOPTION
+const adoption=!!process.env.PREVIEW_ADOPTION,focused=!!process.env.PREVIEW_FOCUSED
+function checkpoint(){mkdirSync('.local/preview-results',{recursive:true});writeFileSync('.local/preview-results/web.json',JSON.stringify({mode:'development',albums:150,rasterSize:1200,rows},null,2))}
 let browser
 const metrics=()=>({sorts:0,coverUrls:0,motionUpdates:0,frames:0,saves:0,historyReads:0})
 try{
@@ -66,18 +67,18 @@ try{
   const after=await page.evaluate(()=>({...window.__previewMetrics}))
   await page.close();return {...result,after,geometry}
  }
- for(const candidate of adoption?[]:['pixels','layers'])for(const kind of ['Columns','Space between covers','Rounded corners','Shadow','Hover size']){
+ for(const candidate of focused?['active-layer','sample-layers']:adoption?[]:['pixels','layers'])for(const kind of focused?['Hover size','Space between covers']:['Columns','Space between covers','Rounded corners','Shadow','Hover size']){
   for(const variant of ['baseline',candidate])await sample(variant,kind)
   for(let repeat=0;repeat<5;repeat++)for(const variant of repeat%2?[candidate,'baseline']:['baseline',candidate]){
-   const result=await sample(variant,kind);rows.push({candidate,variant,kind,repeat,...result});console.log(JSON.stringify({...rows.at(-1),geometry:undefined,times:undefined,intervals:undefined}))
+   const result=await sample(variant,kind);rows.push({candidate,variant,kind,repeat,...result});console.log(JSON.stringify({...rows.at(-1),geometry:undefined,times:undefined,intervals:undefined}));checkpoint()
   }
  }
  const candidate=adoption?'adopted':'defer-save'
- for(let repeat=0;repeat<3;repeat++)for(const variant of repeat%2?[candidate,'baseline']:['baseline',candidate]){
+ for(let repeat=0;repeat<(focused?0:3);repeat++)for(const variant of repeat%2?[candidate,'baseline']:['baseline',candidate]){
   const row={candidate,variant,kind:'Space between covers',repeat,...await sample(variant,'Space between covers',true)}
   rows.push(row)
   if(variant==='adopted'&&(row.held.saves!==0||row.after.saves!==1||row.after.historyReads!==0))throw Error(`Unexpected persistence while dragging: ${JSON.stringify(row)}`)
  }
 }finally{
- await browser?.close();server.kill();mkdirSync('.local/preview-results',{recursive:true});writeFileSync('.local/preview-results/web.json',JSON.stringify({mode:'development',albums:150,rasterSize:1200,rows},null,2))
+ await browser?.close();server.kill();checkpoint()
 }
