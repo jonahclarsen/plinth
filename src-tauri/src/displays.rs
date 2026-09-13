@@ -28,19 +28,31 @@ impl DisplayInfo {
     }
 }
 
+// Older caches could contain a sleeping or mirrored panel's borrowed mode.
+// Require a fresh, independently active panel reading before trusting dimensions.
+#[derive(Serialize, Deserialize)]
+struct InternalDisplayCache {
+    version: u8,
+    display: DisplayInfo,
+}
+
 fn remember_internal(displays: &mut Vec<DisplayInfo>, path: &Path) {
     if let Some(internal) = displays.iter().find(|d| d.built_in && d.valid()) {
         let mut saved = internal.clone();
         saved.current = false;
         saved.remembered = true;
-        if let Ok(bytes) = serde_json::to_vec(&saved) {
+        if let Ok(bytes) = serde_json::to_vec(&InternalDisplayCache {
+            version: 1,
+            display: saved,
+        }) {
             if std::fs::read(path).ok().as_ref() != Some(&bytes) {
                 let _ = std::fs::write(path, bytes);
             }
         }
     } else if let Ok(bytes) = std::fs::read(path) {
-        if let Ok(mut saved) = serde_json::from_slice::<DisplayInfo>(&bytes) {
-            if saved.built_in && saved.valid() {
+        if let Ok(cache) = serde_json::from_slice::<InternalDisplayCache>(&bytes) {
+            let mut saved = cache.display;
+            if cache.version == 1 && saved.built_in && saved.valid() {
                 saved.current = false;
                 saved.remembered = true;
                 displays.push(saved);
@@ -81,6 +93,11 @@ pub fn detect(window: &tauri::WebviewWindow, dir: &Path) -> Result<Vec<DisplayIn
     let mut displays = Vec::new();
     for id in ids {
         let display = CGDisplay::new(id);
+        // Online includes closed-lid and mirrored panels. Their mode need not
+        // describe the panel independently, so never use it to refresh the cache.
+        if display.is_builtin() && (!display.is_active() || display.is_in_mirror_set()) {
+            continue;
+        }
         if let Some(mode) = display.display_mode() {
             let info = DisplayInfo {
                 id,
@@ -150,6 +167,17 @@ pub fn detect(window: &tauri::WebviewWindow, _dir: &Path) -> Result<Vec<DisplayI
 mod tests {
     use super::*;
     #[test]
+    fn rejects_legacy_cache_with_external_dimensions() {
+        let path =
+            std::env::temp_dir().join(format!("plinth-legacy-display-{}.json", std::process::id()));
+        std::fs::write(&path, br#"{"id":1,"width":3840,"height":2160,"logicalWidth":1920,"logicalHeight":1080,"menuBarHeight":0.0,"builtIn":true,"current":false,"remembered":true}"#).unwrap();
+        let mut displays = vec![];
+        remember_internal(&mut displays, &path);
+        assert!(displays.is_empty());
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
     fn remembers_internal_panel_without_marking_it_as_current() {
         let path = std::env::temp_dir().join(format!("plinth-display-{}.json", std::process::id()));
         let panel = DisplayInfo {
@@ -163,12 +191,34 @@ mod tests {
             current: true,
             remembered: false,
         };
-        remember_internal(&mut vec![panel], &path);
+        // A fresh panel reading replaces even a pre-upgrade cache.
+        std::fs::write(&path, b"legacy cache").unwrap();
+        remember_internal(&mut vec![panel.clone()], &path);
         let mut offline = vec![];
         remember_internal(&mut offline, &path);
         assert_eq!(offline[0].width, 3024);
         assert!(offline[0].remembered);
         assert!(!offline[0].current);
+        let external = DisplayInfo {
+            id: 2,
+            width: 3840,
+            height: 2160,
+            logical_width: 1920,
+            logical_height: 1080,
+            built_in: false,
+            ..panel
+        };
+        let mut connected = vec![external.clone()];
+        remember_internal(&mut connected, &path);
+        assert_eq!(connected[0], external);
+        assert_eq!(connected[1], offline[0]);
+        let mut cache: InternalDisplayCache =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        cache.version = 99;
+        std::fs::write(&path, serde_json::to_vec(&cache).unwrap()).unwrap();
+        let mut unknown_version = vec![];
+        remember_internal(&mut unknown_version, &path);
+        assert!(unknown_version.is_empty());
         std::fs::write(&path, b"invalid").unwrap();
         let mut invalid = vec![];
         remember_internal(&mut invalid, &path);
