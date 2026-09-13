@@ -1,5 +1,7 @@
 # Plinth performance investigation — 12 September 2026
 
+**Subsequent adoption:** Compact JSON and cached desktop hit testing were validated against the newer `cb831bc` baseline and adopted at the user’s request. See the [adoption tests and measurements](../adoption/README.md). The investigation below records the earlier experiments.
+
 **Live slider lag remains unresolved by these experiments.** Compact native JSON and cached desktop hit testing reduced measured work; the tested radius changes did not establish a useful slider improvement with every album on screen. No application optimization has been adopted.
 
 **Measured application revision: `12cc657`.** Concurrent changes through `bf5dd13` landed on `main` during CI, including explicit cover geometry, hover options and window placement. They were preserved and were not part of these measurements. Do not treat these numbers as measurements of the current build. The harness is pinned to the measured revision for reproduction; a current-build comparison would require updating the experiments.
