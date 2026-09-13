@@ -61,16 +61,21 @@ try{
    }
    const during={...window.__previewMetrics}
    await new Promise(r=>setTimeout(r,350))
-   return {times,intervals,during,held:{...window.__previewMetrics},value:slider.value}
+   const expected=Number(slider.value)
+   const actual=kind==='Hover size'?new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.desktop-cover.enlarged')).transform).a:kind==='Rounded corners'?parseFloat(getComputedStyle(document.querySelector('.desktop-cover')).borderTopLeftRadius):kind==='Columns'?Number(getComputedStyle(document.querySelector('.desktop-grid')).getPropertyValue('--columns')):kind==='Space between covers'?parseFloat(getComputedStyle(document.querySelector('.desktop-grid')).getPropertyValue('--column-gap')):expected
+   // Pixel-sized rendering also scales the radius; compare its visual equivalent.
+   const scale=kind==='Rounded corners'&&location.pathname.includes('/pixels/')?document.querySelector('.screen-preview').clientWidth/1512:1
+   const correctness={expected:expected*scale,actual,ok:Math.abs(actual-expected*scale)<.1}
+   return {times,intervals,during,held:{...window.__previewMetrics},value:slider.value,correctness}
   },{kind,paused})
   await page.mouse.up();await page.waitForTimeout(400)
   const after=await page.evaluate(()=>({...window.__previewMetrics}))
   await page.close();return {...result,after,geometry}
  }
- for(const candidate of focused==='radius'?['rest-radius']:focused==='cells'?['isolated-cells']:focused?['active-layer','sample-layers']:adoption?(process.env.PREVIEW_RENDER_VALIDATION?['adopted']:[]):['pixels','layers'])for(const kind of focused==='radius'?['Rounded corners']:adoption?['Hover size','Space between covers','Rounded corners']:focused==='cells'?['Space between covers','Hover size','Rounded corners']:focused?['Hover size','Space between covers']:['Columns','Space between covers','Rounded corners','Shadow','Hover size']){
-  for(const variant of ['baseline',candidate])await sample(variant,kind)
-  for(let repeat=0;repeat<5;repeat++)for(const variant of repeat%2?[candidate,'baseline']:['baseline',candidate]){
-   const result=await sample(variant,kind);rows.push({candidate,variant,kind,repeat,...result});console.log(JSON.stringify({...rows.at(-1),geometry:undefined,times:undefined,intervals:undefined}));checkpoint()
+ for(const candidate of focused==='radius'?['rest-radius']:focused?.startsWith('cells')?['isolated-cells']:focused?['active-layer','sample-layers']:adoption?(process.env.PREVIEW_RENDER_VALIDATION?['adopted']:[]):['pixels','layers'])for(const kind of focused==='cells-check'?['Hover size']:focused==='radius'?['Rounded corners']:adoption?['Hover size','Space between covers','Rounded corners']:focused==='cells'?['Space between covers','Hover size','Rounded corners']:focused?['Hover size','Space between covers']:['Columns','Space between covers','Rounded corners','Shadow','Hover size']){
+  for(const variant of focused==='cells-check'?[]:['baseline',candidate])await sample(variant,kind)
+  for(let repeat=0;repeat<(focused==='cells-check'?1:5);repeat++)for(const variant of repeat%2?[candidate,'baseline']:['baseline',candidate]){
+   const result=await sample(variant,kind);rows.push({candidate,variant,kind,repeat,...result});console.log(JSON.stringify({...rows.at(-1),geometry:undefined,times:undefined,intervals:undefined}));checkpoint();if(!result.correctness.ok)throw Error(`Preview did not follow ${kind}: ${JSON.stringify(result.correctness)}`)
   }
  }
  const candidate=adoption?'adopted':'defer-save'
