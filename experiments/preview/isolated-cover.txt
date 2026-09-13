@@ -1,0 +1,15 @@
+<svelte:options immutable={true}/>
+<script lang="ts">
+ import type {Album} from './types'
+ import {coverUrl} from './api'
+ import {swingScale} from './motion'
+ export let album:Album
+ export let active:boolean
+ export let factor:number
+ export let speed:number
+ export let radius:number
+ export let roundedOnHover:boolean
+ export let onopen:(id:string)=>void
+ export let onhover:(id:string)=>void
+</script>
+<button use:swingScale={{active,factor,speed,radius,roundedOnHover}} class:enlarged={active} class="desktop-cover" onclick={()=>onopen(album.id)} onfocus={()=>onhover(album.id)} onblur={()=>onhover('')} aria-label={`Open ${album.title} by ${album.artist}`} title={`${album.artist} — ${album.title}`}><img src={coverUrl(album)} alt={album.title} draggable="false"/></button>
