@@ -2,6 +2,7 @@ name: Validate appearance drag improvements
 on:
   push:
     branches: [perf/preview-speed]
+    paths: [src/**, tests/**, .github/workflows/preview-validation.yml]
   workflow_dispatch:
 permissions:
   contents: read

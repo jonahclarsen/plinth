@@ -1,9 +1,14 @@
-name: Measure selective preview layers
+name: Measure focused preview candidates
 on:
   push:
     branches: [perf/preview-speed]
     paths: [.github/workflows/preview-layers.yml]
   workflow_dispatch:
+    inputs:
+      experiment:
+        type: choice
+        options: [layers, cells]
+        default: layers
 permissions:
   contents: read
 jobs:
@@ -11,7 +16,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 20
     env:
-      PREVIEW_FOCUSED: '1'
+      PREVIEW_FOCUSED: ${{ inputs.experiment || 'cells' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,6 +29,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install webkit
       - run: node experiments/preview/prepare.mjs
+      - name: Check generated variants
+        run: |
+          for variant in .local/preview/*; do
+            pnpm exec svelte-check --workspace "$variant" --tsconfig ./tsconfig.json
+          done
       - run: node experiments/preview/fixtures.mjs
       - run: node experiments/preview/bench.mjs
       - uses: actions/upload-artifact@v4

@@ -2,15 +2,15 @@
 import {cpSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs'
 import {execFileSync} from 'node:child_process'
 // Pin the original experiment even after a candidate is adopted.
+const focused=process.env.PREVIEW_FOCUSED
 const baseline='.local/preview-source'
 mkdirSync(baseline,{recursive:true})
-execFileSync('tar',['-x','-C',baseline],{input:execFileSync('git',['archive','90157b7','src','tsconfig.json','package.json','index.html'])})
-const focused=!!process.env.PREVIEW_FOCUSED
-const variants=focused?['baseline','active-layer','sample-layers']:process.env.PREVIEW_ADOPTION?['baseline','adopted']:['baseline','pixels','layers','defer-save']
+execFileSync('tar',['-x','-C',baseline],{input:execFileSync('git',['archive',focused?'ba11d72':'90157b7','src','tsconfig.json','package.json','index.html'])})
+const variants=focused==='cells'?['baseline','isolated-cells']:focused?['baseline','active-layer','sample-layers']:process.env.PREVIEW_ADOPTION?['baseline','adopted']:['baseline','pixels','layers','defer-save']
 function replace(file,a,b){const s=readFileSync(file,'utf8');if(!s.includes(a))throw Error(`Patch missing in ${file}: ${a}`);writeFileSync(file,s.replace(a,b))}
 for(const variant of variants){
  const root=`.local/preview/${variant}`;mkdirSync(root,{recursive:true})
- const source=variant==='adopted'||focused?'.':baseline
+ const source=variant==='adopted'?'.':baseline
  cpSync(`${source}/src`,`${root}/src`,{recursive:true})
  for(const file of ['tsconfig.json','package.json'])cpSync(`${source}/${file}`,`${root}/${file}`)
  writeFileSync(`${root}/index.html`,readFileSync(`${source}/index.html`,'utf8').replace('src="/src/main.ts"','src="./src/main.ts"'))
@@ -34,6 +34,14 @@ for(const variant of variants){
  if(variant==='layers')writeFileSync(css,readFileSync(css,'utf8')+'\n.preview-render .desktop-cover{will-change:transform}\n')
  if(variant==='active-layer')writeFileSync(css,readFileSync(css,'utf8')+'\n.preview-render .desktop-cover.enlarged{will-change:transform}\n')
  if(variant==='sample-layers')writeFileSync(css,readFileSync(css,'utf8')+'\n.preview-render:has(.desktop-cover.enlarged) .desktop-cover{will-change:transform}\n')
+ if(variant==='isolated-cells'){
+  cpSync('experiments/preview/isolated-cover.txt',`${root}/src/lib/DesktopCover.svelte`)
+  replace(desktop," import { swingScale } from './motion'"," import DesktopCover from './DesktopCover.svelte'")
+  replace(desktop," let hovered=''"," let hovered=''\n function focusAlbum(id:string){hovered=id}")
+  const source=readFileSync(desktop,'utf8'),button=source.match(/<button use:swingScale[\s\S]*?<\/button>/)?.[0]
+  if(!button)throw Error('Missing cover button')
+  replace(desktop,button,'<DesktopCover {album} active={activeHover===album.id} factor={activeHover===album.id?settings.hoverScale:1} speed={settings.hoverSpeed??1} radius={layout.radius} roundedOnHover={layout.roundedOnHover??false} onopen={open} onhover={focusAlbum}/>')
+ }
  if(variant==='defer-save'){
   replace(app,' let settingsRevision=0,settingsDirty=false',' let settingsRevision=0,settingsDirty=false\n let draggingAppearance=false\n function finishAppearanceDrag(){if(!draggingAppearance)return;draggingAppearance=false;if(settingsDirty)persist()}')
   replace(app,'  const snapshot=structuredClone(library.settings)','  if(draggingAppearance)return\n  const snapshot=structuredClone(library.settings)')
