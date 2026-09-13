@@ -67,7 +67,7 @@ try{
   const after=await page.evaluate(()=>({...window.__previewMetrics}))
   await page.close();return {...result,after,geometry}
  }
- for(const candidate of focused==='cells'?['isolated-cells']:focused?['active-layer','sample-layers']:adoption?[]:['pixels','layers'])for(const kind of focused==='cells'?['Space between covers','Hover size','Rounded corners']:focused?['Hover size','Space between covers']:['Columns','Space between covers','Rounded corners','Shadow','Hover size']){
+ for(const candidate of focused==='radius'?['rest-radius']:focused==='cells'?['isolated-cells']:focused?['active-layer','sample-layers']:adoption?(process.env.PREVIEW_RENDER_VALIDATION?['adopted']:[]):['pixels','layers'])for(const kind of focused==='radius'?['Rounded corners']:adoption?['Hover size','Space between covers','Rounded corners']:focused==='cells'?['Space between covers','Hover size','Rounded corners']:focused?['Hover size','Space between covers']:['Columns','Space between covers','Rounded corners','Shadow','Hover size']){
   for(const variant of ['baseline',candidate])await sample(variant,kind)
   for(let repeat=0;repeat<5;repeat++)for(const variant of repeat%2?[candidate,'baseline']:['baseline',candidate]){
    const result=await sample(variant,kind);rows.push({candidate,variant,kind,repeat,...result});console.log(JSON.stringify({...rows.at(-1),geometry:undefined,times:undefined,intervals:undefined}));checkpoint()
