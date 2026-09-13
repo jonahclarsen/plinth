@@ -34,7 +34,7 @@ Launch `Plinth.app`, choose **Add artwork**, or drop image files into the librar
 
 **Appearance → Spaces** has buttons for **All Spaces**, **This Space**, **1**, **2**, and **3**. All Spaces shows artwork everywhere. This Space uses the active desktop when artwork is enabled or Plinth starts. Numbered choices place artwork directly on that Mission Control desktop without switching Spaces or moving the main window. The number is remembered across launches and follows Mission Control's desktop order, excluding full-screen apps. With separate Spaces per display, artwork appears on the display that owns the chosen desktop. Missing numbered desktops are disabled; create them in Mission Control, then return to Appearance. If a saved desktop no longer exists, choose another option.
 
-Album clicks automatically open a saved HTTPS Apple Music link (`music.apple.com`), or look up the album by title and artist in your local Music library otherwise. Missing albums show a native macOS alert. The first library lookup may ask for macOS Automation permission. No Apple Music API credentials are needed.
+Album clicks automatically open a saved HTTPS Apple Music link (`music.apple.com`) directly in the Music app, or look up the album by title and artist in your local Music library otherwise. Missing albums show a native macOS alert. The first library lookup may ask for macOS Automation permission. No Apple Music API credentials are needed.
 
 Collection and History scroll to show every album and saved state. The desktop album list does not scroll; albums beyond its visible area are clipped. Appearance controls and album editors remain scrollable when needed.
 
