@@ -222,7 +222,7 @@
       {#each logos as logo}<button class="logo-option" class:chosen={settings.logo===logo.id} aria-label={logo.label} aria-pressed={settings.logo===logo.id} onclick={()=>{settings.logo=logo.id;persist()}}><span class="logo-preview"><Logo logo={logo.id} size={60}/></span><span>{logo.label}</span></button>{/each}
      </div></div>
      <label class="setting-row"><span>Show artwork on the desktop</span><input class="switch" type="checkbox" bind:checked={settings.desktopEnabled} onchange={persist}/></label>
-     <div class="setting-row"><span>Saved changes</span><button onclick={()=>page='history'}><Icon name="history"/>History</button></div>
+     <div class="setting-row"><span>History</span><button onclick={()=>page='history'}><Icon name="history"/>History</button></div>
      <div class="setting-row"><span>Local storage</span><button disabled={!api.native} onclick={()=>invoke('reveal_data').catch(e=>error=String(e))}><Icon name="folder"/>Open folder</button></div>
     </section>
    {/if}
