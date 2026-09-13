@@ -2,8 +2,9 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 const variant=process.argv[2]
+const baseline=process.env.PERF_BASELINE??'12cc657'
 const files=['src/lib/motion.ts','src/lib/Desktop.svelte','src-tauri/src/history.rs']
-for(const file of files)writeFileSync(file,execFileSync('git',['show',`HEAD:${file}`]))
+for(const file of files)writeFileSync(file,execFileSync('git',['show',`${baseline}:${file}`]))
 function replace(file,before,after){const text=readFileSync(file,'utf8');if(!text.includes(before))throw Error(`Patch no longer applies: ${file}`);writeFileSync(file,text.replace(before,after))}
 if(variant==='radius')replace(files[0],
  'target=end;targetRadius=endRadius;speed=next.speed;cancelAnimationFrame(frame)',
