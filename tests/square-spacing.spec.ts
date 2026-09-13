@@ -5,10 +5,9 @@ test('covers stay square across cover spacing and column settings',async({page})
  await page.getByRole('button',{name:'Appearance',exact:true}).click()
  for(const profile of [/Mac display/,/4K monitor/]){
   await page.getByRole('button',{name:profile}).click()
-  await page.locator('.preview-render .desktop-cover img').first().evaluate(async(image:HTMLImageElement)=>{
-   image.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="400"><rect width="200" height="400" fill="red"/></svg>')
-   await image.decode()
-  })
+  await expect(page.locator('.preview-render img')).toHaveCount(0)
+  await expect(page.locator('.preview-render .desktop-cover')).toHaveCount(18)
+  await expect(page.locator('.preview-render .desktop-cover').first()).toHaveCSS('background-color','rgb(255, 255, 255)')
   for(const columns of ['3','12','30']){
    await page.getByRole('slider',{name:'Columns',exact:true}).fill(columns)
    let previous=Infinity
