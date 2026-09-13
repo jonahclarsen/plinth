@@ -1,0 +1,21 @@
+ProductName:		macOS
+ProductVersion:		15.7.9
+BuildVersion:		24G830
+Hardware:
+
+    Hardware Overview:
+
+      Model Name: Apple Virtual Machine 1
+      Model Identifier: VirtualMac2,1
+      Model Number: VM0001LL/A
+      Chip: Apple M1 (Virtual)
+      Total Number of Cores: 3
+      Memory: 7 GB
+      System Firmware Version: mBoot-18000.161.10
+      OS Loader Version: 11881.140.96.701.1
+      Activation Lock Status: Disabled
+
+v22.23.2
+rustc 1.98.1 (48a229cea 2026-09-01)
+dd5ced0e2c85c254d2da08bd2e04284df021d024
+Runner instance identifiers omitted.
