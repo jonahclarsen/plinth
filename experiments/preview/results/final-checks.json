@@ -1,0 +1,302 @@
+{
+  "stats": {
+    "startTime": "2026-09-13T04:22:13.538Z",
+    "duration": 82960.031,
+    "expected": 29,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "test": "holding Hover size previews one album, follows dragging, and ends on release outside",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2074
+        }
+      ]
+    },
+    {
+      "test": "right-click does not preview; cancellation and blur clear the sample",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1799
+        }
+      ]
+    },
+    {
+      "test": "hover-size sample works with hover disabled and an empty library is harmless",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1903
+        }
+      ]
+    },
+    {
+      "test": "hover speed is saved in history and corners animate with scale",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3552
+        }
+      ]
+    },
+    {
+      "test": "background hover option sits beneath enlarge and restores through history",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1569
+        }
+      ]
+    },
+    {
+      "test": "rounded corners on hover default off and restore independently for each display",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3599
+        }
+      ]
+    },
+    {
+      "test": "native pointer events stay on their display (4K, background=false)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1162
+        }
+      ]
+    },
+    {
+      "test": "native pointer events stay on their display (4K, background=true)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1108
+        }
+      ]
+    },
+    {
+      "test": "native pointer events stay on their display (Mac, background=false)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1149
+        }
+      ]
+    },
+    {
+      "test": "native pointer events stay on their display (Mac, background=true)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1225
+        }
+      ]
+    },
+    {
+      "test": "automatic row spacing balances the menu-bar and screen-bottom gaps",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4
+        }
+      ]
+    },
+    {
+      "test": "preview shares balanced spacing and manual spacing can be undone or reset",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1757
+        }
+      ]
+    },
+    {
+      "test": "opacity and surrounding-cover dimming controls and effects are absent",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1738
+        }
+      ]
+    },
+    {
+      "test": "covers stay square across cover spacing and column settings",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 7445
+        }
+      ]
+    },
+    {
+      "test": "horizontal and manual row spacing are independent and cells remain square",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 9838
+        }
+      ]
+    },
+    {
+      "test": "History sits between Appearance and Settings and saves full metadata states",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2998
+        }
+      ]
+    },
+    {
+      "test": "undo flushes pending appearance changes and restores the preview and desktop toggle",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2760
+        }
+      ]
+    },
+    {
+      "test": "new changes after undo retain abandoned states and Restore returns to either branch",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1976
+        }
+      ]
+    },
+    {
+      "test": "undo restores removed albums and both artwork variants",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2708
+        }
+      ]
+    },
+    {
+      "test": "imports are one state per batch and duplicates and no-op saves do not add history",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1589
+        }
+      ]
+    },
+    {
+      "test": "text undo and modal shortcuts do not navigate saved history",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2123
+        }
+      ]
+    },
+    {
+      "test": "all history entries remain reachable in a narrow window",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2530
+        }
+      ]
+    },
+    {
+      "test": "cached hover geometry follows resize, columns, and scrolling",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2474
+        }
+      ]
+    },
+    {
+      "test": "pauses during a held appearance slider create one saved history state",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2561
+        }
+      ]
+    },
+    {
+      "test": "blur commits the final appearance value",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1967
+        }
+      ]
+    },
+    {
+      "test": "pointercancel commits the final appearance value",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1772
+        }
+      ]
+    },
+    {
+      "test": "undo flushes the held slider value before navigating history",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1815
+        }
+      ]
+    },
+    {
+      "test": "keyboard range edits still save without a pointer drag",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1453
+        }
+      ]
+    },
+    {
+      "test": "README screenshots use only synthetic demo artwork",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 11580
+        }
+      ]
+    }
+  ]
+}

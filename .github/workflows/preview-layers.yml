@@ -1,8 +1,5 @@
 name: Measure focused preview candidates
 on:
-  push:
-    branches: [perf/preview-speed]
-    paths: [.github/workflows/preview-layers.yml]
   workflow_dispatch:
     inputs:
       experiment:
@@ -16,7 +13,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 20
     env:
-      PREVIEW_FOCUSED: ${{ inputs.experiment || 'cells-check' }}
+      PREVIEW_FOCUSED: ${{ inputs.experiment || 'layers' }}
     steps:
       - uses: actions/checkout@v4
         with:

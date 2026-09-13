@@ -1,0 +1,172 @@
+[
+  {
+    "phase": "Development",
+    "test": "pauses during a held appearance slider create one saved history state",
+    "result": "passed"
+  },
+  {
+    "phase": "Development",
+    "test": "blur commits the final appearance value",
+    "result": "passed"
+  },
+  {
+    "phase": "Development",
+    "test": "pointercancel commits the final appearance value",
+    "result": "passed"
+  },
+  {
+    "phase": "Development",
+    "test": "undo flushes the held slider value before navigating history",
+    "result": "passed"
+  },
+  {
+    "phase": "Development",
+    "test": "keyboard range edits still save without a pointer drag",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "holding Hover size previews one album, follows dragging, and ends on release outside",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "right-click does not preview; cancellation and blur clear the sample",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "hover-size sample works with hover disabled and an empty library is harmless",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "hover speed is saved in history and corners animate with scale",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "background hover option sits beneath enlarge and restores through history",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "rounded corners on hover default off and restore independently for each display",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "native pointer events stay on their display (4K, background=false)",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "native pointer events stay on their display (4K, background=true)",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "native pointer events stay on their display (Mac, background=false)",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "native pointer events stay on their display (Mac, background=true)",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "automatic row spacing balances the menu-bar and screen-bottom gaps",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "preview shares balanced spacing and manual spacing can be undone or reset",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "opacity and surrounding-cover dimming controls and effects are absent",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "covers stay square across cover spacing and column settings",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "horizontal and manual row spacing are independent and cells remain square",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "History sits between Appearance and Settings and saves full metadata states",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "undo flushes pending appearance changes and restores the preview and desktop toggle",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "new changes after undo retain abandoned states and Restore returns to either branch",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "undo restores removed albums and both artwork variants",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "imports are one state per batch and duplicates and no-op saves do not add history",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "text undo and modal shortcuts do not navigate saved history",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "all history entries remain reachable in a narrow window",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "cached hover geometry follows resize, columns, and scrolling",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "pauses during a held appearance slider create one saved history state",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "blur commits the final appearance value",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "pointercancel commits the final appearance value",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "undo flushes the held slider value before navigating history",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "keyboard range edits still save without a pointer drag",
+    "result": "passed"
+  },
+  {
+    "phase": "Production",
+    "test": "README screenshots use only synthetic demo artwork",
+    "result": "passed"
+  }
+]
