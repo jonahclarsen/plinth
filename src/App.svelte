@@ -182,7 +182,7 @@
    <a class="brand" href="/" onclick={(e)=>{e.preventDefault();page='collection'}}><span class="brand-mark" data-logo={settings.logo}><Logo logo={settings.logo}/></span>plinth</a>
    <nav aria-label="Main navigation">
     {#each tabs as tab}
-     <button class:active={page===tab.id} title={tab.label+' (Alt+'+tab.key+')'} aria-keyshortcuts={'Alt+'+tab.key} onclick={()=>page=tab.id}><Icon name={tab.icon}/><span>{tab.label}</span><Shortcut keys={['Alt',tab.key]}/></button>
+     <button class:active={page===tab.id} aria-current={page===tab.id?'page':undefined} title={tab.label+' (Alt+'+tab.key+')'} aria-keyshortcuts={'Alt+'+tab.key} onclick={()=>page=tab.id}><Icon name={tab.icon}/><span>{tab.label}</span><Shortcut keys={['Alt',tab.key]}/></button>
     {/each}
    </nav>
    <div class="header-actions"><button class="desktop-toggle" onclick={()=>{settings.desktopEnabled=!settings.desktopEnabled;persist()}}>{settings.desktopEnabled?'Disable':'Enable'}</button><button class="primary add-artwork" aria-label={busy?'Importing…':'Add artwork'} aria-keyshortcuts={page==='collection'?'Meta+A Control+A':undefined} onclick={()=>choose()} disabled={busy}>{busy?'Importing…':'Add artwork'}{#if page==='collection'&&!busy}<Shortcut keys={['Cmd','A']}/>{/if}</button></div>
