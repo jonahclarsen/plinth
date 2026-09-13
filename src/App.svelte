@@ -52,7 +52,7 @@
   event.currentTarget instanceof HTMLElement&&event.currentTarget.setPointerCapture(event.pointerId)
   desktopPreview?.startHoverPreview()
  }
- function stopHoverPreview(){desktopPreview?.stopHoverPreview()}
+ function stopHoverPreview(){desktopPreview?.stopHoverPreview();finishAppearanceDrag()}
  let previewWidth=0
  let screens=api.native?previewDisplays([]).screens:{layout:{width:1280,height:800,menuBarHeight:24,pixels:'2560 × 1600'},wideLayout:{width:1920,height:1080,menuBarHeight:24,pixels:'3840 × 2160'}}
  let currentDisplayId:number|undefined
@@ -68,12 +68,18 @@
   } catch { /* Keep the last preview if a display is disconnected during detection. */ }
  }
  let previousPage=page
- $: if(page!==previousPage){previousPage=page;if(page==='appearance'){void refreshSpaces();if(api.native)void refreshDisplays(true)};if(page==='history')void loadHistoryPage()}
+ $: if(page!==previousPage){finishAppearanceDrag();previousPage=page;if(page==='appearance'){void refreshSpaces();if(api.native)void refreshDisplays(true)};if(page==='history')void loadHistoryPage()}
  $: screen=screens[profile]
  let mediaDark=window.matchMedia('(prefers-color-scheme: dark)').matches
  let saveQueue=Promise.resolve()
  let saveTimer:ReturnType<typeof setTimeout>
  let settingsRevision=0,settingsDirty=false
+ let draggingAppearance=false
+ function beginAppearanceDrag(event:PointerEvent){
+  if(event.button!==0||!(event.target instanceof HTMLInputElement)||event.target.type!=='range'||!event.target.closest('.controls'))return
+  draggingAppearance=true;clearTimeout(saveTimer)
+ }
+ function finishAppearanceDrag(){if(!draggingAppearance)return;draggingAppearance=false;if(settingsDirty)persist()}
  $: settings=library.settings
  $: layout=settings[profile]
  $: enabled=library.albums.filter(a=>a.enabled)
@@ -86,6 +92,8 @@
  function persist() {
   settingsDirty=true;const revision=++settingsRevision
   clearTimeout(saveTimer)
+  // Keep drag rendering local; commit its final state after release or cancellation.
+  if(draggingAppearance)return
   const snapshot=structuredClone(library.settings)
   saveTimer=setTimeout(()=>{saveQueue=saveQueue.then(()=>api.saveSettings(snapshot)).then(()=>{if(revision===settingsRevision)settingsDirty=false}).catch(e=>{error=String(e)})},100)
  }
@@ -102,7 +110,7 @@
  function showQuit(){if(!quitDialog?.open){quitDialog?.showModal();quitHeading?.focus()}}
  async function flushSettings(){clearTimeout(saveTimer);await saveQueue;if(settingsDirty){await api.saveSettings(structuredClone(library.settings));settingsDirty=false}}
  async function refreshHistory(){
-  if(desktop)return
+  if(desktop||page!=='history')return
   const request=++historyRequest;historyLoading=true
   try{const result=await api.getHistory();if(request===historyRequest)history=result??emptyHistory}catch(e){if(request===historyRequest)error=String(e)}finally{if(request===historyRequest)historyLoading=false}
  }
@@ -162,7 +170,7 @@
 </script>
 
  <svelte:head><link rel="icon" type="image/png" href={logoUrl(settings.logo)}/><link rel="apple-touch-icon" href={logoUrl(settings.logo)}/></svelte:head>
- <svelte:window onpointerup={stopHoverPreview} onpointercancel={stopHoverPreview} onblur={stopHoverPreview} onpointerdown={(e)=>{if(!(e.target instanceof Element)||!e.target.closest('.sort-picker'))sortOpen=false}} onkeydown={(e)=>{if(desktop)return;if(quitDialog?.open){if(e.repeat){e.preventDefault();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();void quitApp()}else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow()}else if(e.key==='Escape'){e.preventDefault();quitDialog.close()}return}if(e.repeat&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();return}if(e.key==='Escape'&&sortOpen){sortOpen=false;return}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&(e.code==='KeyQ'||e.code==='KeyW')){if(modal?.open||quitDialog?.open)return;e.preventDefault();const pages=['collection','appearance','history','settings'];page=pages[(pages.indexOf(page)+(e.code==='KeyQ'?-1:1)+pages.length)%pages.length];return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();showQuit();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow();return}if(gallery?.open){if(e.key==='Escape'){e.preventDefault();closeGallery()}return}if(modal?.open&&e.key==='Enter'&&!e.isComposing&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.shiftKey&&!confirmRemove){e.preventDefault();if(!e.repeat&&!saving&&!replacing)editorForm.requestSubmit();return}if((e.metaKey||e.ctrlKey)&&!e.altKey&&e.key.toLowerCase()==='z'&&!modal?.open&&!editingText(e.target)){e.preventDefault();if(!e.repeat)void moveHistory(e.shiftKey?'redo':'undo');return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='a'&&page==='collection'&&!modal?.open&&!(e.target instanceof Element&&e.target.closest('input,textarea,[contenteditable]'))){e.preventDefault();if(!e.repeat&&!busy)void choose();return}if(e.key==='/' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)){e.preventDefault();document.querySelector<HTMLInputElement>('.search input')?.focus()}if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();void choose()}if(e.key==='Escape'){if(quitDialog?.open)quitDialog.close();else closeEditor()}}}/>
+ <svelte:window onpointerup={stopHoverPreview} onpointercancel={stopHoverPreview} onblur={stopHoverPreview} onpointerdown={(e)=>{beginAppearanceDrag(e);if(!(e.target instanceof Element)||!e.target.closest('.sort-picker'))sortOpen=false}} onkeydown={(e)=>{if(desktop)return;if(quitDialog?.open){if(e.repeat){e.preventDefault();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();void quitApp()}else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow()}else if(e.key==='Escape'){e.preventDefault();quitDialog.close()}return}if(e.repeat&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();return}if(e.key==='Escape'&&sortOpen){sortOpen=false;return}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&(e.code==='KeyQ'||e.code==='KeyW')){if(modal?.open||quitDialog?.open)return;e.preventDefault();const pages=['collection','appearance','history','settings'];page=pages[(pages.indexOf(page)+(e.code==='KeyQ'?-1:1)+pages.length)%pages.length];return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();showQuit();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow();return}if(gallery?.open){if(e.key==='Escape'){e.preventDefault();closeGallery()}return}if(modal?.open&&e.key==='Enter'&&!e.isComposing&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.shiftKey&&!confirmRemove){e.preventDefault();if(!e.repeat&&!saving&&!replacing)editorForm.requestSubmit();return}if((e.metaKey||e.ctrlKey)&&!e.altKey&&e.key.toLowerCase()==='z'&&!modal?.open&&!editingText(e.target)){e.preventDefault();if(!e.repeat)void moveHistory(e.shiftKey?'redo':'undo');return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='a'&&page==='collection'&&!modal?.open&&!(e.target instanceof Element&&e.target.closest('input,textarea,[contenteditable]'))){e.preventDefault();if(!e.repeat&&!busy)void choose();return}if(e.key==='/' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)){e.preventDefault();document.querySelector<HTMLInputElement>('.search input')?.focus()}if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();void choose()}if(e.key==='Escape'){if(quitDialog?.open)quitDialog.close();else closeEditor()}}}/>
 {#if desktop}
  <Desktop {library}/>
 {:else}

@@ -1,12 +1,18 @@
 // Generate CI-only variants. The shared desktop geometry remains the source of truth.
 import {cpSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs'
-const variants=['baseline','pixels','layers','defer-save']
+import {execFileSync} from 'node:child_process'
+// Pin the original experiment even after a candidate is adopted.
+const baseline='.local/preview-source'
+mkdirSync(baseline,{recursive:true})
+execFileSync('tar',['-x','-C',baseline],{input:execFileSync('git',['archive','90157b7','src','tsconfig.json','package.json','index.html'])})
+const variants=process.env.PREVIEW_ADOPTION?['baseline','adopted']:['baseline','pixels','layers','defer-save']
 function replace(file,a,b){const s=readFileSync(file,'utf8');if(!s.includes(a))throw Error(`Patch missing in ${file}: ${a}`);writeFileSync(file,s.replace(a,b))}
 for(const variant of variants){
  const root=`.local/preview/${variant}`;mkdirSync(root,{recursive:true})
- cpSync('src',`${root}/src`,{recursive:true})
- for(const file of ['tsconfig.json','package.json'])cpSync(file,`${root}/${file}`)
- writeFileSync(`${root}/index.html`,readFileSync('index.html','utf8').replace('src="/src/main.ts"','src="./src/main.ts"'))
+ const source=variant==='adopted'?'.':baseline
+ cpSync(`${source}/src`,`${root}/src`,{recursive:true})
+ for(const file of ['tsconfig.json','package.json'])cpSync(`${source}/${file}`,`${root}/${file}`)
+ writeFileSync(`${root}/index.html`,readFileSync(`${source}/index.html`,'utf8').replace('src="/src/main.ts"','src="./src/main.ts"'))
  const app=`${root}/src/App.svelte`,desktop=`${root}/src/lib/Desktop.svelte`,css=`${root}/src/app.css`
  if(variant==='pixels'){
   replace(app,'width:${screen.width}px;height:${screen.height}px;transform:scale(${previewWidth/screen.width})','width:${previewWidth}px;height:${screen.height*previewWidth/screen.width}px')
