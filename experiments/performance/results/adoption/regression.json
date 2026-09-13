@@ -1,0 +1,916 @@
+{
+  "config": {
+    "argv": [
+      "$CI_USER/hostedtoolcache/node/22.23.2/arm64/bin/node",
+      "$CI_WORKSPACE/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config",
+      "experiments/performance/adoption.config.ts"
+    ],
+    "configFile": "$CI_WORKSPACE/experiments/performance/adoption.config.ts",
+    "rootDir": "$CI_WORKSPACE/experiments/performance",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "ci": {
+        "commitHref": "https://github.com/jonahclarsen/plinth/commit/fb7a2a65f53adbe310b7c8b150900bd491c817cb",
+        "commitHash": "fb7a2a65f53adbe310b7c8b150900bd491c817cb",
+        "buildHref": "https://github.com/jonahclarsen/plinth/actions/runs/34734638508"
+      },
+      "gitCommit": {
+        "shortHash": "fb7a2a6",
+        "hash": "fb7a2a65f53adbe310b7c8b150900bd491c817cb",
+        "subject": "Cache desktop cell bounds and write compact atomic history documents",
+        "body": "Cache desktop cell bounds and write compact atomic history documents\n",
+        "author": {
+          "name": "Jonah",
+          "email": "97376233+jonahclarsen@users.noreply.github.com",
+          "time": 1789268743000
+        },
+        "committer": {
+          "name": "Jonah",
+          "email": "97376233+jonahclarsen@users.noreply.github.com",
+          "time": 1789268743000
+        },
+        "branch": "perf/adopt-measured"
+      },
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "$CI_WORKSPACE/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "ci": {
+            "commitHref": "https://github.com/jonahclarsen/plinth/commit/fb7a2a65f53adbe310b7c8b150900bd491c817cb",
+            "commitHash": "fb7a2a65f53adbe310b7c8b150900bd491c817cb",
+            "buildHref": "https://github.com/jonahclarsen/plinth/actions/runs/34734638508"
+          },
+          "gitCommit": {
+            "shortHash": "fb7a2a6",
+            "hash": "fb7a2a65f53adbe310b7c8b150900bd491c817cb",
+            "subject": "Cache desktop cell bounds and write compact atomic history documents",
+            "body": "Cache desktop cell bounds and write compact atomic history documents\n",
+            "author": {
+              "name": "Jonah",
+              "email": "97376233+jonahclarsen@users.noreply.github.com",
+              "time": 1789268743000
+            },
+            "committer": {
+              "name": "Jonah",
+              "email": "97376233+jonahclarsen@users.noreply.github.com",
+              "time": 1789268743000
+            },
+            "branch": "perf/adopt-measured"
+          },
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "$CI_WORKSPACE/experiments/performance",
+        "testIgnore": [],
+        "testMatch": [
+          "adoption.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "$CI_WORKSPACE/.local/performance/regression.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "pnpm exec vite preview --host 127.0.0.1 --port 23983",
+      "url": "http://127.0.0.1:23983"
+    }
+  },
+  "suites": [
+    {
+      "title": "adoption.spec.ts",
+      "file": "adoption.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "holding Hover size previews one album, follows dragging, and ends on release outside",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1668,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:07:45.696Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-e2f833a15719b4345d18",
+          "file": "../../tests/hover-size.spec.ts",
+          "line": 2,
+          "column": 1
+        },
+        {
+          "title": "right-click does not preview; cancellation and blur clear the sample",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1236,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:07:47.824Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-02647a1637ded79f20cf",
+          "file": "../../tests/hover-size.spec.ts",
+          "line": 18,
+          "column": 1
+        },
+        {
+          "title": "hover-size sample works with hover disabled and an empty library is harmless",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1153,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:07:49.075Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-9f35441c502f77b75e0b",
+          "file": "../../tests/hover-size.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "hover speed is saved in history and corners animate with scale",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3274,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:07:50.253Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-fcd49bf4ffe332420501",
+          "file": "../../tests/hover-size.spec.ts",
+          "line": 45,
+          "column": 1
+        },
+        {
+          "title": "background hover option sits beneath enlarge and restores through history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1096,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:07:53.551Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-80f503b26cc2c0310307",
+          "file": "../../tests/hover-size.spec.ts",
+          "line": 69,
+          "column": 1
+        },
+        {
+          "title": "rounded corners on hover default off and restore independently for each display",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2890,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:07:54.663Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-db559d952e1e9bf2cd4e",
+          "file": "../../tests/hover-size.spec.ts",
+          "line": 82,
+          "column": 1
+        },
+        {
+          "title": "native pointer events stay on their display (4K, background=false)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 876,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:07:57.570Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-dc9a4a292430e8006b0b",
+          "file": "../../tests/desktop-pointer.spec.ts",
+          "line": 6,
+          "column": 2
+        },
+        {
+          "title": "native pointer events stay on their display (4K, background=true)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 898,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:07:58.454Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-c3fb26ba024cd5455857",
+          "file": "../../tests/desktop-pointer.spec.ts",
+          "line": 6,
+          "column": 2
+        },
+        {
+          "title": "native pointer events stay on their display (Mac, background=false)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1007,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:07:59.377Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-33c261cc1931c98d64f1",
+          "file": "../../tests/desktop-pointer.spec.ts",
+          "line": 6,
+          "column": 2
+        },
+        {
+          "title": "native pointer events stay on their display (Mac, background=true)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 952,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:00.394Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-1201b635d518158ce0ee",
+          "file": "../../tests/desktop-pointer.spec.ts",
+          "line": 6,
+          "column": 2
+        },
+        {
+          "title": "automatic row spacing balances the menu-bar and screen-bottom gaps",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:01.362Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-e02ddfa09a017b4f1e82",
+          "file": "../../tests/spacing.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "preview shares balanced spacing and manual spacing can be undone or reset",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1398,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:01.370Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-e44dfcda7dfdde29ef2d",
+          "file": "../../tests/spacing.spec.ts",
+          "line": 21,
+          "column": 1
+        },
+        {
+          "title": "opacity and surrounding-cover dimming controls and effects are absent",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1172,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:02.783Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-e2433837307fda8aa3fb",
+          "file": "../../tests/spacing.spec.ts",
+          "line": 42,
+          "column": 1
+        },
+        {
+          "title": "covers stay square across cover spacing and column settings",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5314,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:03.976Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-28ebe736e1d1b6a30a02",
+          "file": "../../tests/square-spacing.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "History sits between Appearance and Settings and saves full metadata states",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1812,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:09.302Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-7f86cc8e45219fffeeb3",
+          "file": "../../tests/history.spec.ts",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "undo flushes pending appearance changes and restores the preview and desktop toggle",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1543,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:11.132Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-0531549b4d4178ea4ecc",
+          "file": "../../tests/history.spec.ts",
+          "line": 35,
+          "column": 1
+        },
+        {
+          "title": "new changes after undo retain abandoned states and Restore returns to either branch",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1332,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:12.688Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-a0995dc02360fcd51013",
+          "file": "../../tests/history.spec.ts",
+          "line": 51,
+          "column": 1
+        },
+        {
+          "title": "undo restores removed albums and both artwork variants",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2105,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:14.034Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-d2efaebef5b9b8db3635",
+          "file": "../../tests/history.spec.ts",
+          "line": 72,
+          "column": 1
+        },
+        {
+          "title": "imports are one state per batch and duplicates and no-op saves do not add history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1218,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:16.151Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-580a7dfb11fbbd2fc833",
+          "file": "../../tests/history.spec.ts",
+          "line": 87,
+          "column": 1
+        },
+        {
+          "title": "text undo and modal shortcuts do not navigate saved history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1397,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:17.391Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-a3d35efad63c42a27514",
+          "file": "../../tests/history.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "all history entries remain reachable in a narrow window",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1985,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:18.797Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-994f6bfb7f1f9f621139",
+          "file": "../../tests/history.spec.ts",
+          "line": 116,
+          "column": 1
+        },
+        {
+          "title": "cached hover geometry follows resize, columns, and scrolling",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1486,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:20.795Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-566546af18d65fdfefeb",
+          "file": "regression.spec.ts",
+          "line": 9,
+          "column": 1
+        },
+        {
+          "title": "README screenshots use only synthetic demo artwork",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10333,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-13T03:08:22.296Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9e5632fef05a45804efb-fb78534b5ff99dc4b975",
+          "file": "../../tests/screenshots.spec.ts",
+          "line": 5,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-13T03:07:44.100Z",
+    "duration": 48652.782,
+    "expected": 23,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
