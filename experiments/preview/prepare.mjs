@@ -6,7 +6,7 @@ const focused=process.env.PREVIEW_FOCUSED
 const baseline='.local/preview-source'
 mkdirSync(baseline,{recursive:true})
 execFileSync('tar',['-x','-C',baseline],{input:execFileSync('git',['archive',focused?'ba11d72':'90157b7','src','tsconfig.json','package.json','index.html'])})
-const variants=focused==='radius'?['baseline','rest-radius']:focused==='cells'?['baseline','isolated-cells']:focused?['baseline','active-layer','sample-layers']:process.env.PREVIEW_ADOPTION?['baseline','adopted']:['baseline','pixels','layers','defer-save']
+const variants=focused==='radius'?['baseline','rest-radius']:focused?.startsWith('cells')?['baseline','isolated-cells']:focused?['baseline','active-layer','sample-layers']:process.env.PREVIEW_ADOPTION?['baseline','adopted']:['baseline','pixels','layers','defer-save']
 function replace(file,a,b){const s=readFileSync(file,'utf8');if(!s.includes(a))throw Error(`Patch missing in ${file}: ${a}`);writeFileSync(file,s.replace(a,b))}
 for(const variant of variants){
  const root=`.local/preview/${variant}`;mkdirSync(root,{recursive:true})
