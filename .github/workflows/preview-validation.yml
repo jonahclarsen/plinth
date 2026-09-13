@@ -24,9 +24,10 @@ jobs:
       - run: pnpm check
       - name: Verify drag saving in the development build
         run: pnpm exec playwright test tests/appearance-drag.spec.ts --browser webkit --workers 1
-      - name: Compare native bridge calls with 150 visible albums
+      - name: Compare final rendering and native bridge calls with 150 visible albums
         env:
           PREVIEW_ADOPTION: '1'
+          PREVIEW_RENDER_VALIDATION: '1'
         run: |
           node experiments/preview/prepare.mjs
           node experiments/preview/fixtures.mjs
