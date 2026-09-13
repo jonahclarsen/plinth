@@ -1,0 +1,187 @@
+{
+  "frontend": [
+    {
+      "test": "holding Hover size previews one album, follows dragging, and ends on release outside",
+      "result": "passed",
+      "duration": "2.3s"
+    },
+    {
+      "test": "right-click does not preview; cancellation and blur clear the sample",
+      "result": "passed",
+      "duration": "1.4s"
+    },
+    {
+      "test": "hover-size sample works with hover disabled and an empty library is harmless",
+      "result": "passed",
+      "duration": "1.6s"
+    },
+    {
+      "test": "hover speed is saved in history and corners animate with scale",
+      "result": "passed",
+      "duration": "3.3s"
+    },
+    {
+      "test": "native pointer events stay on their display (4K)",
+      "result": "passed",
+      "duration": "1.0s"
+    },
+    {
+      "test": "native pointer events stay on their display (Mac)",
+      "result": "passed",
+      "duration": "1.0s"
+    },
+    {
+      "test": "automatic row spacing balances the menu-bar and screen-bottom gaps",
+      "result": "passed",
+      "duration": "2ms"
+    },
+    {
+      "test": "preview shares balanced spacing and manual spacing can be undone or reset",
+      "result": "passed",
+      "duration": "1.7s"
+    },
+    {
+      "test": "opacity and surrounding-cover dimming controls and effects are absent",
+      "result": "passed",
+      "duration": "1.4s"
+    },
+    {
+      "test": "covers stay square across cover spacing and column settings",
+      "result": "passed",
+      "duration": "6.2s"
+    },
+    {
+      "test": "History sits between Appearance and Settings and saves full metadata states",
+      "result": "passed",
+      "duration": "2.5s"
+    },
+    {
+      "test": "undo flushes pending appearance changes and restores the preview and desktop toggle",
+      "result": "passed",
+      "duration": "2.3s"
+    },
+    {
+      "test": "new changes after undo retain abandoned states and Restore returns to either branch",
+      "result": "passed",
+      "duration": "1.8s"
+    },
+    {
+      "test": "undo restores removed albums and both artwork variants",
+      "result": "passed",
+      "duration": "2.4s"
+    },
+    {
+      "test": "imports are one state per batch and duplicates and no-op saves do not add history",
+      "result": "passed",
+      "duration": "1.3s"
+    },
+    {
+      "test": "text undo and modal shortcuts do not navigate saved history",
+      "result": "passed",
+      "duration": "1.8s"
+    },
+    {
+      "test": "all history entries remain reachable in a narrow window",
+      "result": "passed",
+      "duration": "2.3s"
+    }
+  ],
+  "native": [
+    {
+      "test": "branding::tests::every_logo_survives_library_reload_and_has_valid_native_assets",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "branding::tests::legacy_settings_default_to_first_logo_and_unknown_logos_are_rejected",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "branding::tests::record_logo_has_transparent_background_and_grooves_with_black_centers",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "displays::tests::remembers_internal_panel_without_marking_it_as_current",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "history::native_performance::measure",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "history::tests::corrupt_history_is_not_overwritten_and_failed_import_does_not_change_memory",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "history::tests::failed_navigation_and_writes_leave_the_saved_state_intact",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "history::tests::migrates_existing_library_and_retains_redo_across_restarts",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "history::tests::missing_artwork_does_not_partially_restore_history",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "history::tests::new_edits_preserve_abandoned_states_and_their_parentage",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "history::tests::restores_imports_metadata_replacements_removals_and_settings",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "history::tests::restoring_forward_keeps_remaining_redo_states",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::automatic_spacing_is_default_and_old_opacity_settings_are_ignored",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::hover_speed_defaults_and_validates",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::import_preserves_original_deduplicates_and_survives_reload",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::imports_legacy_metadata",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::invalid_settings_rejected",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::legacy_bottom_spacing_is_ignored_on_load_and_removed_on_save",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::legacy_names_with_suffix_or_no_link_spacing",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::numbered_spaces_validate_migrate_and_round_trip_through_history",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::plain_filename_works",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::replacement_preserves_metadata_and_originals",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "library::tests::spaces_setting_defaults_for_existing_libraries_and_round_trips",
+      "result": "passed in baseline, compact, indexed"
+    },
+    {
+      "test": "spaces::tests::resolves_only_existing_desktops_one_through_three",
+      "result": "passed in baseline, compact, indexed"
+    }
+  ]
+}
