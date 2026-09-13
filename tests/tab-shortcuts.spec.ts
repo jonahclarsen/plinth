@@ -4,7 +4,7 @@ test('tab shortcuts use physical letters and respect text fields, modifiers and 
  await page.goto('/?demo=1')
  const nav=page.getByRole('navigation',{name:'Main navigation'})
  const active=(name:string)=>expect(nav.getByRole('button',{name,exact:true})).toHaveClass('active')
- for(const [name,key] of [['Appearance','A'],['History','H'],['Settings','S'],['Collection','C']]){
+ for(const [name,key] of [['Appearance','A'],['Settings','S'],['Collection','C']]){
   const button=nav.getByRole('button',{name,exact:true})
   await expect(button).toHaveAttribute('aria-keyshortcuts','Alt+'+key)
   await expect(button.locator('kbd')).toBeVisible()

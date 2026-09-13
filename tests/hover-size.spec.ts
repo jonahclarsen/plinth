@@ -61,7 +61,7 @@ test('hover speed is saved in history and corners animate with scale',async({pag
  const returning=await cover.evaluate(el=>parseFloat(getComputedStyle(el).borderRadius))
  expect(returning).toBeGreaterThan(3);expect(returning).toBeLessThan(17)
  await page.clock.runFor(600);await expect(cover).toHaveCSS('border-radius','20px')
- await page.getByRole('button',{name:'History',exact:true}).click()
+ await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'History',exact:true}).click()
  await expect(page.locator('.history-list')).toContainText('Hover speed: 1 → 0.25')
 })
 
@@ -99,6 +99,6 @@ test('rounded corners on hover default off and restore independently for each di
  await expect(toggle).not.toBeChecked()
  await page.getByRole('button',{name:/Mac display/}).click()
  await expect(toggle).toBeChecked()
- await page.getByRole('button',{name:'History',exact:true}).click()
+ await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'History',exact:true}).click()
  await expect(page.locator('.history-list')).toContainText('Rounded corners when hovered: Off → On')
 })

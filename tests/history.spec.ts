@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test'
 import { createRequire } from 'node:module'
 const sharp:typeof import('sharp').default=createRequire(import.meta.url)('sharp')
-const historyPage=async(page:import('@playwright/test').Page)=>{await page.getByRole('button',{name:'History',exact:true}).click();await expect(page.locator('.history-list')).toBeVisible()}
+const historyPage=async(page:import('@playwright/test').Page)=>{await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'History',exact:true}).click();await expect(page.locator('.history-list')).toBeVisible()}
 
-test('History sits between Appearance and Settings and saves full metadata states',async({page})=>{
+test('History opens from Settings and saves full metadata states',async({page})=>{
  await page.goto('/?demo=1')
- await expect(page.getByRole('navigation',{name:'Main navigation'}).getByRole('button').locator(':scope > span')).toHaveText(['Collection','Appearance','History','Settings'])
+ await expect(page.getByRole('navigation',{name:'Main navigation'}).getByRole('button').locator(':scope > span')).toHaveText(['Collection','Appearance','Settings'])
  await historyPage(page)
  await expect(page.locator('.history-list>li')).toHaveCount(1)
  await expect(page.getByRole('button',{name:'Undo',exact:true})).toBeDisabled()
@@ -108,8 +108,8 @@ test('text undo and modal shortcuts do not navigate saved history',async({page})
  await expect(page.locator('.album-dialog')).toBeVisible()
  await page.keyboard.press('Escape');await historyPage(page)
  await expect(page.locator('.history-list>li')).toHaveCount(2)
- await page.keyboard.press('Alt+KeyW');await expect(page.getByRole('group',{name:'App appearance'})).toBeVisible()
- await page.keyboard.press('Alt+KeyQ');await expect(page.locator('.history-list')).toBeVisible()
+ await expect(page.getByRole('navigation').getByRole('button',{name:'Settings',exact:true})).toHaveAttribute('aria-current','page');await page.getByRole('button',{name:'Back to Settings',exact:true}).click();await expect(page.getByRole('group',{name:'App appearance'})).toBeVisible()
+ await historyPage(page);await page.keyboard.press('Alt+KeyQ');await expect(page.locator('.appearance-layout')).toBeVisible();await page.keyboard.press('Alt+KeyW');await expect(page.getByRole('group',{name:'App appearance'})).toBeVisible()
 })
 
 
