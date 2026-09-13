@@ -40,6 +40,8 @@ test('desktop cover enlarges and returns to normal',async({page})=>{
 test('album editor closes on backdrop clicks but not clicks inside',async({page})=>{
  await page.goto('/?demo=1');await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
  await expect(page.getByRole('dialog')).toBeVisible()
+ const artwork=await page.locator('.editor-artwork').boundingBox(),close=await page.getByRole('button',{name:'Close album editor'}).boundingBox()
+ expect(close!.y).toBeCloseTo(artwork!.y,0)
  await page.getByLabel('Album title').click();await expect(page.getByRole('dialog')).toBeVisible()
  await page.mouse.click(10,10);await expect(page.getByRole('dialog')).not.toBeVisible()
  await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible()
