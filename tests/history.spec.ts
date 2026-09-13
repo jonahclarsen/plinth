@@ -5,7 +5,7 @@ const historyPage=async(page:import('@playwright/test').Page)=>{await page.getBy
 
 test('History sits between Appearance and Settings and saves full metadata states',async({page})=>{
  await page.goto('/?demo=1')
- await expect(page.getByRole('navigation',{name:'Main navigation'}).getByRole('button')).toHaveText(['Collection','Appearance','History','Settings'])
+ await expect(page.getByRole('navigation',{name:'Main navigation'}).getByRole('button').locator(':scope > span')).toHaveText(['Collection','Appearance','History','Settings'])
  await historyPage(page)
  await expect(page.locator('.history-list>li')).toHaveCount(1)
  await expect(page.getByRole('button',{name:'Undo',exact:true})).toBeDisabled()

@@ -42,7 +42,7 @@ Space between rows defaults to **Auto**, which balances the gap below the menu b
 
 The desktop is a transparent native window above the wallpaper and desktop icons, below ordinary windows. It receives clicks and does not scroll. Cover width and height use the same calculated size, so increasing cover spacing shrinks square covers. Incomplete rows are centered; use the Columns setting to fit more covers on screen. Covers enlarge without activating Plinth; this does not draw over your foreground apps. Restart Plinth after changing monitor arrangements. Add Plinth in **System Settings → General → Login Items** if you want it to start at login.
 
-Option-Q and Option-W move to the previous or next page, wrapping at either end. Window size is remembered when you close or quit; new installations open at 1550 × 840 points.
+Alt-C, Alt-A, Alt-H, and Alt-S open Collection, Appearance, History, and Settings (use Option on Mac). The tab buttons show these shortcuts. Option-Q and Option-W move to the previous or next page, wrapping at either end. Window size is remembered when you close or quit; new installations open at 1550 × 840 points.
 
 ## Local data and backups
 
