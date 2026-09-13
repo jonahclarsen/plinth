@@ -9,6 +9,7 @@
  import { ordered, type Layout, type Library } from './types'
  export let library: Library
  export let preview=false
+ export let previewScale=1
  export let forcedLayout:Layout|undefined=undefined
  export let viewportHeight:number|undefined=undefined
  export let viewportWidth:number|undefined=undefined
@@ -27,12 +28,22 @@
  $: layout=forcedLayout??(displayProfile?settings[displayProfile]:width>1900?settings.wideLayout:settings.layout)
  $: albums=ordered(library.albums.filter(a=>a.enabled),settings.sort,settings.shuffleSeed)
  $: spacing=desktopSpacing(layout,viewportWidth??width,viewportHeight??height,albums.length,preview?menuBarHeight:detectedMenuBarHeight)
+ let bounds:{id:string;rect:DOMRect}[]|undefined
+ function invalidateBounds(){bounds=undefined}
+ // Rectangles use viewport coordinates, including the scaled preview and scrolling.
+ $: { spacing; albums; width; height; viewportWidth; viewportHeight; previewScale; invalidateBounds() }
+ onMount(()=>{
+  const observer=new ResizeObserver(invalidateBounds)
+  observer.observe(grid)
+  window.addEventListener('scroll',invalidateBounds,true)
+  return()=>{observer.disconnect();window.removeEventListener('scroll',invalidateBounds,true)}
+ })
  function hoverAt(x:number,y:number,visible:boolean) {
   if(!visible || !settings.hoverEnabled) {hovered='';return}
   // Use the unscaled grid cells so enlarged artwork does not shift the hit target.
-  const items=grid?.querySelectorAll<HTMLElement>('.desktop-cell')??[]
+  bounds??=Array.from(grid?.querySelectorAll<HTMLElement>('.desktop-cell')??[],el=>({id:el.dataset.id??'',rect:el.getBoundingClientRect()}))
   hovered=''
-  for(const el of items) {const r=el.getBoundingClientRect();if(x>=r.left&&x<r.right&&y>=r.top&&y<r.bottom){hovered=el.dataset.id??'';break}}
+  for(const {id,rect:r} of bounds) {if(x>=r.left&&x<r.right&&y>=r.top&&y<r.bottom){hovered=id;break}}
  }
  export function startHoverPreview() {
   if(!preview||!grid)return
