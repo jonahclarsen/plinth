@@ -1,0 +1,8 @@
+GitHub standard macos-15-arm64
+macOS 15.7.9 (24G830)
+Image: 20260907.0337.1
+Apple M1 (Virtual), 3 cores, 7 GB RAM
+Node v22.23.2
+rustc 1.98.1 (48a229cea 2026-09-01)
+Commit: 6896fe37a125cb4a952c0bf88a4eb58cbf96524a
+Runner instance identifiers omitted.

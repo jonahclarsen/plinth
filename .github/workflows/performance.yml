@@ -1,0 +1,70 @@
+name: macOS performance investigation
+on:
+  push:
+    branches: [investigate/performance-ci]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: macos-15
+    env:
+      PERF_FIT: '1'
+      PERF_BASELINE: 12cc657
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore measured application revision in disposable checkout
+        run: git archive "$PERF_BASELINE" | tar -x
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Record runner
+        run: |
+          mkdir -p .local/performance
+          sw_vers > .local/performance/runner.txt
+          system_profiler SPHardwareDataType >> .local/performance/runner.txt
+          node --version >> .local/performance/runner.txt
+          rustc --version >> .local/performance/runner.txt
+          git rev-parse HEAD >> .local/performance/runner.txt
+          git rev-parse "$PERF_BASELINE" >> .local/performance/runner.txt
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install webkit
+      - name: Build isolated frontend variants
+        run: |
+          for variant in baseline radius-css pointer; do
+            node experiments/performance/prepare.mjs "$variant"
+            pnpm check
+            pnpm exec vite build --base="/$variant/" --outDir="dist/$variant"
+          done
+      - name: Alternating WebKit measurements
+        run: node experiments/performance/web.mjs
+      - name: Combined frontend behavior checks
+        run: |
+          node experiments/performance/prepare.mjs combined-fit
+          pnpm check
+          pnpm build
+          pnpm exec playwright test --config experiments/performance/playwright.config.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-performance-results
+          path: .local/performance/*.json
+          retention-days: 30
+      - name: Native save measurements and native regression tests
+        if: ${{ !cancelled() }}
+        run: node experiments/performance/native.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-results
+          path: |
+            .local/performance/*.json
+            .local/performance/runner.txt
+          retention-days: 30
