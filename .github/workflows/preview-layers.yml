@@ -7,7 +7,7 @@ on:
     inputs:
       experiment:
         type: choice
-        options: [layers, cells]
+        options: [layers, cells, radius]
         default: layers
 permissions:
   contents: read
@@ -16,7 +16,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 20
     env:
-      PREVIEW_FOCUSED: ${{ inputs.experiment || 'cells' }}
+      PREVIEW_FOCUSED: ${{ inputs.experiment || 'radius' }}
     steps:
       - uses: actions/checkout@v4
         with:

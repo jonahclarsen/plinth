@@ -6,7 +6,7 @@ const focused=process.env.PREVIEW_FOCUSED
 const baseline='.local/preview-source'
 mkdirSync(baseline,{recursive:true})
 execFileSync('tar',['-x','-C',baseline],{input:execFileSync('git',['archive',focused?'ba11d72':'90157b7','src','tsconfig.json','package.json','index.html'])})
-const variants=focused==='cells'?['baseline','isolated-cells']:focused?['baseline','active-layer','sample-layers']:process.env.PREVIEW_ADOPTION?['baseline','adopted']:['baseline','pixels','layers','defer-save']
+const variants=focused==='radius'?['baseline','rest-radius']:focused==='cells'?['baseline','isolated-cells']:focused?['baseline','active-layer','sample-layers']:process.env.PREVIEW_ADOPTION?['baseline','adopted']:['baseline','pixels','layers','defer-save']
 function replace(file,a,b){const s=readFileSync(file,'utf8');if(!s.includes(a))throw Error(`Patch missing in ${file}: ${a}`);writeFileSync(file,s.replace(a,b))}
 for(const variant of variants){
  const root=`.local/preview/${variant}`;mkdirSync(root,{recursive:true})
@@ -42,6 +42,7 @@ for(const variant of variants){
   if(!button)throw Error('Missing cover button')
   replace(desktop,button,'<DesktopCover {album} active={activeHover===album.id} factor={activeHover===album.id?settings.hoverScale:1} speed={settings.hoverSpeed??1} radius={layout.radius} roundedOnHover={layout.roundedOnHover??false} onopen={open} onhover={focusAlbum}/>')
  }
+ if(variant==='rest-radius')replace(`${root}/src/lib/motion.ts`,"  if(matchMedia(","  if(!next.active&&scale===1){radius=endRadius;paint();return}\n  if(matchMedia(")
  if(variant==='defer-save'){
   replace(app,' let settingsRevision=0,settingsDirty=false',' let settingsRevision=0,settingsDirty=false\n let draggingAppearance=false\n function finishAppearanceDrag(){if(!draggingAppearance)return;draggingAppearance=false;if(settingsDirty)persist()}')
   replace(app,'  const snapshot=structuredClone(library.settings)','  if(draggingAppearance)return\n  const snapshot=structuredClone(library.settings)')
