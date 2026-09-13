@@ -88,6 +88,8 @@ pnpm build:app     # Produces src-tauri/target/release/bundle/macos/Plinth.app
 
 The permanent development port is **23983**, selected once with a cryptographically secure random generator and recorded in `port.json`. There is no production server port. Browser mode starts with an empty, temporary library. `?demo=1` enables fictional sample records; browser changes last only for that session.
 
+Appearance performance measurements for 150 visible albums in the development build, including rejected experiments and every test result, are recorded in [the preview performance report](experiments/preview/results/README.md).
+
 Run `pnpm screenshots` after any UI change to refresh the README WebPs. Tests use isolated browser contexts and temporary native fixture directories, never the real library. The hover animation matches the previous app’s jQuery swing curve: 250 ms in and 251 ms out. The native hover behavior also needs a macOS smoke test because a browser cannot reproduce desktop window ordering. Run `cargo run --manifest-path src-tauri/Cargo.toml --example desktop-focus` to check repeated enable/disable with an isolated, invisible editor window; it restores the previously focused app afterward and never opens the library. Run `cargo run --manifest-path src-tauri/Cargo.toml --example space-placement` to verify numbered placement using invisible temporary windows, without opening the library. Numbered placement uses dynamically loaded macOS APIs and verifies the resulting Space membership; existing desktop windows are retained if a replacement cannot be placed.
 
 Work on a task branch in a separate Git worktree, verify it, merge into `main`, and push. See [AGENTS.md](AGENTS.md).
