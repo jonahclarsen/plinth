@@ -223,7 +223,7 @@
      </div></div>
      <label class="setting-row"><span>Clicking an album</span><select aria-label="Clicking an album" bind:value={settings.openMode} onchange={persist}><option value="library">Apple Music library</option><option value="link">Open saved album link</option></select></label>
      <label class="setting-row"><span>Show artwork on the desktop</span><input class="switch" type="checkbox" bind:checked={settings.desktopEnabled} onchange={persist}/></label>
-     <div class="setting-row"><span>Saved changes</span><button onclick={()=>page='history'}><Icon name="history"/>History</button></div>
+     <div class="setting-row"><span>History</span><button onclick={()=>page='history'}><Icon name="history"/>History</button></div>
      <div class="setting-row"><span>Local storage</span><button disabled={!api.native} onclick={()=>invoke('reveal_data').catch(e=>error=String(e))}><Icon name="folder"/>Open folder</button></div>
     </section>
    {/if}
