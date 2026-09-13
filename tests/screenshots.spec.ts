@@ -23,6 +23,7 @@ test('README screenshots use only synthetic demo artwork',async({page})=>{
  await sharp(await page.screenshot({fullPage:true,animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/appearance.webp')
  await page.mouse.up()
  await page.getByRole('button',{name:'Settings',exact:true}).click()
+ await expect(page.getByLabel('Clicking an album')).toHaveCount(0)
  await page.mouse.move(0,0)
  await sharp(await page.screenshot({fullPage:true,animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/settings.webp')
  await page.getByRole('button',{name:'Collection',exact:true}).click()
