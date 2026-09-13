@@ -106,7 +106,7 @@ fn write(dir: &Path, document: &Document) -> Result<(), String> {
     // The active library and every saved state are committed in one atomic rename.
     fs::write(
         &temp,
-        serde_json::to_vec_pretty(document).map_err(|e| e.to_string())?,
+        serde_json::to_vec(document).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
     if path.exists() {

@@ -7,6 +7,7 @@ const server=spawn('pnpm',['exec','vite','preview','--host','127.0.0.1','--port'
 const origin=`http://127.0.0.1:${port}`
 const rows=[]
 const fit=process.env.PERF_FIT==='1'
+const onlyCase=process.env.PERF_CASE
 let browser
 try{
  for(let i=0;i<100;i++){try{if((await fetch(origin)).ok)break}catch{}await new Promise(r=>setTimeout(r,100))}
@@ -103,6 +104,7 @@ try{
  }
  // AB/BA order, five paired repeats. One untimed warmup per variant/case.
  for(const count of [96,480])for(const [kind,candidate] of (fit?[['Rounded corners','radius-css'],['Space between covers','radius-css'],['Hover size','radius-css'],['pointer','pointer']]:[['Rounded corners','radius-css'],['Space between covers','cull'],['Hover size','cull'],['pointer','pointer'],['pointer','cull']])){
+  if(onlyCase&&kind!==onlyCase)continue
   for(const variant of ['baseline',candidate])await sample(variant,count,kind)
   for(let repeat=0;repeat<5;repeat++)for(const variant of repeat%2? [candidate,'baseline']:['baseline',candidate]){
    const result=await sample(variant,count,kind);rows.push({variant,candidate,count,kind,repeat,...result});console.log(JSON.stringify({...rows.at(-1),costs:undefined,intervals:undefined}))
