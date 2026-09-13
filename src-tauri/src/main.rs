@@ -264,6 +264,7 @@ async fn open_album(app: tauri::AppHandle, id: String) -> Result<(), String> {
         drop(lib);
         if let Some(url) = music::apple_music_link(&album.url) {
             let status = Command::new("open")
+                .args(["-b", "com.apple.Music"])
                 .arg(url.as_str())
                 .status()
                 .map_err(|e| e.to_string())?;
