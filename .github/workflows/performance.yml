@@ -10,9 +10,14 @@ jobs:
     runs-on: macos-15
     env:
       PERF_FIT: '1'
+      PERF_BASELINE: 12cc657
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore measured application revision in disposable checkout
+        run: git archive "$PERF_BASELINE" | tar -x
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -29,6 +34,7 @@ jobs:
           node --version >> .local/performance/runner.txt
           rustc --version >> .local/performance/runner.txt
           git rev-parse HEAD >> .local/performance/runner.txt
+          git rev-parse "$PERF_BASELINE" >> .local/performance/runner.txt
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install webkit
       - name: Build isolated frontend variants

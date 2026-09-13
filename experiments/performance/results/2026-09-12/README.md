@@ -2,6 +2,8 @@
 
 **Live slider lag remains unresolved by these experiments.** Compact native JSON and cached desktop hit testing reduced measured work; the tested radius changes did not establish a useful slider improvement with every album on screen. No application optimization has been adopted.
 
+**Measured application revision: `12cc657`.** Concurrent changes through `bf5dd13` landed on `main` during CI, including explicit cover geometry, hover options and window placement. They were preserved and were not part of these measurements. Do not treat these numbers as measurements of the current build. The harness is pinned to the measured revision for reproduction; a current-build comparison would require updating the experiments.
+
 All performance experiments ran on GitHub's standard `macos-15` Apple Silicon runner. This public repository qualifies for free standard hosted runners, so compute cost was $0. [GitHub runner policy](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 
 The user clarified that **all albums always fit on screen**. Offscreen culling is therefore excluded from recommendations. The first two runs' overflowing 480-album frontend configurations are historical experiments, not evidence for this app's target workload. The corrected run asserts that every album cell is mounted and contained within the screen, including every spacing setting tested.
