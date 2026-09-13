@@ -65,7 +65,11 @@
  <div class="desktop-grid" bind:this={grid} style={`--columns:${layout.columns};--cover-size:${desktopCoverSize(layout,viewportWidth??width)}px;--column-gap:${layout.gap}px;--row-gap:${spacing.rowGap}px;--top:${spacing.top}px;--radius:${layout.radius}px;--shadow:${layout.shadow};--scale:${settings.hoverScale}`}>
  {#each albums as album (album.id)}
   <div class="desktop-cell" data-id={album.id}>
+   {#if preview}
+   <div use:swingScale={{active:activeHover===album.id,factor:settings.hoverScale,speed:settings.hoverSpeed??1,radius:layout.radius,roundedOnHover:layout.roundedOnHover??false}} class:enlarged={activeHover===album.id} class="desktop-cover" role="img" aria-label={`Preview ${album.title} by ${album.artist}`}></div>
+   {:else}
    <button use:swingScale={{active:activeHover===album.id,factor:settings.hoverScale,speed:settings.hoverSpeed??1,radius:layout.radius,roundedOnHover:layout.roundedOnHover??false}} class:enlarged={activeHover===album.id} class="desktop-cover" onclick={()=>open(album.id)} onfocus={()=>hovered=album.id} onblur={()=>hovered=''} aria-label={`Open ${album.title} by ${album.artist}`} title={`${album.artist} — ${album.title}`}><img src={coverUrl(album)} alt={album.title} draggable="false"/></button>
+   {/if}
   </div>
  {/each}
  </div>
