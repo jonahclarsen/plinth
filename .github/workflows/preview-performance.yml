@@ -1,0 +1,56 @@
+name: Appearance preview development performance
+on:
+  push:
+    branches: [perf/preview-speed]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install webkit
+      - name: Prepare isolated variants and 150 synthetic raster covers
+        run: |
+          node experiments/preview/prepare.mjs
+          node experiments/preview/fixtures.mjs
+          for variant in baseline pixels layers defer-save; do
+            pnpm exec svelte-check --workspace ".local/preview/$variant" --tsconfig ./tsconfig.json
+          done
+      - name: Measure development preview, with every album visible
+        run: node experiments/preview/bench.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-development-results
+          path: .local/preview-results/*.json
+  native:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Compare actual debug and release saves with 150 albums
+        run: node experiments/preview/native.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-native-results
+          path: .local/preview-native/*.json
