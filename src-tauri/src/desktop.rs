@@ -4,25 +4,6 @@ use std::{
 };
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
-// Nonfocusable windows can still activate their owning app on mouse-down.
-// Stop that activation before AppKit switches to an open editor on another Space,
-// interrupting the artwork's mouse-up/click. Keep Tao's window class untouched.
-#[cfg(target_os = "macos")]
-fn prevent_click_activation(window: &objc2_app_kit::NSWindow) -> Result<(), String> {
-    use objc2::{msg_send, sel};
-    use objc2_foundation::NSObjectProtocol;
-
-    // AppKit's private per-window activation control, also used by nonactivating
-    // panels. Guard availability rather than sending an unsupported selector.
-    if !window.respondsToSelector(sel!(_setPreventsActivation:)) {
-        return Err("macOS does not support nonactivating desktop windows".into());
-    }
-    unsafe {
-        let _: () = msg_send![window, _setPreventsActivation: true];
-    }
-    Ok(())
-}
-
 static DESKTOP_GENERATION: AtomicU64 = AtomicU64::new(0);
 
 // AppKit screen and window geometry use the same global coordinate space in points.
@@ -197,7 +178,6 @@ pub fn rebuild(
                     .ns_window()
                     .map_err(|e| e.to_string())?
                     .cast::<NSWindow>();
-                prevent_click_activation(ns)?;
                 // Set the exact native frame before checking Space membership or
                 // showing it; AppKit coordinates also match native pointer tracking.
                 ns.setFrame_display(screens[i].frame, true);
