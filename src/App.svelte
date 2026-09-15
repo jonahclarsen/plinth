@@ -177,15 +177,15 @@
 {:else}
 
  <div class="app-shell" inert={historyBusy||spaceSaving} aria-busy={historyBusy||spaceSaving} class:dragging ondragover={(e)=>{e.preventDefault();if(!api.native)dragging=true}} ondragleave={(e)=>{if(!e.relatedTarget)dragging=false}} ondrop={(e)=>{e.preventDefault();dragging=false;if(!api.native&&e.dataTransfer)void browserFiles(Array.from(e.dataTransfer.files))}} role="presentation">
-  <div class="titlebar" role="presentation" onmousedown={(e)=>{if(api.native&&e.button===0&&e.detail===1)void getCurrentWebviewWindow().startDragging()}}></div>
-  <header>
+  <div class="titlebar" data-tauri-drag-region aria-hidden="true"></div>
+  <header data-tauri-drag-region>
    <a class="brand" href="/" onclick={(e)=>{e.preventDefault();page='collection'}}><span class="brand-mark" data-logo={settings.logo}><Logo logo={settings.logo}/></span>plinth</a>
-   <nav aria-label="Main navigation">
+   <nav aria-label="Main navigation" data-tauri-drag-region>
     {#each tabs as tab}
      <button class:active={(page==='history'?'settings':page)===tab.id} aria-current={(page==='history'?'settings':page)===tab.id?'page':undefined} title={tab.label+' (Alt+'+tab.key+')'} aria-keyshortcuts={'Alt+'+tab.key} onclick={()=>page=tab.id}><Icon name={tab.icon}/><span>{tab.label}</span><Shortcut keys={['⌥',tab.key]}/></button>
     {/each}
    </nav>
-   <div class="header-actions"><button class="desktop-toggle" onclick={()=>{settings.desktopEnabled=!settings.desktopEnabled;persist()}}>{settings.desktopEnabled?'Disable':'Enable'}</button><button class="primary add-artwork" aria-label={busy?'Importing…':'Add artwork'} aria-keyshortcuts={page==='collection'?'Meta+A Control+A':undefined} onclick={()=>choose()} disabled={busy}>{busy?'Importing…':'Add artwork'}{#if page==='collection'&&!busy}<Shortcut keys={['Cmd','A']}/>{/if}</button></div>
+   <div class="header-actions" data-tauri-drag-region><button class="desktop-toggle" onclick={()=>{settings.desktopEnabled=!settings.desktopEnabled;persist()}}>{settings.desktopEnabled?'Disable':'Enable'}</button><button class="primary add-artwork" aria-label={busy?'Importing…':'Add artwork'} aria-keyshortcuts={page==='collection'?'Meta+A Control+A':undefined} onclick={()=>choose()} disabled={busy}>{busy?'Importing…':'Add artwork'}{#if page==='collection'&&!busy}<Shortcut keys={['Cmd','A']}/>{/if}</button></div>
   </header>
   {#if error}<div class="banner error" role="alert"><span>{error}</span><button class="icon-only" aria-label="Dismiss error" onclick={()=>error=''}><Icon name="close"/></button></div>{/if}
   {#if notice}<div class="toast" role="status"><Icon name="check"/>{notice}</div>{/if}
