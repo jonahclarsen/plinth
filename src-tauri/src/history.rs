@@ -172,10 +172,17 @@ fn settings_details(before: &Settings, after: &Settings) -> Vec<String> {
     ];
     for (key, name) in names {
         if before[key] != after[key] {
+            let format = |value: &Value| {
+                if key == "hoverSpeed" {
+                    format!("{:.0} ms", (250. / value.as_f64().unwrap_or(1.)).round())
+                } else {
+                    display(value)
+                }
+            };
             details.push(format!(
                 "{name}: {} → {}",
-                display(&before[key]),
-                display(&after[key])
+                format(&before[key]),
+                format(&after[key])
             ));
         }
     }
@@ -376,6 +383,23 @@ pub fn navigate(
 mod tests {
     use super::*;
     use crate::library;
+
+    #[test]
+    fn hover_speed_details_use_milliseconds() {
+        let before = Settings::default();
+        let mut after = before.clone();
+        after.hover_speed = 0.25;
+        assert_eq!(
+            settings_details(&before, &after),
+            vec!["Hover speed: 250 ms → 1000 ms"]
+        );
+        after.hover_speed = 3.;
+        assert_eq!(
+            settings_details(&before, &after),
+            vec!["Hover speed: 250 ms → 83 ms"]
+        );
+    }
+
     struct Fixture(std::path::PathBuf);
     impl Fixture {
         fn new(name: &str) -> Self {
