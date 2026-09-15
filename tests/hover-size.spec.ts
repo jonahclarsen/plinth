@@ -45,7 +45,10 @@ test('hover-size sample works with hover disabled and an empty library is harmle
 test('hover speed is saved in history and corners animate with scale',async({page})=>{
  await page.goto('/?demo=1');await page.getByRole('button',{name:'Appearance',exact:true}).click()
  const speed=page.getByRole('slider',{name:'Hover speed',exact:true})
- await speed.fill('0.25')
+ await expect(speed).toHaveValue('250')
+ await expect(speed).toHaveAttribute('aria-valuetext','250 milliseconds')
+ await speed.fill('1000')
+ await expect(speed.locator('..').locator('output')).toHaveText('1000 ms')
  await page.getByRole('slider',{name:'Rounded corners',exact:true}).fill('20')
  await page.mouse.move(0,0)
  await page.waitForTimeout(1100)
@@ -62,7 +65,7 @@ test('hover speed is saved in history and corners animate with scale',async({pag
  expect(returning).toBeGreaterThan(3);expect(returning).toBeLessThan(17)
  await page.clock.runFor(600);await expect(cover).toHaveCSS('border-radius','20px')
  await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'History',exact:true}).click()
- await expect(page.locator('.history-list')).toContainText('Hover speed: 1 → 0.25')
+ await expect(page.locator('.history-list')).toContainText('Hover speed: 250 ms → 1000 ms')
 })
 
 
