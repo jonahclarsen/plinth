@@ -25,7 +25,7 @@
 - Clicking a modal backdrop closes the modal; interacting inside it does not, except the artwork gallery, which closes on any click including the image.
 - A missing album in Apple Music shows a native macOS alert, without a duplicate in-app notification.
 - Artwork import accepts image files only. Do not add folder-import controls or directory traversal.
-- Reuse the desktop renderer in the scaled screen preview. Keep jQuery swing hover timing consistent in both places: 250 ms / 251 ms at 1×, divided by Hover speed. Animate rounded corners with scale.
+- Reuse the desktop renderer in the scaled screen preview. Keep jQuery swing hover timing consistent in both places: 250 ms / 251 ms divided by the stored `hoverSpeed` multiplier. Display Hover speed as milliseconds (`250 / hoverSpeed`, rounded), preserving the saved multiplier for compatibility. Animate rounded corners with scale.
 - Album editor uses original artwork with Finder reveal and upload controls; the collection and desktop use compressed copies.
 - Keep the whole top strip draggable and free of status copy.
 - Show a Dock icon while the main window is visible; hide it when the window closes. Command-W keeps the desktop running. Command-Q opens a Cancel / Hide window / Quit Plinth modal, with Hide window in the middle. Focus the heading initially, not an action; use no default button or purple focus outline.
