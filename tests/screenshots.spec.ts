@@ -15,6 +15,7 @@ test('README screenshots use only synthetic demo artwork',async({page})=>{
  await page.getByRole('button',{name:/4K monitor/}).click()
  await page.evaluate(()=>{Math.random=()=>.5})
  const hoverSlider=page.getByRole('slider',{name:'Hover size',exact:true})
+ await hoverSlider.scrollIntoViewIfNeeded()
  const hoverBounds=(await hoverSlider.boundingBox())!
  await page.mouse.move(hoverBounds.x+hoverBounds.width*.55,hoverBounds.y+hoverBounds.height/2)
  await page.mouse.down()
