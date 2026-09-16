@@ -4,6 +4,7 @@
 - Always make changes in a separate Git worktree. When finished and verified, merge them into main and push main. Then remove your worktree.
 - Whenever changing the UI, update the README screenshot with a freshly rendered WebP. Use synthetic demo artwork and metadata only.
 - Prefer pnpm over npm.
+- Do not run native GUI probes, switch Spaces, or open/activate apps unless explicitly requested. Compile native examples and use headless checks by default.
 - Keep albums, imported images, local library databases, personal paths, credentials, and build artifacts out of Git. Runtime data belongs in the OS app-data directory.
 - Preserve third-party license notices. Use SVGs for button icons.
 
@@ -13,7 +14,7 @@
 
 - macOS development uses `scripts/macos-tauri-cargo.sh` and `run-macos-dev-app.sh` to run from a generated `PlinthDev.app` with its icon. Keep the Cargo executable as a physical hard link, not a symlink.
 
-- The desktop is a transparent Tauri window at the macOS desktop-icon level plus one. Native pointer tracking checks the topmost window; avoid changing focus to implement hover. Desktop windows must be nonfocusable and appear via `orderFrontRegardless` on macOS; Tauri `show()` makes a window key. Verify enable/disable focus with the isolated `desktop-focus` example.
+- The desktop is a transparent Tauri window at the macOS desktop-icon level plus one. Native pointer tracking checks the topmost window; avoid changing focus to implement hover. Desktop windows must be nonfocusable and nonactivating (these are separate AppKit behaviors), and appear via `orderFrontRegardless` on macOS; Tauri `show()` makes a window key. Verify enable/disable focus with the isolated `desktop-focus` example.
 - Production has no HTTP server. Native imports and metadata live under the `com.plinth.desktop` OS data directory. Never point test imports at the real library.
 - Browser demo mode (`?demo=1`) uses generated SVG artwork and fictional records. Keep README captures in this mode.
 - Load sharp with `createRequire` in Playwright tests; Node 24.2 has an ESM/semver loader issue with direct imports under Playwright.
