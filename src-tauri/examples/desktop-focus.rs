@@ -58,11 +58,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         editor_ns.isKeyWindow(),
         "probe must start with a key editor window"
     );
-    let editor_nonactivating: bool = unsafe { objc2::msg_send![editor_ns, _isNonactivatingPanel] };
-    assert!(
-        !editor_nonactivating,
-        "editor must retain normal activation"
-    );
     let focus = || {
         workspace
             .frontmostApplication()
@@ -98,9 +93,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for (label, window) in app.webview_windows() {
                 if label.starts_with("desktop-") {
                     let ns = unsafe { &*window.ns_window()?.cast::<NSWindow>() };
-                    let nonactivating: bool =
-                        unsafe { objc2::msg_send![ns, _isNonactivatingPanel] };
-                    assert!(nonactivating, "desktop clicks must not activate the app");
                     assert!(!ns.canBecomeKeyWindow());
                     assert!(!ns.canBecomeMainWindow());
                     assert!(ns.isVisible());

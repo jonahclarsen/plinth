@@ -4,62 +4,21 @@ use std::{
 };
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
-/// A nonfocusable NSWindow still activates its app when clicked. AppKit must
-/// also treat the desktop as nonactivating, otherwise it raises the editor (and
-/// switches Spaces) while the artwork's command is opening Music.
-/// Use the same NSWindow hook as Chromium's activation-independent windows:
-/// https://chromium.googlesource.com/chromium/src/+/refs/tags/137.0.7151.125/components/remote_cocoa/app_shim/native_widget_mac_nswindow.mm
+// Nonfocusable windows can still activate their owning app on mouse-down.
+// Stop that activation before AppKit switches to an open editor on another Space,
+// interrupting the artwork's mouse-up/click. Keep Tao's window class untouched.
 #[cfg(target_os = "macos")]
-fn make_nonactivating(window: &objc2_app_kit::NSWindow) -> Result<(), String> {
-    use objc2::{
-        msg_send,
-        runtime::{AnyClass, AnyObject, Bool, ClassBuilder, Sel},
-        sel, ClassType,
-    };
-    use objc2_app_kit::{NSEvent, NSWindow};
+fn prevent_click_activation(window: &objc2_app_kit::NSWindow) -> Result<(), String> {
+    use objc2::{msg_send, sel};
     use objc2_foundation::NSObjectProtocol;
-    use std::sync::OnceLock;
 
-    static CLASS: OnceLock<&'static AnyClass> = OnceLock::new();
-    extern "C-unwind" fn is_nonactivating(_: &AnyObject, _: Sel) -> Bool {
-        Bool::YES
-    }
-    extern "C-unwind" fn send_event(window: &AnyObject, _: Sel, event: &NSEvent) {
-        // Tao's sendEvent: looks up the receiver's dynamic superclass, which
-        // recurses if a subclass inherits it. These stationary desktop windows
-        // need no Tao background-drag handling; preserve AppKit event delivery.
-        unsafe {
-            let _: () = msg_send![super(window, NSWindow::class()), sendEvent: event];
-        }
-    }
-    if !window.respondsToSelector(sel!(_isNonactivatingPanel)) {
+    // AppKit's private per-window activation control, also used by nonactivating
+    // panels. Guard availability rather than sending an unsupported selector.
+    if !window.respondsToSelector(sel!(_setPreventsActivation:)) {
         return Err("macOS does not support nonactivating desktop windows".into());
     }
-    let original = window.class();
-    let class = CLASS.get_or_init(|| {
-        let mut class = ClassBuilder::new(c"PlinthDesktopWindow", original)
-            .expect("desktop window class is registered once");
-        // SAFETY: signatures match AppKit. No ivars are added, so Tao's storage,
-        // delegate, and destruction behavior remain intact.
-        unsafe {
-            class.add_method(
-                sel!(_isNonactivatingPanel),
-                is_nonactivating as extern "C-unwind" fn(_, _) -> _,
-            );
-            class.add_method(
-                sel!(sendEvent:),
-                send_event as extern "C-unwind" fn(_, _, _),
-            );
-        }
-        class.register()
-    });
-    if original != *class && class.superclass() != Some(original) {
-        return Err("Unexpected desktop window class".into());
-    }
-    // SAFETY: this subclass has exactly the original instance layout and adds
-    // no ownership requirements. Only desktop instances receive the subclass.
     unsafe {
-        AnyObject::set_class(window, class);
+        let _: () = msg_send![window, _setPreventsActivation: true];
     }
     Ok(())
 }
@@ -238,7 +197,7 @@ pub fn rebuild(
                     .ns_window()
                     .map_err(|e| e.to_string())?
                     .cast::<NSWindow>();
-                make_nonactivating(ns)?;
+                prevent_click_activation(ns)?;
                 // Set the exact native frame before checking Space membership or
                 // showing it; AppKit coordinates also match native pointer tracking.
                 ns.setFrame_display(screens[i].frame, true);
