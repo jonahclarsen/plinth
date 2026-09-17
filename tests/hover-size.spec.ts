@@ -15,6 +15,17 @@ test('holding Hover size previews one album, follows dragging, and ends on relea
  await page.mouse.move(5,5);await page.mouse.up()
  await expect(page.locator('.preview-render .desktop-cover.enlarged')).toHaveCount(0)
 })
+test('hover sliders retain native pointer dragging',async({page})=>{
+ await page.goto('/?demo=1');await page.getByRole('button',{name:'Appearance',exact:true}).click()
+ for(const name of ['Hover size','Hover speed']){
+  const slider=page.getByRole('slider',{name,exact:true})
+  await slider.scrollIntoViewIfNeeded()
+  const r=(await slider.boundingBox())!
+  await page.mouse.move(r.x+r.width*.25,r.y+r.height/2);await page.mouse.down()
+  await page.mouse.move(r.x+r.width*.75,r.y+r.height/2,{steps:5});await page.mouse.up()
+  expect(Number(await slider.inputValue())).toBeGreaterThan(Number(await slider.getAttribute('min'))+(Number(await slider.getAttribute('max'))-Number(await slider.getAttribute('min')))*.6)
+ }
+})
 test('right-click does not preview; cancellation and blur clear the sample',async({page})=>{
  await page.goto('/?demo=1');await page.getByRole('button',{name:'Appearance',exact:true}).click()
  const slider=page.getByRole('slider',{name:'Hover size',exact:true})
