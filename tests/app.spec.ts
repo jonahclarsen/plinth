@@ -34,6 +34,7 @@ test('imports image, deduplicates, and reports invalid files',async({page})=>{
 })
 test('desktop cover enlarges and returns to normal',async({page})=>{
  await page.goto('/?demo=1&desktop=1');const cover=page.locator('.desktop-cover').first();await cover.hover();await expect(cover).toHaveClass(/enlarged/)
+ await expect(cover).toHaveCSS('cursor','pointer')
  await page.mouse.move(5,800);await expect(cover).not.toHaveClass(/enlarged/)
 })
 
