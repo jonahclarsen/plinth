@@ -79,6 +79,7 @@ Requires macOS 13+, Xcode Command Line Tools, Rust, Node 22.12+ (or a compatible
 ```sh
 pnpm install --frozen-lockfile
 pnpm dev           # Native Tauri app with Vite
+pnpm dev:daemon    # Install/start the always-on live development app
 pnpm dev:web       # Browser UI, without native integration
 pnpm check
 pnpm test:native
@@ -87,6 +88,10 @@ pnpm build:app     # Produces src-tauri/target/release/bundle/macos/Plinth.app
 ```
 
 The permanent development port is **23983**, selected once with a cryptographically secure random generator and recorded in `port.json`. There is no production server port. Browser mode starts with an empty, temporary library. `?demo=1` enables fictional sample records; browser changes last only for that session.
+
+`pnpm dev:daemon` builds a debug `Plinth.app` in `~/Applications`, registers it as a per-user LaunchAgent, and keeps `pnpm tauri dev` running across logins and unexpected exits. Frontend changes hot-reload, while Rust changes rebuild and restart the executable inside the installed app container. Logs are written to `~/Library/Logs/Plinth`. Re-run the installer only after moving the repository or changing the daemon scripts. Stop it and move its installed files to the Trash with `pnpm dev:daemon:stop`.
+
+Daemon builds use a Developer ID Application certificate from the login keychain so macOS sees each rebuild as the same app. The first install saves the chosen certificate fingerprint in `~/Library/Application Support/Plinth/dev-signing-identity`. If more than one certificate is available, run the installer with `PLINTH_SIGNING_IDENTITY` set to the desired SHA-1 fingerprint from `security find-identity -v -p codesigning`.
 
 Appearance performance measurements for 150 visible albums in the development build, including rejected experiments and every test result, are recorded in [the preview performance report](experiments/preview/results/README.md).
 

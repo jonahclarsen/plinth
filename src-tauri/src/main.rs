@@ -452,6 +452,21 @@ fn quit_app(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<(), S
 }
 
 fn main() {
+    if std::env::var_os("PLINTH_DEV_SUPERVISOR").is_some() {
+        let repository = std::env::var("PLINTH_REPO")
+            .expect("PLINTH_REPO is required in development supervisor mode");
+        let pnpm = std::env::var("PLINTH_PNPM")
+            .expect("PLINTH_PNPM is required in development supervisor mode");
+        let runner = format!("{repository}/scripts/daemon-dev-app-runner.sh");
+        let status = Command::new(pnpm)
+            .args(["tauri", "dev", "--runner", &runner])
+            .current_dir(repository)
+            .env_remove("PLINTH_DEV_SUPERVISOR")
+            .status()
+            .expect("failed to start the Plinth development watcher");
+        std::process::exit(status.code().unwrap_or(1));
+    }
+
     let dir = library::data_dir();
     let args: Vec<String> = std::env::args().collect();
     if args.get(1).map(String::as_str) == Some("--import") {
