@@ -43,6 +43,9 @@ fn broadcast(app: &tauri::AppHandle, library: &Library) {
     });
     let _ = app.emit("library-changed", library);
 }
+fn update_finder_icon() -> bool {
+    std::env::var_os("PLINTH_DEV_DAEMON").is_none()
+}
 #[tauri::command]
 fn get_displays(
     window: tauri::WebviewWindow,
@@ -105,7 +108,7 @@ fn apply_settings_effects(
     if logo_changed {
         let a = app.clone();
         app.run_on_main_thread(move || {
-            if let Err(e) = branding::apply(&a, logo, true) {
+            if let Err(e) = branding::apply(&a, logo, update_finder_icon()) {
                 let _ = a.emit("app-error", e);
             }
         })
@@ -608,7 +611,7 @@ fn main() {
                 eprintln!("{error}");
             }
             desktop::start_pointer_tracking(app.handle().clone());
-            if let Err(e) = branding::apply(app.handle(), logo, true) {
+            if let Err(e) = branding::apply(app.handle(), logo, update_finder_icon()) {
                 eprintln!("{e}");
             }
             let handle = app.handle().clone();

@@ -16,6 +16,8 @@
   <dict>
     <key>PLINTH_DEV_SUPERVISOR</key>
     <string>1</string>
+    <key>PLINTH_DEV_DAEMON</key>
+    <string>1</string>
     <key>PLINTH_REPO</key>
     <string>__REPO__</string>
     <key>PLINTH_PNPM</key>
