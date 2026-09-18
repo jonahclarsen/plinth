@@ -6,6 +6,8 @@
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "tauri dev",
+    "dev:daemon": "./scripts/install-launch-agent.sh",
+    "dev:daemon:stop": "./scripts/uninstall-launch-agent.sh",
     "dev:web": "vite --host 127.0.0.1",
     "build": "vite build",
     "build:app": "tauri build --bundles app",
