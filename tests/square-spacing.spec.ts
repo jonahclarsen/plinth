@@ -27,6 +27,7 @@ test('horizontal and manual row spacing are independent and cells remain square'
  for(const profile of [/Mac display/,/4K monitor/]){
   await page.getByRole('button',{name:profile}).click()
   await page.getByRole('slider',{name:'Columns',exact:true}).fill('6')
+  await page.getByRole('checkbox',{name:'Automatic row spacing',exact:true}).uncheck()
   for(const rowGap of ['0','27','80']){
    await page.getByRole('slider',{name:'Space between rows',exact:true}).fill(rowGap)
    for(const gap of ['0','6','40']){
