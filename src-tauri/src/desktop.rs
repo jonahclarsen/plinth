@@ -4,6 +4,35 @@ use std::{
 };
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
+#[cfg(target_os = "macos")]
+#[path = "desktop/cursor.rs"]
+mod cursor;
+
+#[tauri::command]
+pub fn set_desktop_cursor(
+    window: tauri::WebviewWindow,
+    x: f64,
+    y: f64,
+    pointing: bool,
+) -> Result<(), String> {
+    if !window.label().starts_with("desktop-") {
+        return Err("Only desktop windows can set the desktop cursor".into());
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let app = window.app_handle().clone();
+        app.run_on_main_thread(move || {
+            if let Err(error) = cursor::update(&window, x, y, pointing) {
+                eprintln!("Could not update desktop cursor: {error}");
+            }
+        })
+        .map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = (x, y, pointing);
+    Ok(())
+}
+
 // Nonfocusable windows can still activate their owning app on mouse-down.
 // Stop that activation before AppKit switches to an open editor on another Space,
 // interrupting the artwork's mouse-up/click. Keep Tao's window class untouched.
@@ -118,6 +147,7 @@ pub fn rebuild(
     if !enabled {
         #[cfg(target_os = "macos")]
         {
+            cursor::release_if_not_over(None);
             *PLACEMENT.lock().map_err(|e| e.to_string())? = None;
         }
         for window in previous {
@@ -269,6 +299,8 @@ pub fn rebuild(
         });
     }
     // Keep the previous windows until every replacement has been placed successfully.
+    #[cfg(target_os = "macos")]
+    cursor::release_if_not_over(None);
     for window in previous {
         window.destroy().map_err(|e| e.to_string())?;
     }
@@ -316,6 +348,7 @@ pub fn start_pointer_tracking(app: AppHandle) {
                     let point = NSEvent::mouseLocation();
                     let top =
                         NSWindow::windowNumberAtPoint_belowWindowWithWindowNumber(point, 0, mtm);
+                    cursor::release_if_not_over(Some(top));
                     let foreground_allowed = NSWorkspace::sharedWorkspace()
                         .frontmostApplication()
                         .is_some_and(|front| {
@@ -327,7 +360,8 @@ pub fn start_pointer_tracking(app: AppHandle) {
                     // Include focus so a stationary pointer responds to app switches.
                     let sample = (point.x, point.y, top, foreground_allowed);
                     if let Ok(mut last) = previous.lock() {
-                        if *last == Some(sample) {
+                        // Resample stationary pointers after layout/animation changes too.
+                        if *last == Some(sample) && !refresh {
                             return;
                         }
                         *last = Some(sample);
