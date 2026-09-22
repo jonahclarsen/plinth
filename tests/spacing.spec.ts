@@ -20,23 +20,27 @@ test('automatic row spacing balances the menu-bar and screen-bottom gaps',()=>{
 
 test('preview shares balanced spacing and manual spacing can be undone or reset',async({page})=>{
  await page.goto('/?demo=1');await page.getByRole('button',{name:'Appearance',exact:true}).click()
- const auto=page.getByRole('button',{name:'Automatic row spacing',exact:true})
+ const auto=page.getByRole('checkbox',{name:'Automatic row spacing',exact:true})
  const assertBalanced=async(screenWidth:number)=>{
   const surface=(await page.locator('.screen-preview').boundingBox())!
   const cells=await page.locator('.preview-render .desktop-cell').evaluateAll(cells=>cells.map(cell=>{const r=cell.getBoundingClientRect();return {top:r.top,bottom:r.bottom}}))
   const scale=surface.width/screenWidth
   expect(Math.min(...cells.map(cell=>cell.top))-surface.y-24*scale).toBeCloseTo(surface.y+surface.height-Math.max(...cells.map(cell=>cell.bottom)),0)
  }
- await expect(auto).toHaveAttribute('aria-pressed','true');await assertBalanced(1280)
- await page.getByRole('slider',{name:'Space between rows',exact:true}).fill('27')
- await expect(auto).toHaveAttribute('aria-pressed','false')
+ await expect(auto).toBeChecked();await assertBalanced(1280)
+ const slider=page.getByRole('slider',{name:'Space between rows',exact:true})
+ await expect(slider).toBeDisabled()
+ await auto.uncheck();await expect(slider).toBeEnabled()
+ await slider.fill('27')
+ await expect(auto).not.toBeChecked()
  await expect(page.locator('.desktop-grid')).toHaveCSS('--row-gap','27px')
- await page.keyboard.press('Meta+z');await expect(auto).toHaveAttribute('aria-pressed','true');await assertBalanced(1280)
- await page.keyboard.press('Meta+Shift+z');await expect(auto).toHaveAttribute('aria-pressed','false')
+ await page.keyboard.press('Meta+z');await expect(auto).toBeChecked();await expect(slider).toBeDisabled();await assertBalanced(1280)
+ await page.keyboard.press('Meta+Shift+z');await expect(auto).not.toBeChecked()
  await auto.click();await assertBalanced(1280)
  await page.getByRole('button',{name:/4K monitor/}).click();await assertBalanced(1920)
- await page.getByRole('slider',{name:'Space between rows',exact:true}).fill('12')
- await page.getByRole('button',{name:'Reset',exact:true}).click();await expect(auto).toHaveAttribute('aria-pressed','true')
+ await expect(slider).toBeDisabled();await auto.uncheck()
+ await slider.fill('12')
+ await page.getByRole('button',{name:'Reset',exact:true}).click();await expect(auto).toBeChecked()
 })
 
 test('opacity and surrounding-cover dimming controls and effects are absent',async({page})=>{
