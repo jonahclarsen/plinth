@@ -39,6 +39,12 @@
   return()=>{observer.disconnect();window.removeEventListener('scroll',invalidateBounds,true)}
  })
  function hoverAt(x:number,y:number,visible:boolean) {
+  if(native&&!preview&&visible) {
+   // WKWebView ignores CSS cursor updates in our nonactivating desktop windows.
+   // Hit-test the actual painted button, including its animated enlargement.
+   const pointing=!!document.elementFromPoint(x,y)?.closest('button.desktop-cover')
+   void invoke('set_desktop_cursor',{x,y,pointing}).catch(error=>console.error('Desktop cursor:',error))
+  }
   if(!visible || !settings.hoverEnabled) {hovered='';return}
   // Use the unscaled grid cells so enlarged artwork does not shift the hit target.
   bounds??=Array.from(grid?.querySelectorAll<HTMLElement>('.desktop-cell')??[],el=>({id:el.dataset.id??'',rect:el.getBoundingClientRect()}))

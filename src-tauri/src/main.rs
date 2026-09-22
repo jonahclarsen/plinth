@@ -509,6 +509,7 @@ fn main() {
             library: Mutex::new(lib),
         })
         .invoke_handler(tauri::generate_handler![
+            desktop::set_desktop_cursor,
             hide_window,
             quit_app,
             replace_artwork,
