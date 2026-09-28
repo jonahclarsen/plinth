@@ -1,7 +1,7 @@
 name: Build and release
 on:
   push:
-    branches: [main, ci/release]
+    branches: [main]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 60
     env:
       RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
-      SIGN: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/ci/release' || inputs.notarize == true }}
+      SIGN: ${{ startsWith(github.ref, 'refs/tags/v') || inputs.notarize == true }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
