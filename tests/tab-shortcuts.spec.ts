@@ -19,10 +19,11 @@ test('tab shortcuts use physical letters and respect text fields, modifiers and 
  for(const shortcut of ['Alt+Shift+KeyA','Control+Alt+KeyA','Meta+Alt+KeyA']){
   await page.keyboard.press(shortcut);await active('Collection')
  }
- await page.getByRole('button',{name:'View Soft Focus artwork',exact:true}).click()
+ await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
+ await page.getByRole('button',{name:'View original artwork',exact:true}).click()
  await page.keyboard.press('Alt+KeyA');await active('Collection')
  await expect(page.locator('.artwork-gallery')).toBeVisible()
- await page.keyboard.press('Escape')
+ await page.keyboard.press('Escape');await page.keyboard.press('Escape')
  await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
  await page.getByRole('button',{name:'Close album editor'}).focus()
  await page.keyboard.press('Alt+KeyH');await active('Collection')

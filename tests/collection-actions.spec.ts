@@ -2,30 +2,28 @@ import { test, expect } from '@playwright/test'
 import { defaultSettings } from '../src/lib/types'
 import { demoAlbums } from '../src/lib/demo'
 
-test('collection captions and their padding edit while View opens only the gallery',async({page})=>{
+test('clicking anywhere on a collection card opens the editor without a hover overlay',async({page})=>{
  await page.goto('/?demo=1')
  const card=page.locator('.album-card').filter({has:page.getByRole('button',{name:'Edit Soft Focus',exact:true})})
- await expect(card.getByRole('button')).toHaveCount(2)
+ await expect(card.getByRole('button')).toHaveCount(1)
  await expect(card.locator('.album-edit')).toHaveCSS('cursor','pointer')
+ await card.hover()
+ await expect(card.locator('.artwork')).toHaveText('')
+ await expect.poll(()=>card.locator('.artwork').evaluate(el=>getComputedStyle(el,'::after').content)).toBe('none')
+ await card.locator('.artwork').click()
+ await expect(page.locator('.album-dialog')).toBeVisible()
+ await expect(page.locator('.artwork-gallery')).not.toBeVisible()
+ await page.keyboard.press('Escape')
  await card.locator('.album-title').click()
  await expect(page.locator('.album-dialog')).toBeVisible()
  await page.keyboard.press('Escape')
  const caption=(await card.locator('.album-caption').boundingBox())!
  await page.mouse.click(caption.x+caption.width-3,caption.y+caption.height-3)
  await expect(page.getByLabel('Album title')).toHaveValue('Soft Focus')
- await page.keyboard.press('Escape')
- await card.hover();await expect(card.locator('.artwork-edit')).toHaveText('Edit')
- await card.getByRole('button',{name:'View Soft Focus artwork',exact:true}).click()
+ await page.getByRole('button',{name:'View original artwork',exact:true}).click()
  await expect(page.getByRole('dialog',{name:'Original artwork',exact:true})).toBeVisible()
- await expect(page.locator('.album-dialog')).not.toBeVisible()
- await page.keyboard.press('Enter')
- await expect(page.locator('.artwork-gallery')).toBeVisible()
  await page.locator('.artwork-gallery img').click()
  await expect(page.locator('.artwork-gallery')).not.toBeVisible()
- await expect(page.locator('.album-dialog')).not.toBeVisible()
- await expect(card.getByRole('button',{name:'View Soft Focus artwork',exact:true})).toBeFocused()
- await card.locator('.artwork-edit').click()
- await expect(page.locator('.album-dialog')).toBeVisible()
 })
 
 test('Command-A adds artwork from Collection and keeps Select All in text fields',async({page})=>{
@@ -48,9 +46,10 @@ test('Command-A adds artwork from Collection and keeps Select All in text fields
  await expect.poll(()=>title.evaluate((input:HTMLInputElement)=>input.selectionEnd!-input.selectionStart!)).toBe(10)
  expect(pickers).toBe(1)
  await page.keyboard.press('Escape')
- await page.getByRole('button',{name:'View Soft Focus artwork',exact:true}).click()
+ await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
+ await page.getByRole('button',{name:'View original artwork',exact:true}).click()
  await page.keyboard.press('Meta+a');expect(pickers).toBe(1)
- await page.keyboard.press('Escape')
+ await page.keyboard.press('Escape');await page.keyboard.press('Escape')
  await page.getByRole('button',{name:'Settings',exact:true}).click()
  await page.keyboard.press('Meta+a');expect(pickers).toBe(1)
 })
