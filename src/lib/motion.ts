@@ -1,9 +1,14 @@
 // Keep jQuery swing easing; 1× uses the original 250/251 ms timing.
+// Once enlarged, the cover breathes slowly around its hover size.
 // Enlarge by growing the absolutely positioned box, not scale(): WebKit can upscale an
 // already rasterized or subsampled cover, which turns sharp artwork soft after hovering.
+const breathPeriod=5000,breathDepth=.06 // Share of the enlargement, e.g. 2.1× ± 0.066.
+const scales=new WeakMap<Element,number>()
+// The painted scale of a cover, including breathing; 1 at rest.
+export function scaleOf(node:Element|null){return node&&scales.get(node)||1}
 export function swingScale(node: HTMLElement, options: {active:boolean;factor:number;speed:number;radius:number;roundedOnHover:boolean}) {
  let scale=1,radius=options.radius,frame=0,target=1,targetRadius=radius,speed=options.speed
- function paint(){const size=`${scale*100}%`,offset=`${(1-scale)*50}%`;Object.assign(node.style,{left:offset,top:offset,width:size,height:size,borderRadius:`${radius}px`})}
+ function paint(){const size=`${scale*100}%`,offset=`${(1-scale)*50}%`;Object.assign(node.style,{left:offset,top:offset,width:size,height:size,borderRadius:`${radius}px`});scales.set(node,scale)}
  paint()
  function update(next:typeof options) {
   const end=next.active?next.factor:1,endRadius=next.active&&!next.roundedOnHover?0:next.radius
@@ -11,7 +16,10 @@ export function swingScale(node: HTMLElement, options: {active:boolean;factor:nu
   target=end;targetRadius=endRadius;speed=next.speed;cancelAnimationFrame(frame)
   const start=scale,startRadius=radius,started=performance.now(),duration=(next.active?250:251)/next.speed
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){scale=end;radius=endRadius;paint();return}
-  function tick(now:number){const p=Math.min(1,(now-started)/duration),eased=.5-Math.cos(Math.PI*p)/2;scale=start+(end-start)*eased;radius=startRadius+(endRadius-startRadius)*eased;paint();if(p<1)frame=requestAnimationFrame(tick)}
+  function tick(now:number){const p=Math.min(1,(now-started)/duration),eased=.5-Math.cos(Math.PI*p)/2;scale=start+(end-start)*eased;radius=startRadius+(endRadius-startRadius)*eased;paint();if(p<1)frame=requestAnimationFrame(tick);else if(end>1){since=now;frame=requestAnimationFrame(breathe)}}
+  // Starts at the swing's end value, so the swing hands over without a jump.
+  function breathe(now:number){scale=end+(end-1)*breathDepth*Math.sin(2*Math.PI*(now-since)/breathPeriod);paint();frame=requestAnimationFrame(breathe)}
+  let since=0
   frame=requestAnimationFrame(tick)
  }
  update(options)

@@ -11,7 +11,7 @@ test('holding Hover size previews one album, follows dragging, and ends on relea
  await page.mouse.move(r.x+r.width*.9,r.y+r.height/2,{steps:5})
  await expect(sample).toHaveAttribute('aria-label',name!)
  const value=Number(await slider.inputValue())
- await expect.poll(()=>sample.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width)).toBeCloseTo(value,1)
+ await expect.poll(()=>sample.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width).then(ratio=>Math.abs(ratio-value))).toBeLessThanOrEqual((value-1)*.061+.01)
  await page.mouse.move(5,5);await page.mouse.up()
  await expect(page.locator('.preview-render .desktop-cover.enlarged')).toHaveCount(0)
 })
@@ -128,7 +128,8 @@ test('hovering pushes nearby artwork away, less with distance, and the toggle re
  const [left,right,farther,below,far]=await Promise.all([2,4,5,9,17].map(offset))
  expect(left.x).toBeLessThan(-5);expect(right.x).toBeGreaterThan(farther.x);expect(farther.x).toBeGreaterThan(0)
  expect(below.y).toBeGreaterThan(5);expect(far).toEqual({x:0,y:0})
- expect(await offset(3)).toEqual({x:0,y:0})
+ // Hovered at its center, the enlarged cover does not drift.
+ const self=await offset(3);expect(Math.abs(self.x)).toBeLessThan(.5);expect(Math.abs(self.y)).toBeLessThan(.5)
  await page.mouse.move(0,0)
  await expect.poll(()=>cells.nth(4).evaluate(el=>el.style.transform+el.style.willChange)).toBe('')
  const toggle=page.getByRole('checkbox',{name:'Push nearby artwork',exact:true})
@@ -163,6 +164,27 @@ test('desktop hit areas meet across gaps so one album is always enlarged, and en
  await page.mouse.move(1510,980);await expect(enlarged).toHaveCount(0)
  await page.mouse.move((b.left+b.right)/2,(b.top+b.bottom)/2)
  const cover=cells.nth(1).locator('.desktop-cover')
- await expect.poll(()=>cover.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width)).toBeCloseTo(2.1,2)
+ await expect.poll(()=>cover.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width).then(ratio=>Math.abs(ratio-2.1))).toBeLessThanOrEqual(1.1*.061)
  await expect(cover).toHaveCSS('transform','none')
+})
+
+test('the enlarged cover drifts slightly away from the pointer and breathes, pushing neighbors with its size',async({page})=>{
+ await page.setViewportSize({width:1512,height:982})
+ await page.clock.install()
+ await page.goto('/?desktop=1&demo=1')
+ const cells=page.locator('.desktop-cell');await expect(cells).toHaveCount(18)
+ const offset=(i:number)=>cells.nth(i).evaluate(el=>{const m=new DOMMatrix(getComputedStyle(el).transform);return {x:m.m41,y:m.m42}})
+ const ratio=()=>cells.nth(1).locator('.desktop-cover').evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width)
+ const r=(await cells.nth(1).boundingBox())!
+ await page.mouse.move(r.x+r.width*.9,r.y+r.height*.9);await page.clock.runFor(1000)
+ // 40% of half a cover, times the 12% drift share: toward the top left, and only a little.
+ const drifted=await offset(1)
+ for(const v of [drifted.x,drifted.y]){expect(v).toBeLessThan(-r.width*.03);expect(v).toBeGreaterThan(-r.width*.07)}
+ await page.mouse.move(r.x+r.width/2,r.y+r.height/2);await page.clock.runFor(1000)
+ const centered=await offset(1);expect(Math.abs(centered.x)).toBeLessThan(.5);expect(Math.abs(centered.y)).toBeLessThan(.5)
+ const samples:{size:number;push:number}[]=[]
+ for(let i=0;i<8;i++){await page.clock.runFor(625);samples.push({size:await ratio(),push:(await offset(2)).x})}
+ const sizes=samples.map(s=>s.size),largest=samples[sizes.indexOf(Math.max(...sizes))],smallest=samples[sizes.indexOf(Math.min(...sizes))]
+ expect(largest.size-smallest.size).toBeGreaterThan(.1);expect(largest.size-smallest.size).toBeLessThan(.14)
+ expect(largest.push).toBeGreaterThan(smallest.push+.5)
 })
