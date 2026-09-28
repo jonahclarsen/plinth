@@ -46,16 +46,33 @@
   return()=>{observer.disconnect();window.removeEventListener('scroll',invalidateBounds,true);push.destroy()}
  })
  function hoverAt(x:number,y:number,visible:boolean) {
+  const id=albumAt(x,y)
   if(native&&!preview&&visible) {
    // WKWebView ignores CSS cursor updates in our nonactivating desktop windows.
-   // Hit-test the actual painted button, including its animated enlargement.
-   const pointing=!!document.elementFromPoint(x,y)?.closest('button.desktop-cover')
+   // Point over any album's hit area, or the painted overhang of an enlarged cover.
+   const pointing=!!id||!!document.elementFromPoint(x,y)?.closest('button.desktop-cover')
    void invoke('set_desktop_cursor',{x,y,pointing}).catch(error=>console.error('Desktop cursor:',error))
   }
   if(!visible || !settings.hoverEnabled) {hovered='';return}
   // Use the unscaled grid cells so enlarged artwork does not shift the hit target.
-  hovered='';pointer={x,y}
-  for(const {id,rect:r} of cells()) {if(x>=r.left&&x<r.right&&y>=r.top&&y<r.bottom){hovered=id;break}}
+  hovered=id;pointer={x,y}
+ }
+ // Inside the artwork's extent every point belongs to the nearest resting cover, so hit
+ // areas meet halfway across each gap and leave no dead zone between albums.
+ function albumAt(x:number,y:number) {
+  let left=Infinity,top=Infinity,right=-Infinity,bottom=-Infinity,nearest='',best=Infinity
+  for(const {id,rect:r} of cells()) {
+   left=Math.min(left,r.left);top=Math.min(top,r.top);right=Math.max(right,r.right);bottom=Math.max(bottom,r.bottom)
+   const d=(x-r.left-r.width/2)**2+(y-r.top-r.height/2)**2
+   if(d<best){best=d;nearest=id}
+  }
+  return x>=left&&x<right&&y>=top&&y<bottom?nearest:''
+ }
+ function clicked(e:MouseEvent) {
+  const target=(e.target as HTMLElement).closest<HTMLElement>('button.desktop-cover')
+  // Keyboard activation has no pointer position; use the focused cover.
+  const id=e.detail===0?target?.parentElement?.dataset.id:albumAt(e.clientX,e.clientY)||target?.parentElement?.dataset.id
+  if(id)void open(id)
  }
  export function startHoverPreview() {
   if(!preview||!grid)return
@@ -73,14 +90,14 @@
  onMount(()=>{if(native&&!preview)void invoke<DetectedDisplay[]>('get_displays').then(displays=>{const current=displays.find(display=>display.current);detectedMenuBarHeight=current?.menuBarHeight??0;if(current)displayProfile=current.builtIn?'layout':'wideLayout'}).catch(()=>{});let dispose=()=>{};let alive=true;if(native&&!preview) getCurrentWebviewWindow().listen<{x:number;y:number;visible:boolean;foregroundAllowed:boolean}>('desktop-pointer',e=>{foregroundAllowed=e.payload.foregroundAllowed;hoverAt(e.payload.x,e.payload.y,e.payload.visible)}).then(fn=>{if(alive)dispose=fn;else fn()});return ()=>{alive=false;dispose()}})
 </script>
 <svelte:window bind:innerWidth={width} bind:innerHeight={height}/>
-<div class="desktop-surface" style:height={viewportHeight?`${viewportHeight}px`:undefined} onpointermove={(e)=>{if(!native||preview)hoverAt(e.clientX,e.clientY,true)}} onpointerleave={()=>{if(!native||preview)hovered=''}} role="presentation">
+<div class="desktop-surface" style:height={viewportHeight?`${viewportHeight}px`:undefined} onpointermove={(e)=>{if(!native||preview)hoverAt(e.clientX,e.clientY,true)}} onpointerleave={()=>{if(!native||preview)hovered=''}} onclick={(e)=>{if(!preview)clicked(e)}} role="presentation">
  <div class="desktop-grid" bind:this={grid} style={`--columns:${layout.columns};--cover-size:${desktopCoverSize(layout,viewportWidth??width)}px;--column-gap:${layout.gap}px;--row-gap:${spacing.rowGap}px;--top:${spacing.top}px;--radius:${layout.radius}px;--shadow:${layout.shadow};--scale:${settings.hoverScale}`}>
  {#each albums as album (album.id)}
   <div class="desktop-cell" data-id={album.id}>
    {#if preview}
    <div use:swingScale={{active:activeHover===album.id,factor:settings.hoverScale,speed:settings.hoverSpeed??1,radius:layout.radius,roundedOnHover:layout.roundedOnHover??false}} class:enlarged={activeHover===album.id} class="desktop-cover" role="img" aria-label={`Preview ${album.title} by ${album.artist}`}></div>
    {:else}
-   <button use:swingScale={{active:activeHover===album.id,factor:settings.hoverScale,speed:settings.hoverSpeed??1,radius:layout.radius,roundedOnHover:layout.roundedOnHover??false}} class:enlarged={activeHover===album.id} class="desktop-cover" onclick={()=>open(album.id)} onfocus={()=>hovered=album.id} onblur={()=>hovered=''} aria-label={`Open ${album.title} by ${album.artist}`} title={`${album.artist} — ${album.title}`}><img src={coverUrl(album)} alt={album.title} draggable="false"/></button>
+   <button use:swingScale={{active:activeHover===album.id,factor:settings.hoverScale,speed:settings.hoverSpeed??1,radius:layout.radius,roundedOnHover:layout.roundedOnHover??false}} class:enlarged={activeHover===album.id} class="desktop-cover" onfocus={()=>hovered=album.id} onblur={()=>hovered=''} aria-label={`Open ${album.title} by ${album.artist}`} title={`${album.artist} — ${album.title}`}><img src={coverUrl(album)} alt={album.title} draggable="false"/></button>
    {/if}
   </div>
  {/each}

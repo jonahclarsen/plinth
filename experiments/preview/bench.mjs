@@ -62,7 +62,7 @@ try{
    const during={...window.__previewMetrics}
    await new Promise(r=>setTimeout(r,350))
    const expected=Number(slider.value)
-   const actual=kind==='Hover size'?new DOMMatrixReadOnly(getComputedStyle(document.querySelector('.desktop-cover.enlarged')).transform).a:kind==='Rounded corners'?parseFloat(getComputedStyle(document.querySelector('.desktop-cover')).borderTopLeftRadius):kind==='Columns'?Number(getComputedStyle(document.querySelector('.desktop-grid')).getPropertyValue('--columns')):kind==='Space between covers'?parseFloat(getComputedStyle(document.querySelector('.desktop-grid')).getPropertyValue('--column-gap')):expected
+   const actual=kind==='Hover size'?(cover=>cover.getBoundingClientRect().width/cover.parentElement.getBoundingClientRect().width)(document.querySelector('.desktop-cover.enlarged')):kind==='Rounded corners'?parseFloat(getComputedStyle(document.querySelector('.desktop-cover')).borderTopLeftRadius):kind==='Columns'?Number(getComputedStyle(document.querySelector('.desktop-grid')).getPropertyValue('--columns')):kind==='Space between covers'?parseFloat(getComputedStyle(document.querySelector('.desktop-grid')).getPropertyValue('--column-gap')):expected
    // Pixel-sized rendering also scales the radius; compare its visual equivalent.
    const scale=kind==='Rounded corners'&&location.pathname.includes('/pixels/')?document.querySelector('.screen-preview').clientWidth/1512:1
    const correctness={expected:expected*scale,actual,ok:Math.abs(actual-expected*scale)<.1}
