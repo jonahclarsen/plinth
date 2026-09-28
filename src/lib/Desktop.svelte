@@ -35,8 +35,8 @@
  // Measure resting cells: remove any push offset (renderer pixels) in viewport scale.
  function cells(){return bounds??=Array.from(grid?.querySelectorAll<HTMLElement>('.desktop-cell')??[],el=>{const r=el.getBoundingClientRect(),s=r.width/(el.offsetWidth||1),o=push.offset(el);return {id:el.dataset.id??'',el,rect:new DOMRect(r.left-o.x*s,r.top-o.y*s,r.width,r.height)}})}
  let pointer:{x:number;y:number}|undefined
- $: pushStrength=settings.pushNeighbors!==false?desktopCoverSize(layout,viewportWidth??width)*(settings.hoverScale-1)*.4:0
- $: if(grid)push.update(cells,activeHover,activeHover===hovered?pointer:undefined,pushStrength,settings.hoverSpeed??1)
+ $: coverSize=desktopCoverSize(layout,viewportWidth??width)
+ $: if(grid)push.update(cells,activeHover,activeHover===hovered?pointer:undefined,{cover:coverSize,push:settings.pushNeighbors!==false,speed:settings.hoverSpeed??1})
  // Rectangles use viewport coordinates, including the scaled preview and scrolling.
  $: { spacing; albums; width; height; viewportWidth; viewportHeight; previewScale; invalidateBounds() }
  onMount(()=>{
