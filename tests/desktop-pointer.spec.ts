@@ -59,6 +59,10 @@ for (const builtIn of [false, true]) for(const hoverInBackground of [false,true]
   await expect(page.locator('.enlarged')).toHaveCount(hoverEnabled?1:0)
   await page.mouse.click(pointer.x, pointer.y)
   await expect.poll(() => page.evaluate(() => (window as any).opened)).toEqual([await cells.first().getAttribute('data-id')])
+  // Clicks between covers open the album whose hit area reaches that point.
+  const second=(await cells.nth(1).boundingBox())!
+  await page.mouse.click(second.x-(second.x-box.x-box.width)*.25, pointer.y)
+  await expect.poll(() => page.evaluate(() => (window as any).opened.at(-1))).toBe(await cells.nth(1).getAttribute('data-id'))
   await emit('desktop-test', true, false)
   await expect(page.locator('.enlarged')).toHaveCount(hoverEnabled&&hoverInBackground?1:0)
   await expect.poll(() => page.evaluate(() => (window as any).cursors.at(-1).pointing)).toBe(true)

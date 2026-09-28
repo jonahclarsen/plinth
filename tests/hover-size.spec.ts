@@ -11,7 +11,7 @@ test('holding Hover size previews one album, follows dragging, and ends on relea
  await page.mouse.move(r.x+r.width*.9,r.y+r.height/2,{steps:5})
  await expect(sample).toHaveAttribute('aria-label',name!)
  const value=Number(await slider.inputValue())
- await expect.poll(()=>sample.evaluate(el=>Number(getComputedStyle(el).transform.split('(')[1].split(',')[0]))).toBeCloseTo(value,1)
+ await expect.poll(()=>sample.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width)).toBeCloseTo(value,1)
  await page.mouse.move(5,5);await page.mouse.up()
  await expect(page.locator('.preview-render .desktop-cover.enlarged')).toHaveCount(0)
 })
@@ -67,7 +67,7 @@ test('hover speed is saved in history and corners animate with scale',async({pag
  const cover=page.locator('.preview-render .desktop-cover').first()
  await cover.hover()
  await page.clock.runFor(500)
- const middle=await cover.evaluate(el=>({radius:parseFloat(getComputedStyle(el).borderRadius),scale:Number(getComputedStyle(el).transform.split('(')[1].split(',')[0])}))
+ const middle=await cover.evaluate(el=>({radius:parseFloat(getComputedStyle(el).borderRadius),scale:el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width}))
  expect(middle.radius).toBeGreaterThan(3);expect(middle.radius).toBeLessThan(17)
  expect(middle.scale).toBeGreaterThan(1.2);expect(middle.scale).toBeLessThan(1.9)
  await page.clock.runFor(600);await expect(cover).toHaveCSS('border-radius','0px')
@@ -138,4 +138,31 @@ test('hovering pushes nearby artwork away, less with distance, and the toggle re
  await page.getByRole('checkbox',{name:'Enlarge on hover',exact:true}).uncheck();await expect(toggle).toBeDisabled()
  await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'History',exact:true}).click()
  await expect(page.locator('.history-list')).toContainText('Push nearby artwork: On → Off')
+})
+
+test('desktop hit areas meet across gaps so one album is always enlarged, and enlargement stays unscaled',async({page})=>{
+ await page.setViewportSize({width:1512,height:982})
+ await page.goto('/?desktop=1&demo=1')
+ const cells=page.locator('.desktop-cell');await expect(cells).toHaveCount(18)
+ const rects=await cells.evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return {id:el.getAttribute('data-id'),left:r.left,top:r.top,right:r.right,bottom:r.bottom}}))
+ const [a,b]=rects;const lastRow=rects.filter(r=>r.top>a.top)
+ expect(lastRow.length).toBeGreaterThan(0)
+ const enlarged=page.locator('.desktop-cover.enlarged')
+ // Column gap: each side of its midpoint belongs to the closer cover.
+ for(const [x,id] of [[a.right+(b.left-a.right)*.25,a.id],[a.right+(b.left-a.right)*.75,b.id]] as const){
+  await page.mouse.move(x,a.top+20);await expect(enlarged).toHaveCount(1);await expect(enlarged.locator('..')).toHaveAttribute('data-id',id!)
+ }
+ // Row gap and the empty space beside a centered last row still enlarge the nearest album.
+ const gapY=(a.bottom+lastRow[0].top)/2
+ for(const [x,y] of [[a.left+5,gapY],[rects.at(-1)!.right+30,lastRow[0].top+10],[a.left+5,lastRow[0].bottom-5]]){
+  await page.mouse.move(x,y);await expect(enlarged).toHaveCount(1)
+ }
+ await page.mouse.move(a.left+5,a.bottom+5);await expect(enlarged.locator('..')).toHaveAttribute('data-id',a.id!)
+ await page.mouse.move(a.left+5,lastRow[0].top-5);await expect(enlarged.locator('..')).not.toHaveAttribute('data-id',a.id!)
+ // Outside the artwork's extent nothing is hovered.
+ await page.mouse.move(1510,980);await expect(enlarged).toHaveCount(0)
+ await page.mouse.move((b.left+b.right)/2,(b.top+b.bottom)/2)
+ const cover=cells.nth(1).locator('.desktop-cover')
+ await expect.poll(()=>cover.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width)).toBeCloseTo(2.1,2)
+ await expect(cover).toHaveCSS('transform','none')
 })
