@@ -94,7 +94,7 @@ jobs:
             xcrun stapler staple "$dmg"
             spctl --assess --type open --context context:primary-signature --verbose "$dmg"
           fi
-          cp "$dmg" "out/Plinth_${version}_universal.dmg"
+          cp "$dmg" out/Plinth.dmg
           (cd out && shasum -a 256 * > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
