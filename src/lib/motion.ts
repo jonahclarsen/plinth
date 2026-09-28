@@ -2,7 +2,7 @@
 // Once enlarged, the cover breathes slowly around its hover size.
 // Enlarge by growing the absolutely positioned box, not scale(): WebKit can upscale an
 // already rasterized or subsampled cover, which turns sharp artwork soft after hovering.
-const breathPeriod=5000,breathDepth=.06 // Share of the enlargement, e.g. 2.1× ± 0.066.
+const breathPeriod=8000,breathDepth=.03 // Share of the enlargement, e.g. 2.1× ± 0.033.
 const scales=new WeakMap<Element,number>()
 // The painted scale of a cover, including breathing; 1 at rest.
 export function scaleOf(node:Element|null){return node&&scales.get(node)||1}

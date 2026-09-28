@@ -11,7 +11,7 @@ test('holding Hover size previews one album, follows dragging, and ends on relea
  await page.mouse.move(r.x+r.width*.9,r.y+r.height/2,{steps:5})
  await expect(sample).toHaveAttribute('aria-label',name!)
  const value=Number(await slider.inputValue())
- await expect.poll(()=>sample.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width).then(ratio=>Math.abs(ratio-value))).toBeLessThanOrEqual((value-1)*.061+.01)
+ await expect.poll(()=>sample.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width).then(ratio=>Math.abs(ratio-value))).toBeLessThanOrEqual((value-1)*.031+.01)
  await page.mouse.move(5,5);await page.mouse.up()
  await expect(page.locator('.preview-render .desktop-cover.enlarged')).toHaveCount(0)
 })
@@ -164,7 +164,7 @@ test('desktop hit areas meet across gaps so one album is always enlarged, and en
  await page.mouse.move(1510,980);await expect(enlarged).toHaveCount(0)
  await page.mouse.move((b.left+b.right)/2,(b.top+b.bottom)/2)
  const cover=cells.nth(1).locator('.desktop-cover')
- await expect.poll(()=>cover.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width).then(ratio=>Math.abs(ratio-2.1))).toBeLessThanOrEqual(1.1*.061)
+ await expect.poll(()=>cover.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width).then(ratio=>Math.abs(ratio-2.1))).toBeLessThanOrEqual(1.1*.031)
  await expect(cover).toHaveCSS('transform','none')
 })
 
@@ -183,8 +183,8 @@ test('the enlarged cover drifts slightly away from the pointer and breathes, pus
  await page.mouse.move(r.x+r.width/2,r.y+r.height/2);await page.clock.runFor(1000)
  const centered=await offset(1);expect(Math.abs(centered.x)).toBeLessThan(.5);expect(Math.abs(centered.y)).toBeLessThan(.5)
  const samples:{size:number;push:number}[]=[]
- for(let i=0;i<8;i++){await page.clock.runFor(625);samples.push({size:await ratio(),push:(await offset(2)).x})}
+ for(let i=0;i<8;i++){await page.clock.runFor(1000);samples.push({size:await ratio(),push:(await offset(2)).x})}
  const sizes=samples.map(s=>s.size),largest=samples[sizes.indexOf(Math.max(...sizes))],smallest=samples[sizes.indexOf(Math.min(...sizes))]
- expect(largest.size-smallest.size).toBeGreaterThan(.1);expect(largest.size-smallest.size).toBeLessThan(.14)
- expect(largest.push).toBeGreaterThan(smallest.push+.5)
+ expect(largest.size-smallest.size).toBeGreaterThan(.05);expect(largest.size-smallest.size).toBeLessThan(.07)
+ expect(largest.push).toBeGreaterThan(smallest.push+.3)
 })
