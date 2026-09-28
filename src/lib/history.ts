@@ -10,7 +10,7 @@ function describe(before:Library,after:Library) {
   const old=before.albums.find(a=>a.id===album.id)
   if(!old){added++;details.push(`Added ${album.title} — ${album.artist}`);continue}
   let changed=false
-  for(const [key,label] of [['title','Title'],['artist','Artist'],['date','Release date'],['url','Album link'],['enabled','Show on desktop']] as const){
+  for(const [key,label] of [['title','Title'],['artist','Artist'],['date','Release date'],['url','Album link'],['playlist','Playlist'],['enabled','Show on desktop']] as const){
    if(old[key]!==album[key]){changed=true;details.push(`${old.title} · ${label}: ${display(old[key])} → ${display(album[key])}`)}
   }
   if(changed)edited++

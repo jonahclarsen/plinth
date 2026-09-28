@@ -224,6 +224,7 @@ fn describe(before: &Library, after: &Library) -> (String, Vec<String>) {
                 ("artist", "Artist"),
                 ("date", "Release date"),
                 ("url", "Album link"),
+                ("playlist", "Playlist"),
                 ("enabled", "Show on desktop"),
             ] {
                 if old_json[key] != new_json[key] {

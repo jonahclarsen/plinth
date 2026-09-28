@@ -26,6 +26,17 @@ test('clicking anywhere on a collection card opens the editor without a hover ov
  await expect(page.locator('.artwork-gallery')).not.toBeVisible()
 })
 
+test('albums can open a playlist by name instead of the album',async({page})=>{
+ await page.goto('/?demo=1')
+ await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
+ await expect(page.locator('#album-link-help')).toBeVisible()
+ await page.getByLabel('Playlist').fill('Late Night Drive')
+ await expect(page.locator('#album-link-help')).not.toBeVisible()
+ await page.getByRole('button',{name:'Save',exact:true}).click()
+ await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
+ await expect(page.getByLabel('Playlist')).toHaveValue('Late Night Drive')
+})
+
 test('Command-A adds artwork from Collection and keeps Select All in text fields',async({page})=>{
  await page.goto('/?demo=1')
  const add=page.locator('.header-actions').getByRole('button',{name:'Add artwork',exact:true})
