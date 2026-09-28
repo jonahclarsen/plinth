@@ -51,6 +51,7 @@ pub struct Settings {
     pub hover_speed: f64,
     pub hover_enabled: bool,
     pub hover_in_background: bool,
+    pub push_neighbors: bool,
     pub sort: String,
     pub shuffle_seed: u32,
     pub theme: String,
@@ -71,6 +72,7 @@ impl Default for Settings {
             hover_speed: 1.,
             hover_enabled: true,
             hover_in_background: true,
+            push_neighbors: true,
             sort: "artist".into(),
             shuffle_seed: 0,
             theme: "dark".into(),
@@ -315,10 +317,13 @@ mod tests {
         let mut settings: Settings = serde_json::from_str("{}").unwrap();
         assert_eq!(settings.hover_speed, 1.);
         assert!(settings.hover_in_background);
+        assert!(settings.push_neighbors);
         settings.hover_in_background = false;
+        settings.push_neighbors = false;
         let reloaded: Settings =
             serde_json::from_str(&serde_json::to_string(&settings).unwrap()).unwrap();
         assert!(!reloaded.hover_in_background);
+        assert!(!reloaded.push_neighbors);
         for speed in [0.25, 1., 3.] {
             settings.hover_speed = speed;
             assert!(validate_settings(&settings).is_ok());
