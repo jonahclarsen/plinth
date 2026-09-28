@@ -100,15 +100,17 @@ test('rounded corners on hover default off and restore independently for each di
  await page.getByRole('slider',{name:'Rounded corners',exact:true}).fill('20')
  await toggle.check()
  const cover=page.locator('.preview-render .desktop-cover').first()
+ // Painted radius: the CSS radius is compensated for the downscaling transform.
+ const painted=()=>cover.evaluate(el=>{const style=getComputedStyle(el),t=style.transform==='none'?1:new DOMMatrix(style.transform).a;return parseFloat(style.borderRadius)*t})
  await cover.hover()
  await expect(cover).toHaveClass(/enlarged/)
- await expect(cover).toHaveCSS('border-radius','20px')
+ await expect.poll(painted).toBeCloseTo(20,1)
  await page.mouse.move(0,0)
  await page.keyboard.press('Meta+z');await expect(toggle).not.toBeChecked()
  await cover.hover();await expect(cover).toHaveCSS('border-radius','0px')
  await page.mouse.move(0,0)
  await page.keyboard.press('Meta+Shift+z');await expect(toggle).toBeChecked()
- await cover.hover();await expect(cover).toHaveCSS('border-radius','20px')
+ await cover.hover();await expect.poll(painted).toBeCloseTo(20,1)
  await page.getByRole('button',{name:/4K monitor/}).click()
  await expect(toggle).not.toBeChecked()
  await page.getByRole('button',{name:/Mac display/}).click()
@@ -165,7 +167,9 @@ test('desktop hit areas meet across gaps so one album is always enlarged, and en
  await page.mouse.move((b.left+b.right)/2,(b.top+b.bottom)/2)
  const cover=cells.nth(1).locator('.desktop-cover')
  await expect.poll(()=>cover.evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width).then(ratio=>Math.abs(ratio-2.1))).toBeLessThanOrEqual(1.1*.031)
- await expect(cover).toHaveCSS('transform','none')
+ // The box is laid out at its largest size and only ever scaled down, never upscaled.
+ await expect.poll(()=>cover.evaluate(el=>new DOMMatrix(getComputedStyle(el).transform).a)).toBeLessThan(1)
+ expect(await cover.evaluate(el=>parseFloat(el.style.width)/100)).toBeCloseTo(2.1+1.1*.03,6)
 })
 
 test('the enlarged cover drifts slightly away from the pointer and breathes, pushing neighbors with its size',async({page})=>{
