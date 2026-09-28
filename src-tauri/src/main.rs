@@ -231,6 +231,7 @@ fn update_album(
     original.artist = album.artist;
     original.date = album.date;
     original.url = album.url;
+    original.playlist = album.playlist.trim().to_owned();
     original.enabled = album.enabled;
     library::save(&store.dir, &updated)?;
     *lib = updated;
@@ -253,6 +254,19 @@ fn remove_album(
     broadcast(&app, &lib);
     Ok(())
 }
+// Pass user text as argv, never interpolate it into AppleScript or shell code.
+fn run_music_script(script: &str, args: &[&str]) -> Result<(), String> {
+    let output = Command::new("osascript")
+        .args(["-e", script, "--"])
+        .args(args)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_owned())
+    }
+}
 #[tauri::command]
 async fn open_album(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let result = tauri::async_runtime::spawn_blocking(move || {
@@ -265,6 +279,9 @@ async fn open_album(app: tauri::AppHandle, id: String) -> Result<(), String> {
             .ok_or("Album not found")?
             .clone();
         drop(lib);
+        if !album.playlist.is_empty() {
+            return run_music_script(include_str!("open_playlist.applescript"), &[&album.playlist]);
+        }
         if let Some(url) = music::apple_music_link(&album.url) {
             let status = Command::new("open")
                 .args(["-b", "com.apple.Music"])
@@ -277,17 +294,10 @@ async fn open_album(app: tauri::AppHandle, id: String) -> Result<(), String> {
                 Err("Could not open album link".into())
             };
         }
-        // Pass user text as argv, never interpolate it into AppleScript or shell code.
-        let script = include_str!("open_album.applescript");
-        let output = Command::new("osascript")
-            .args(["-e", script, "--", &album.title, &album.artist])
-            .output()
-            .map_err(|e| e.to_string())?;
-        if output.status.success() {
-            Ok(())
-        } else {
-            Err(String::from_utf8_lossy(&output.stderr).trim().to_owned())
-        }
+        run_music_script(
+            include_str!("open_album.applescript"),
+            &[&album.title, &album.artist],
+        )
     })
     .await
     .map_err(|e| e.to_string())

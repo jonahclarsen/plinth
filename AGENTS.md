@@ -25,6 +25,7 @@
 - App appearance uses clickable System, Light, and Dark circles.
 - Clicking a modal backdrop closes the modal; interacting inside it does not, except the artwork gallery, which closes on any click including the image.
 - A missing album in Apple Music shows a native macOS alert, without a duplicate in-app notification.
+- An album’s optional `playlist` name takes precedence over its link and album search; open it by name with osascript (argv only, never interpolated) so private playlists work. A missing playlist shows the same native alert.
 - Artwork import accepts image files only. Do not add folder-import controls or directory traversal.
 - Reuse the desktop renderer in the scaled screen preview. Keep jQuery swing hover timing consistent in both places: 250 ms / 251 ms divided by the stored `hoverSpeed` multiplier. Display Hover speed as milliseconds (`250 / hoverSpeed`, rounded), preserving the saved multiplier for compatibility. Animate rounded corners with scale.
 - Album editor uses original artwork with Finder reveal and upload controls; the collection and desktop use compressed copies.

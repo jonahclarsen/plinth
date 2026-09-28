@@ -13,6 +13,8 @@ pub struct Album {
     pub artist: String,
     pub date: String,
     pub url: String,
+    #[serde(default)]
+    pub playlist: String,
     pub cover: String,
     pub original: String,
     pub enabled: bool,
@@ -184,6 +186,7 @@ pub fn prepare_artwork(dir: &Path, path: &Path) -> Result<Album, String> {
         artist,
         date,
         url,
+        playlist: String::new(),
         cover,
         original,
         enabled: true,
@@ -415,6 +418,14 @@ mod tests {
         assert_eq!(title, "Record");
         assert_eq!(date, "2021-12-21");
         assert_eq!(url, "https://music.apple.com/ca/album/record/123");
+    }
+    #[test]
+    fn albums_saved_without_a_playlist_load_with_none() {
+        let album: Album = serde_json::from_str(
+            r#"{"id":"a","title":"T","artist":"A","date":"","url":"","cover":"c","original":"o","enabled":true}"#,
+        )
+        .unwrap();
+        assert_eq!(album.playlist, "");
     }
     #[test]
     fn plain_filename_works() {

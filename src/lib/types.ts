@@ -1,5 +1,5 @@
 import type { LogoId } from './logos'
-export interface Album { id: string; title: string; artist: string; date: string; url: string; cover: string; original: string; enabled: boolean }
+export interface Album { id: string; title: string; artist: string; date: string; url: string; playlist: string; cover: string; original: string; enabled: boolean }
 export interface Layout { columns: number; gap: number; rowGap: number|null; top: number; radius: number; roundedOnHover: boolean; shadow: number }
 export interface Settings { layout: Layout; wideLayout: Layout; hoverScale: number; hoverSpeed: number; hoverEnabled: boolean; hoverInBackground: boolean; pushNeighbors: boolean; sort: string; shuffleSeed: number; theme: string; logo: LogoId; desktopEnabled: boolean; allSpaces: boolean; targetSpace: number|null }
 export interface Library { albums: Album[]; settings: Settings }

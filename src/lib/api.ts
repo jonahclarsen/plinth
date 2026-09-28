@@ -29,7 +29,7 @@ export async function importBrowserFiles(files: File[]) {
   if(browserLibrary.albums.some(a=>a.id===id)) {duplicates++;continue}
   const bitmap=await createImageBitmap(file);const scale=Math.min(1,1200/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=bitmap.width*scale;canvas.height=bitmap.height*scale;canvas.getContext('2d')!.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close()
   const stem=file.name.replace(/\.[^.]+$/,''); const parts=stem.split(' - ')
-  browserLibrary.albums.push({id,title:parts.length>1?parts.slice(1).join(' - '):stem,artist:parts.length>1?parts[0]:'',date:'',url:'',cover:canvas.toDataURL('image/jpeg',.9),original:'',enabled:true});added++
+  browserLibrary.albums.push({id,title:parts.length>1?parts.slice(1).join(' - '):stem,artist:parts.length>1?parts[0]:'',date:'',url:'',playlist:'',cover:canvas.toDataURL('image/jpeg',.9),original:'',enabled:true});added++
  } catch(e) { errors.push(`${file.name}: ${String(e)}`) } }
  changed();return {added,duplicates,errors}
 }
