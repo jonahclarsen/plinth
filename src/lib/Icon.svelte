@@ -3,7 +3,6 @@
  const paths:Record<string,string> = {
   download:'M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4',replace:'M4 10a8 8 0 0 1 13-6l3 3m0-5v5h-5M20 14a8 8 0 0 1-13 6l-3-3m0 5v-5h5',
   history:'M3 11a9 9 0 1 1 2.6 7M3 4v7h7m2-4v6l4 2',undo:'M9 4 3 10l6 6M3 10h11a7 7 0 0 1 7 7v3',redo:'m15 4 6 6-6 6m6-6H10a7 7 0 0 0-7 7v3',
-  image:'M3 3h18v18H3zM3 16l6-6 5 5 3-3 4 4M16 7h.01',
   grid:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
   monitor:'M3 4h18v13H3zM8 21h8m-4-4v4',plus:'M12 5v14M5 12h14',folder:'M3 7V5h6l2 2h10v13H3V7Z',
   search:'M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm5 12 6 6',close:'m6 6 12 12M6 18 18 6',
