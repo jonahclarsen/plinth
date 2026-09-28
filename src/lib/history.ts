@@ -24,7 +24,7 @@ function describe(before:Library,after:Library) {
  const settings:string[]=[]
  const space=(settings:Library['settings'])=>settings.targetSpace?`Space ${settings.targetSpace}`:settings.allSpaces?'All Spaces':'This Space'
  if(space(before.settings)!==space(after.settings))settings.push(`Spaces: ${space(before.settings)} → ${space(after.settings)}`)
- for(const [key,label] of [['theme','App appearance'],['logo','App logo'],['desktopEnabled','Show desktop'],['sort','Sort order'],['shuffleSeed','Shuffle order'],['hoverScale','Hover size'],['hoverSpeed','Hover speed'],['hoverEnabled','Enlarge on hover'],['hoverInBackground','While another app has focus']] as const){
+ for(const [key,label] of [['theme','App appearance'],['logo','App logo'],['desktopEnabled','Show desktop'],['sort','Sort order'],['shuffleSeed','Shuffle order'],['hoverScale','Hover size'],['hoverSpeed','Hover speed'],['hoverEnabled','Enlarge on hover'],['hoverInBackground','While another app has focus'],['pushNeighbors','Push nearby artwork']] as const){
   const format=key==='hoverSpeed'?(value:unknown)=>`${Math.round(250/Number(value??1))} ms`:display
   if(before.settings[key]!==after.settings[key])settings.push(`${label}: ${format(before.settings[key])} → ${format(after.settings[key])}`)
  }

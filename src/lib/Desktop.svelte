@@ -6,6 +6,7 @@
  import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
  import { coverUrl, native, openAlbum } from './api'
  import { swingScale } from './motion'
+ import { neighborPush, type Cell } from './push'
  import { ordered, type Layout, type Library } from './types'
  export let library: Library
  export let preview=false
@@ -28,15 +29,21 @@
  $: layout=forcedLayout??(displayProfile?settings[displayProfile]:width>1900?settings.wideLayout:settings.layout)
  $: albums=ordered(library.albums.filter(a=>a.enabled),settings.sort,settings.shuffleSeed)
  $: spacing=desktopSpacing(layout,viewportWidth??width,viewportHeight??height,albums.length,preview?menuBarHeight:detectedMenuBarHeight)
- let bounds:{id:string;rect:DOMRect}[]|undefined
+ let bounds:Cell[]|undefined
  function invalidateBounds(){bounds=undefined}
+ const push=neighborPush()
+ // Measure resting cells: remove any push offset (renderer pixels) in viewport scale.
+ function cells(){return bounds??=Array.from(grid?.querySelectorAll<HTMLElement>('.desktop-cell')??[],el=>{const r=el.getBoundingClientRect(),s=r.width/(el.offsetWidth||1),o=push.offset(el);return {id:el.dataset.id??'',el,rect:new DOMRect(r.left-o.x*s,r.top-o.y*s,r.width,r.height)}})}
+ let pointer:{x:number;y:number}|undefined
+ $: pushStrength=settings.pushNeighbors!==false?desktopCoverSize(layout,viewportWidth??width)*(settings.hoverScale-1)*.4:0
+ $: if(grid)push.update(cells,activeHover,activeHover===hovered?pointer:undefined,pushStrength,settings.hoverSpeed??1)
  // Rectangles use viewport coordinates, including the scaled preview and scrolling.
  $: { spacing; albums; width; height; viewportWidth; viewportHeight; previewScale; invalidateBounds() }
  onMount(()=>{
   const observer=new ResizeObserver(invalidateBounds)
   observer.observe(grid)
   window.addEventListener('scroll',invalidateBounds,true)
-  return()=>{observer.disconnect();window.removeEventListener('scroll',invalidateBounds,true)}
+  return()=>{observer.disconnect();window.removeEventListener('scroll',invalidateBounds,true);push.destroy()}
  })
  function hoverAt(x:number,y:number,visible:boolean) {
   if(native&&!preview&&visible) {
@@ -47,9 +54,8 @@
   }
   if(!visible || !settings.hoverEnabled) {hovered='';return}
   // Use the unscaled grid cells so enlarged artwork does not shift the hit target.
-  bounds??=Array.from(grid?.querySelectorAll<HTMLElement>('.desktop-cell')??[],el=>({id:el.dataset.id??'',rect:el.getBoundingClientRect()}))
-  hovered=''
-  for(const {id,rect:r} of bounds) {if(x>=r.left&&x<r.right&&y>=r.top&&y<r.bottom){hovered=id;break}}
+  hovered='';pointer={x,y}
+  for(const {id,rect:r} of cells()) {if(x>=r.left&&x<r.right&&y>=r.top&&y<r.bottom){hovered=id;break}}
  }
  export function startHoverPreview() {
   if(!preview||!grid)return

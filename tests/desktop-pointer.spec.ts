@@ -65,9 +65,11 @@ for (const builtIn of [false, true]) for(const hoverInBackground of [false,true]
   await emit('desktop-test', true, true)
   await expect(page.locator('.enlarged')).toHaveCount(hoverEnabled?1:0)
   // Blank desktop must release the native hand even with enlargement disabled.
-  pointer.x=1;pointer.y=1
+  // Use the empty bottom-right corner; the enlarged first cover can reach the top-left one.
+  const viewport=page.viewportSize()!
+  pointer.x=viewport.width-2;pointer.y=viewport.height-2
   await emit('desktop-test', true)
-  await expect.poll(() => page.evaluate(() => (window as any).cursors.at(-1))).toEqual({x:1,y:1,pointing:false})
+  await expect.poll(() => page.evaluate(() => (window as any).cursors.at(-1))).toEqual({x:pointer.x,y:pointer.y,pointing:false})
   const cursorCount=await page.evaluate(() => (window as any).cursors.length)
   await emit('desktop-test', false)
   await expect(page.locator('.enlarged')).toHaveCount(0)
