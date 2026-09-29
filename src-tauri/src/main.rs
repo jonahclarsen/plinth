@@ -424,6 +424,18 @@ fn restore_window_size(app: &tauri::AppHandle) {
     })();
     let _ = result;
 }
+static TRAY_PRESS: Mutex<Option<(f64, f64, bool)>> = Mutex::new(None);
+
+fn command_held() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        use objc2_app_kit::{NSEvent, NSEventModifierFlags};
+        NSEvent::modifierFlags_class().contains(NSEventModifierFlags::Command)
+    }
+    #[cfg(not(target_os = "macos"))]
+    false
+}
+
 fn show_main(app: &tauri::AppHandle) {
     #[cfg(target_os = "macos")]
     let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
@@ -564,11 +576,27 @@ fn main() {
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
+                        button_state,
+                        position,
                         ..
                     } = event
                     {
-                        show_main(tray.app_handle());
+                        let mut press = TRAY_PRESS.lock().unwrap();
+                        match button_state {
+                            MouseButtonState::Down => {
+                                *press = Some((position.x, position.y, command_held()));
+                            }
+                            MouseButtonState::Up => {
+                                // Command-drag rearranges menu bar items; only a
+                                // plain click in place opens the window.
+                                let dragged = press.take().is_none_or(|(x, y, command)| {
+                                    command || (position.x - x).hypot(position.y - y) > 4.0
+                                });
+                                if !dragged {
+                                    show_main(tray.app_handle());
+                                }
+                            }
+                        }
                     }
                 })
                 .on_menu_event(|app, event| match event.id.as_ref() {
