@@ -47,8 +47,6 @@ dialog{width:min(510px,calc(100vw - 40px));padding:26px;border:1px solid var(--l
 
 .slider-field{display:grid}.slider-field>span{align-items:center;gap:10px}.slider-field>span>output{margin-left:auto}.hover-corners-toggle{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);white-space:nowrap}.hover-corners-toggle .switch{width:26px;height:16px;margin:0}.hover-corners-toggle .switch:after{width:10px;height:10px}.hover-corners-toggle .switch:checked:after{transform:translateX(10px)}
 
-/* Isolate the enlarged preview artwork without promoting the entire collection. */
-.preview-render .desktop-cover.enlarged{will-change:transform}
 
 nav button .shortcut{min-width:30px;padding:0 5px;border-bottom-color:var(--faint);background:color-mix(in srgb,var(--paper) 72%,transparent);font-family:inherit;font-size:10px;font-weight:700;line-height:17px;justify-content:center}nav button.active .shortcut{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));background:color-mix(in srgb,var(--paper) 40%,transparent);color:inherit}nav button .shortcut-plus{transform:none}@media(max-width:1100px){header{flex-wrap:wrap;height:auto;padding-block:18px}header nav{order:3;width:100%;justify-content:center}}@media(max-width:600px){header nav{flex-wrap:wrap}nav button{padding:8px}}
 

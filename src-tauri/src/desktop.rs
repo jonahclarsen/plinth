@@ -322,8 +322,25 @@ pub(crate) fn emit_pointer(
     );
 }
 
+// A pointer elsewhere (over another app or display) only clears hover, so repeated
+// off-window samples are no-ops in the webview. Send the first; skip the rest until the
+// pointer returns or the foreground changes. Labels without a sample are forgotten.
+fn changes_hover(
+    hidden: &mut std::collections::HashMap<String, bool>,
+    label: &str,
+    visible: bool,
+    foreground_allowed: bool,
+) -> bool {
+    if visible {
+        hidden.remove(label);
+        return true;
+    }
+    hidden.insert(label.to_owned(), foreground_allowed) != Some(foreground_allowed)
+}
+
 pub fn start_pointer_tracking(app: AppHandle) {
     let previous = std::sync::Arc::new(std::sync::Mutex::new(None::<(f64, f64, isize, bool)>));
+    let hidden = std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
     std::thread::spawn(move || {
         let mut ticks = 0u32;
         loop {
@@ -332,6 +349,7 @@ pub fn start_pointer_tracking(app: AppHandle) {
             let refresh = ticks == 0;
             let handle = app.clone();
             let previous = previous.clone();
+            let hidden = hidden.clone();
             let _ = app.run_on_main_thread(move || {
                 #[cfg(target_os = "macos")]
                 {
@@ -366,7 +384,12 @@ pub fn start_pointer_tracking(app: AppHandle) {
                         }
                         *last = Some(sample);
                     }
-                    for (label, window) in handle.webview_windows() {
+                    let Ok(mut hidden) = hidden.lock() else {
+                        return;
+                    };
+                    let windows = handle.webview_windows();
+                    hidden.retain(|label, _| windows.contains_key(label));
+                    for (label, window) in windows {
                         if !label.starts_with("desktop-") {
                             continue;
                         }
@@ -375,6 +398,10 @@ pub fn start_pointer_tracking(app: AppHandle) {
                                 let ns = &*ptr.cast::<NSWindow>();
                                 let local = ns.convertPointFromScreen(point);
                                 let visible = top == ns.windowNumber() && ns.isVisible();
+                                if !changes_hover(&mut hidden, &label, visible, foreground_allowed)
+                                {
+                                    continue;
+                                }
                                 emit_pointer(
                                     &window,
                                     local.x,
@@ -389,4 +416,26 @@ pub fn start_pointer_tracking(app: AppHandle) {
             });
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::changes_hover;
+    use std::collections::HashMap;
+
+    #[test]
+    fn repeated_off_window_samples_are_sent_once() {
+        let mut hidden = HashMap::new();
+        assert!(changes_hover(&mut hidden, "desktop-1-0", false, false));
+        assert!(!changes_hover(&mut hidden, "desktop-1-0", false, false));
+        // Another display has its own state.
+        assert!(changes_hover(&mut hidden, "desktop-1-1", false, false));
+        // A foreground change still reaches the webview.
+        assert!(changes_hover(&mut hidden, "desktop-1-0", false, true));
+        assert!(!changes_hover(&mut hidden, "desktop-1-0", false, true));
+        // Every on-window sample is sent, and the next departure is sent again.
+        assert!(changes_hover(&mut hidden, "desktop-1-0", true, true));
+        assert!(changes_hover(&mut hidden, "desktop-1-0", true, true));
+        assert!(changes_hover(&mut hidden, "desktop-1-0", false, true));
+    }
 }
