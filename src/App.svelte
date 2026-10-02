@@ -13,12 +13,13 @@
  import History from './lib/History.svelte'
  import { emptyHistory, type HistoryView } from './lib/history'
  import * as api from './lib/api'
- import { defaultSettings, ordered, type Library, type Album, type Layout } from './lib/types'
+ import { dayMask, defaultSettings, ordered, shuffleSeed, today, type Library, type Album, type Layout } from './lib/types'
  const desktop=new URLSearchParams(location.search).has('desktop')
  let library:Library={albums:[],settings:structuredClone(defaultSettings)}
  let sortOpen=false
  const sortOptions=[{value:'artist',label:'Artist'},{value:'title',label:'Title'},{value:'date',label:'Newest date'},{value:'oldest',label:'Oldest date'},{value:'shuffle',label:'Shuffle'}]
  function chooseSort(value:string){library.settings.sort=value;if(value==='shuffle'){const next=new Uint32Array(1);do{crypto.getRandomValues(next)}while(next[0]===library.settings.shuffleSeed);library.settings.shuffleSeed=next[0]}sortOpen=false;persist()}
+ function chooseDaily(daily:boolean){const s=library.settings;s.shuffleSeed=(s.shuffleSeed^dayMask($today))>>>0;s.shuffleDaily=daily;persist()}
  const tabs=[{id:'collection',label:'Collection',icon:'grid',key:'C'},{id:'appearance',label:'Appearance',icon:'settings',key:'A'},{id:'settings',label:'Settings',icon:'info',key:'S'}]
  let page='collection',query='',busy=false,loaded=false,error='',notice='',dragging=false
  let history:HistoryView=emptyHistory,historyBusy=false,historyLoading=false
@@ -84,7 +85,7 @@
  $: layout=settings[profile]
  $: enabled=library.albums.filter(a=>a.enabled)
  $: rowSpacing=desktopSpacing(layout,screen.width,screen.height,enabled.length,screen.menuBarHeight)
- $: filtered=ordered(library.albums.filter(a=>`${a.title} ${a.artist}`.toLowerCase().includes(query.toLowerCase())),settings.sort,settings.shuffleSeed)
+ $: filtered=ordered(library.albums.filter(a=>`${a.title} ${a.artist}`.toLowerCase().includes(query.toLowerCase())),settings.sort,shuffleSeed(settings,$today))
  $: artists=new Set(library.albums.map(a=>a.artist).filter(Boolean)).size
  $: if(typeof document!=='undefined') {document.documentElement.dataset.theme=settings.theme==='system'?(mediaDark?'dark':'light'):settings.theme;document.documentElement.classList.toggle('desktop-document',desktop)}
  $: if(edit && modal && !modal.open) modal.showModal()
@@ -190,7 +191,7 @@
   {#if notice}<div class="toast" role="status"><Icon name="check"/>{notice}</div>{/if}
   <main>
    {#if page==='collection'}
-    <section class="collection-toolbar"><div class="collection-tabs"><span class="collection-meta">{library.albums.length} albums</span><span class="collection-meta">{artists} artists</span></div><div class="toolbar-right"><label class="search"><Icon name="search"/><input aria-label="Search collection" type="search" placeholder="Find a record…" bind:value={query}/><Shortcut keys={['/']}/></label><div class="sort-picker"><button class="sort-trigger" aria-label="Sort collection" aria-haspopup="menu" aria-expanded={sortOpen} onclick={()=>sortOpen=!sortOpen}>{sortOptions.find(o=>o.value===settings.sort)?.label}<Icon name="chevron"/></button>{#if sortOpen}<div class="sort-menu" role="menu" aria-label="Sort collection">{#each sortOptions as option}<button role="menuitemradio" aria-checked={settings.sort===option.value} onclick={()=>chooseSort(option.value)}>{option.label}{#if settings.sort===option.value}<Icon name="check"/>{/if}</button>{/each}</div>{/if}</div></div></section>
+    <section class="collection-toolbar"><div class="collection-tabs"><span class="collection-meta">{library.albums.length} albums</span><span class="collection-meta">{artists} artists</span></div><div class="toolbar-right"><label class="search"><Icon name="search"/><input aria-label="Search collection" type="search" placeholder="Find a record…" bind:value={query}/><Shortcut keys={['/']}/></label><div class="sort-picker"><button class="sort-trigger" aria-label="Sort collection" aria-haspopup="menu" aria-expanded={sortOpen} onclick={()=>sortOpen=!sortOpen}>{sortOptions.find(o=>o.value===settings.sort)?.label}<Icon name="chevron"/></button>{#if sortOpen}<div class="sort-menu" role="menu" aria-label="Sort collection">{#each sortOptions as option}<button role="menuitemradio" aria-checked={settings.sort===option.value} onclick={()=>chooseSort(option.value)}>{option.label}{#if settings.sort===option.value}<Icon name="check"/>{/if}</button>{/each}</div>{/if}</div>{#if settings.sort==='shuffle'}<label class="shuffle-daily"><input type="checkbox" checked={settings.shuffleDaily} onchange={(e)=>chooseDaily(e.currentTarget.checked)}/>Daily</label>{/if}</div></section>
     {#if !loaded}<div class="empty-state"><Logo logo={settings.logo}/><h2>Opening your collection…</h2></div>
     {:else if library.albums.length===0}<div class="empty-state"><div class="empty-art"><Icon name="music"/></div><span class="eyebrow">ROOM FOR YOUR FAVORITES</span><h2>Start with a record you love.</h2><p>Drop your artwork here, or choose images from your Mac.<br/>We’ll resize and organize everything for you.</p><div class="actions"><button class="primary add-artwork" aria-label="Add artwork" aria-keyshortcuts="Meta+A Control+A" onclick={()=>choose()}>Add artwork<Shortcut keys={['Cmd','A']}/></button></div><small>PNG, JPEG, WebP, GIF, TIFF, and BMP</small></div>
     {:else if filtered.length===0}<div class="empty-state"><Icon name="search"/><h2>No records found.</h2><button onclick={()=>query=''}>Clear search</button></div>

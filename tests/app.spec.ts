@@ -78,6 +78,21 @@ test('shuffle can be selected repeatedly and oldest date follows newest date',as
  await page.getByRole('button',{name:'Sort collection',exact:true}).click();await expect(page.getByRole('menuitemradio')).toHaveText(['Artist','Title','Newest date','Oldest date','Shuffle'])
  await page.getByRole('menuitemradio',{name:'Oldest date',exact:true}).click();await expect(page.getByRole('button',{name:'Sort collection',exact:true})).toHaveText('Oldest date')
 })
+test('daily shuffle appears only for Shuffle, keeps today\'s order, and reshuffles at midnight',async({page})=>{
+ await page.clock.install({time:new Date(2026,9,2,23,58)});await page.goto('/?demo=1');const titles=()=>page.locator('.album-title').allTextContents();const daily=page.getByRole('checkbox',{name:'Daily',exact:true})
+ await expect(daily).toHaveCount(0)
+ await page.getByRole('button',{name:'Sort collection',exact:true}).click();await page.getByRole('menuitemradio',{name:'Shuffle',exact:true}).click();const shuffled=await titles()
+ await daily.check();expect(await titles()).toEqual(shuffled)
+ await page.clock.runFor(60000);expect(await titles()).toEqual(shuffled)
+ await page.clock.runFor(120000);await expect.poll(titles).not.toEqual(shuffled);const tomorrow=await titles()
+ await daily.uncheck();expect(await titles()).toEqual(tomorrow)
+ await page.getByRole('button',{name:'Sort collection',exact:true}).click();await page.getByRole('menuitemradio',{name:'Artist',exact:true}).click();await expect(daily).toHaveCount(0)
+})
+test('collection toolbar controls share a centered row',async({page})=>{
+ await page.goto('/?demo=1');await page.getByRole('button',{name:'Sort collection',exact:true}).click();await page.getByRole('menuitemradio',{name:'Shuffle',exact:true}).click()
+ const mids=await page.evaluate(()=>{const mid=(s:string)=>{const r=document.querySelector(s)!.getBoundingClientRect();return (r.top+r.bottom)/2};const header=document.querySelector('header')!.getBoundingClientRect().bottom,border=document.querySelector('.collection-toolbar')!.getBoundingClientRect().bottom;return {row:(header+border)/2,items:['.collection-meta','.search','.sort-trigger','.shuffle-daily'].map(mid)}})
+ for(const mid of mids.items)expect(Math.abs(mid-mids.row)).toBeLessThanOrEqual(1)
+})
 test('Option page navigation wraps, desktop toggle uses action labels, internal artwork cannot drag',async({page})=>{
  await page.goto('/?demo=1');await expect(page.locator('.header-actions').getByRole('button')).toHaveText(['Disable','Add artworkCmd A']);await page.getByRole('button',{name:'Disable',exact:true}).click();await expect(page.locator('.header-actions').getByRole('button',{name:'Enable',exact:true})).toBeVisible()
  await page.keyboard.press('Alt+KeyQ');await expect(page.getByRole('group',{name:'App appearance'})).toBeVisible();await page.keyboard.press('Alt+KeyW');await expect(page.locator('.album-grid')).toBeVisible()

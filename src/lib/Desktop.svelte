@@ -7,7 +7,7 @@
  import { coverUrl, native, openAlbum } from './api'
  import { swingScale } from './motion'
  import { neighborPush, type Cell } from './push'
- import { ordered, type Layout, type Library } from './types'
+ import { ordered, shuffleSeed, today, type Layout, type Library } from './types'
  export let library: Library
  export let preview=false
  export let previewScale=1
@@ -27,7 +27,7 @@
  let error=''
  $: settings=library.settings
  $: layout=forcedLayout??(displayProfile?settings[displayProfile]:width>1900?settings.wideLayout:settings.layout)
- $: albums=ordered(library.albums.filter(a=>a.enabled),settings.sort,settings.shuffleSeed)
+ $: albums=ordered(library.albums.filter(a=>a.enabled),settings.sort,shuffleSeed(settings,$today))
  $: spacing=desktopSpacing(layout,viewportWidth??width,viewportHeight??height,albums.length,preview?menuBarHeight:detectedMenuBarHeight)
  let bounds:Cell[]|undefined
  function invalidateBounds(){bounds=undefined}

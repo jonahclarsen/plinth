@@ -165,6 +165,7 @@ fn settings_details(before: &Settings, after: &Settings) -> Vec<String> {
         ("desktopEnabled", "Show desktop"),
         ("sort", "Sort order"),
         ("shuffleSeed", "Shuffle order"),
+        ("shuffleDaily", "Shuffle daily"),
         ("hoverScale", "Hover size"),
         ("hoverSpeed", "Hover speed"),
         ("hoverEnabled", "Enlarge on hover"),
