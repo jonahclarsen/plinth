@@ -18,7 +18,8 @@
     "test:native": "cargo test --manifest-path src-tauri/Cargo.toml",
     "icons": "node scripts/icons.mjs",
     "screenshots": "playwright test tests/screenshots.spec.ts",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "install:app": "pnpm build:app && ./scripts/install-app.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.10.1",

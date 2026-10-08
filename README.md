@@ -97,7 +97,8 @@ Requires macOS 13+, Xcode Command Line Tools, Rust, Node 22.12+ (or a compatible
 ```sh
 pnpm install --frozen-lockfile
 pnpm dev           # Native Tauri app with Vite
-pnpm dev:daemon    # Install/start the always-on live development app
+pnpm install:app   # Build/install the standalone app; no development server or supervisor
+pnpm dev:daemon    # Optional always-on live development app
 pnpm dev:web       # Browser UI, without native integration
 pnpm check
 pnpm test:native
@@ -107,6 +108,8 @@ pnpm build:app     # Produces src-tauri/target/release/bundle/macos/Plinth.app
 ```
 
 The permanent development port is **23983**, selected once with a cryptographically secure random generator and recorded in `port.json`. There is no production server port. Browser mode starts with an empty, temporary library. `?demo=1` enables fictional sample records; browser changes last only for that session.
+
+`pnpm install:app` builds and signs the standalone app, installs it in `~/Applications`, and registers its Music links without starting any app or background development job. Its interface is bundled into the executable, so links work without Vite, pnpm, or a supervisor running. Signing and verification finish before the installed app is replaced. The installer disables any previous live-development job so it cannot overwrite the standalone app. Use this for everyday use.
 
 `pnpm dev:daemon` builds a debug `Plinth.app` in `~/Applications`, registers it as a per-user LaunchAgent, and keeps `pnpm tauri dev` running across logins and unexpected exits. Its separately signed, standalone supervisor lives in `~/Library/Application Support/Plinth/dev-supervisor`, outside the registered app bundle, so macOS delivers app links to the actual Plinth process. Re-run `pnpm dev:daemon` once when upgrading from the older supervisor inside `Plinth.app`. Frontend changes hot-reload, while Rust changes rebuild and restart the executable inside the installed app container. Logs are written to `~/Library/Logs/Plinth`. Re-run the installer only after moving the repository or changing the daemon scripts. Stop it and move its installed files to the Trash with `pnpm dev:daemon:stop`.
 
