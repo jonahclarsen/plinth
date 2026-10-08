@@ -31,12 +31,7 @@ temporary_executable="$app_path/Contents/MacOS/plinth.dev-new"
 /bin/mv -f "$temporary_executable" "$executable"
 # The installed daemon keeps its bundle between builds. Refresh the protocol
 # metadata as well as the executable so new schemes work without reinstalling.
-source_info="$script_dir/../src-tauri/Info.plist"
-installed_info="$app_path/Contents/Info.plist"
-for metadata_key in CFBundleURLTypes NSAppleEventsUsageDescription; do
-  metadata_value="$(/usr/bin/plutil -extract "$metadata_key" json -o - "$source_info")"
-  /usr/bin/plutil -replace "$metadata_key" -json "$metadata_value" "$installed_info"
-done
+"$script_dir/sync-macos-music-links.sh" "$script_dir/../src-tauri/Info.plist" "$app_path/Contents/Info.plist"
 sign_dev_app "$app_path"
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app_path"
 
