@@ -255,10 +255,8 @@ fn remove_album(
     Ok(())
 }
 // Pass user text as argv, never interpolate it into AppleScript or shell code.
-fn run_music_script(script: &str, args: &[&str]) -> Result<(), String> {
-    let output = Command::new("osascript")
-        .args(["-e", script, "--"])
-        .args(args)
+fn run_music_script(script: &'static str, args: &[&str]) -> Result<(), String> {
+    let output = music::script_command(script, args)
         .output()
         .map_err(|e| e.to_string())?;
     if output.status.success() {
@@ -280,7 +278,10 @@ async fn open_album(app: tauri::AppHandle, id: String) -> Result<(), String> {
             .clone();
         drop(lib);
         if !album.playlist.is_empty() {
-            return run_music_script(include_str!("open_playlist.applescript"), &[&album.playlist]);
+            return run_music_script(
+                include_str!("open_playlist.applescript"),
+                &[&album.playlist],
+            );
         }
         if let Some(url) = music::apple_music_link(&album.url) {
             let status = Command::new("open")
@@ -676,6 +677,26 @@ fn main() {
             } => {
                 api.prevent_exit();
                 request_quit(app);
+            }
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Opened { urls } => {
+                // OS URLs never enter the import CLI or the general URL opener.
+                let target = urls
+                    .iter()
+                    .find_map(|url| music::LibraryLink::parse(url.as_str()).ok());
+                if let (Some(target), Some(navigation)) = (target, music::LinkNavigation::begin()) {
+                    tauri::async_runtime::spawn(async move {
+                        let _navigation = navigation;
+                        let result = tauri::async_runtime::spawn_blocking(move || {
+                            let (script, args) = target.script_and_args();
+                            run_music_script(script, &args)
+                        })
+                        .await;
+                        if !matches!(result, Ok(Ok(()))) {
+                            let _ = show_alert("Music couldn’t open this library link. Allow Plinth in System Settings → Privacy & Security → Automation. Artist navigation also requires Accessibility permission and Music’s Show Artist in Library command.".into()).await;
+                        }
+                    });
+                }
             }
             #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => show_main(app),

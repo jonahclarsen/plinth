@@ -36,6 +36,24 @@ Launch `Plinth.app`, choose **Add artwork**, or drop image files into the librar
 
 Album clicks automatically open a saved HTTPS Apple Music link (`music.apple.com`) directly in the Music app, or look up the album by title and artist in your local Music library otherwise. Missing albums show a native macOS alert. The first library lookup may ask for macOS Automation permission. No Apple Music API credentials are needed.
 
+### Links to your Music library
+
+Plinth handles `plinth://` links on macOS. Use these anywhere that supports custom app links:
+
+```text
+plinth://playlist/Evening%20records
+plinth://album/Glass%20Gardens?artist=North%20Arc
+plinth://artist/North%20Arc
+```
+
+The pattern is `plinth://playlist/NAME`, `plinth://album/TITLE?artist=NAME`, or `plinth://artist/NAME`. Names match your local Music library, including private playlists and imported music. The album artist option is optional; include it to distinguish albums with the same title. These links reveal music without starting playback, adding anything to the library, or opening the streaming catalog. Albums match the exact title and, when supplied, artist or album artist. With duplicate names, Music opens the first matching item.
+
+Replace spaces with `%20`. Encode special characters inside names too: `/` → `%2F`, `?` → `%3F`, `#` → `%23`, `&` → `%26`, `%` → `%25`. Names may include Unicode. Playlist and artist links take no query options; album links accept only one `artist` option. Invalid destinations, credentials, ports, fragments, malformed encoding, control characters, and oversized names are rejected. Overlapping link requests are ignored while Music navigation is in progress.
+
+The handler runs only bundled AppleScripts using `/usr/bin/osascript`, passing decoded names as arguments, never executable code. It cannot invoke a link-supplied command, load a file, import artwork, run an installer, or forward a URL to another app. Missing library items show Music’s native alert. Automation permission is required. Artist navigation additionally uses the fixed **Song → Show Artist in Library** menu action and requires Accessibility permission and an English Music interface; if unavailable it fails rather than opening a catalog page.
+
+Build the updated app (`pnpm build:app`) and install its bundle before using these links. macOS reads the `plinth` scheme registration from the app’s Info.plist. The generated development bundle includes the same registration; the installed live development app refreshes and registers its protocol metadata on each rebuild. Link handling uses Tauri’s native macOS [`RunEvent::Opened`](https://docs.rs/tauri/latest/tauri/enum.RunEvent.html#variant.Opened); it does not add a production server or a general-purpose URL opener.
+
 Collection and History scroll to show every album and saved state. The desktop album list does not scroll; albums beyond its visible area are clipped. Appearance controls and album editors remain scrollable when needed.
 
 Space between rows defaults to **Auto**, which balances the gap below the menu bar with the gap below the last row using each display’s size. A single row is centered vertically. Crowded layouts use zero spacing instead of overlapping; increase Columns if the albums cannot fit. The gap slider is disabled while Auto is checked; uncheck Auto to set a custom gap. Existing saved numeric spacing remains manual; check Auto or use Layout Reset to restore balanced spacing. Artwork opacity and surrounding-cover dimming are no longer applied.

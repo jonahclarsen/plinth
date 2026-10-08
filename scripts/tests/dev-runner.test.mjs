@@ -32,6 +32,8 @@ test('Cargo launches a CLI-only probe inside the icon-bearing bundle, preserving
   assert.deepEqual(readFileSync(join(bundle,'Contents/Resources/icon.icns')),readFileSync(icon))
   const info=spawnSync('/usr/bin/plutil',['-extract','CFBundleIconFile','raw',join(bundle,'Contents/Info.plist')],{encoding:'utf8'})
   assert.equal(info.status,0,info.stderr);assert.equal(info.stdout.trim(),'icon.icns')
+  const scheme=spawnSync('/usr/bin/plutil',['-extract','CFBundleURLTypes.0.CFBundleURLSchemes.0','raw',join(bundle,'Contents/Info.plist')],{encoding:'utf8'})
+  assert.equal(scheme.status,0,scheme.stderr);assert.equal(scheme.stdout.trim(),'plinth')
   // A new Cargo build must replace the old executable hard link.
   writeFileSync(join(dir,'src/main.rs'),'fn main(){println!("rebuilt");}\n')
   const rebuilt=spawnSync(cargoRunner,['run','--offline','--quiet'],{cwd:dir,env,encoding:'utf8'})
