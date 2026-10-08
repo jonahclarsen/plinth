@@ -48,3 +48,5 @@
 
 - Desktop hover behavior is mirrored on the website hero in `../plinth-website/public/hover.js`: nearest-cover hit areas with no dead zone, enlargement laid out at the animation's largest size and scaled down only (never upscaled, never animating layout size), slow breathing, drift away from the pointer, and neighbor push that follows the current size. Keep app and site in sync whenever any of these change.
 - Size desktop cells with the same explicit pixel width and height from shared geometry; do not rely on flexbox aspect-ratio sizing. Background hover defaults on; when disabled, only Plinth or Finder foreground permits desktop enlargement. Include foreground changes in pointer tracking even without pointer movement.
+
+- Stats has no page heading or introductory copy. Release-date bars fit the available width; thin out axis labels for dense data. Hovered date columns show artwork only, about four covers over the chart height, with subtle scale/rotation/position breathing. Moving upward along a column scrolls larger groups; keyboard users can focus a date and use Up/Down or Home/End. Show just the album count when date coverage is complete.

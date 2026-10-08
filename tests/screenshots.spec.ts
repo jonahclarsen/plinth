@@ -23,6 +23,8 @@ test('README screenshots use only synthetic demo artwork',async({page})=>{
  await sharp(await page.screenshot({fullPage:true,animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/appearance.webp')
  await page.mouse.up()
  await page.getByRole('button',{name:'Stats',exact:true}).click()
+ await page.locator('.release-bucket').first().focus()
+ await page.locator('.stats-peek img').first().evaluate(async(image:HTMLImageElement)=>image.decode())
  await sharp(await page.screenshot({fullPage:true,animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/stats.webp')
  await page.getByRole('button',{name:'Settings',exact:true}).click()
  await expect(page.getByLabel('Clicking an album')).toHaveCount(0)

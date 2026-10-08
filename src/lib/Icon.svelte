@@ -3,6 +3,7 @@
  const paths:Record<string,string> = {
   download:'M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4',replace:'M4 10a8 8 0 0 1 13-6l3 3m0-5v5h-5M20 14a8 8 0 0 1-13 6l-3-3m0 5v-5h5',
   history:'M3 11a9 9 0 1 1 2.6 7M3 4v7h7m2-4v6l4 2',undo:'M9 4 3 10l6 6M3 10h11a7 7 0 0 1 7 7v3',redo:'m15 4 6 6-6 6m6-6H10a7 7 0 0 0-7 7v3',
+  gear:'m9.5 3-.5 2-2 1-2-.5L3 9l1.5 1.5v3L3 15l2 3.5 2-.5 2 1 .5 2h5l.5-2 2-1 2 .5 2-3.5-1.5-1.5v-3L21 9l-2-3.5-2 .5-2-1-.5-2h-5ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
   stats:'M4 20h16M7 16v-5m5 5V4m5 12V8',
   grid:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
   monitor:'M3 4h18v13H3zM8 21h8m-4-4v4',plus:'M12 5v14M5 12h14',folder:'M3 7V5h6l2 2h10v13H3V7Z',

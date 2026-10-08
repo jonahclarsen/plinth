@@ -109,7 +109,7 @@ test('text undo and modal shortcuts do not navigate saved history',async({page})
  await page.keyboard.press('Escape');await historyPage(page)
  await expect(page.locator('.history-list>li')).toHaveCount(2)
  await expect(page.getByRole('navigation').getByRole('button',{name:'Collection',exact:true})).toHaveAttribute('aria-current','page');await page.getByRole('button',{name:'Back to Settings',exact:true}).click();await expect(page.getByRole('group',{name:'App appearance'})).toBeVisible()
- await historyPage(page);await page.keyboard.press('Alt+KeyQ');await expect(page.locator('.history-list')).toBeVisible();await page.keyboard.press('Escape');await page.keyboard.press('Alt+KeyQ');await expect(page.getByRole('heading',{name:'Stats',exact:true})).toBeVisible()
+ await historyPage(page);await page.keyboard.press('Alt+KeyQ');await expect(page.locator('.history-list')).toBeVisible();await page.keyboard.press('Escape');await page.keyboard.press('Alt+KeyQ');await expect(page.locator('.stats-page')).toBeVisible()
 })
 
 

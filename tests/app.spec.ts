@@ -95,7 +95,7 @@ test('collection toolbar controls share a centered row',async({page})=>{
 })
 test('Option page navigation wraps, desktop toggle uses action labels, internal artwork cannot drag',async({page})=>{
  await page.goto('/?demo=1');await expect(page.locator('.header-actions').getByRole('button')).toHaveText(['Disable','Add artworkCmd A','Cmd S']);await page.getByRole('button',{name:'Disable',exact:true}).click();await expect(page.locator('.header-actions').getByRole('button',{name:'Enable',exact:true})).toBeVisible()
- await page.keyboard.press('Alt+KeyQ');await expect(page.getByRole('heading',{name:'Stats',exact:true})).toBeVisible();await page.keyboard.press('Alt+KeyW');await expect(page.locator('.album-grid')).toBeVisible()
+ await page.keyboard.press('Alt+KeyQ');await expect(page.locator('.stats-page')).toBeVisible();await page.keyboard.press('Alt+KeyW');await expect(page.locator('.album-grid')).toBeVisible()
  const image=page.locator('.artwork img').first();await expect(image).toHaveAttribute('draggable','false')
  await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click();await expect(page.locator('.editor-artwork>img')).toHaveAttribute('draggable','false');await expect(page.locator('.artwork-actions')).toHaveCSS('opacity','0');await page.locator('.editor-artwork').hover();await expect(page.locator('.artwork-actions')).toHaveCSS('opacity','1')
 })
