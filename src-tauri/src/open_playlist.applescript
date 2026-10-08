@@ -34,6 +34,18 @@ on playlistIndex(playlistName, names)
     return matchIndex
 end playlistIndex
 
+-- Use Music's writable browser view rather than relying on `reveal`, which
+-- can select an item without switching the main window to that playlist.
+-- Object references come only from the local library, never from link text.
+on showPlaylist(targetPlaylist, browserWindow)
+    using terms from application "Music"
+        set view of browserWindow to targetPlaylist
+        set visible of browserWindow to true
+        set collapsed of browserWindow to false
+        return (persistent ID of view of browserWindow) is (persistent ID of targetPlaylist)
+    end using terms from
+end showPlaylist
+
 on run argv
 set playlistName to item 1 of argv
 tell application "Music"
@@ -56,8 +68,20 @@ repeat with attempt from 1 to 20
             return
         end if
         if matchIndex > 0 then
-            reveal item matchIndex of candidates
-            return
+            set targetPlaylist to contents of item matchIndex of candidates
+            set navigationError to "Music did not switch to the requested playlist."
+            repeat with navigationAttempt from 1 to 20
+                try
+                    -- A closed browser may need reveal to create its window.
+                    if (count of browser windows) is 0 then reveal targetPlaylist
+                    set mainWindow to browser window 1
+                    if my showPlaylist(targetPlaylist, mainWindow) then return
+                on error errorMessage
+                    set navigationError to errorMessage
+                end try
+                if navigationAttempt < 20 then delay 0.25
+            end repeat
+            error ("Music found the playlist but could not display it: " & navigationError)
         end if
     end repeat
     if attempt < 20 then delay 0.25

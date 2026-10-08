@@ -1,6 +1,6 @@
 # Working on Plinth
 
-- Always commit and push after making a change.
+- Always rebuild, relaunch, commit, and push after changes.
 - Always make changes in a separate Git worktree. When finished and verified, merge them into main and push main. Then remove your worktree.
 - Whenever changing the UI, update the README screenshot with a freshly rendered WebP. Use synthetic demo artwork and metadata only.
 - Prefer pnpm over npm.
