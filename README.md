@@ -20,6 +20,8 @@ Plinth is a macOS menu bar app that turns your album artwork into an interactive
 
 ![History and earlier states](docs/screenshots/history.webp)
 
+![Release-date charts and library stats](docs/screenshots/stats.webp)
+
 ![App settings](docs/screenshots/settings.webp)
 
 ![Original artwork and hover controls](docs/screenshots/album.webp)
@@ -30,7 +32,7 @@ The screenshots contain only synthetic artwork and fictional album metadata. No 
 
 ## Use it
 
-Launch `Plinth.app`, click its menu bar icon to open the collection, then choose **Add artwork**, or drop image files into the library window. The Enable / Disable button beside Add artwork controls desktop artwork from any page and keeps the window focused. Press Command-A on the Collection page to add artwork. Click a record’s artwork, caption, or caption spacing to edit it. From the editor, click the artwork to view the original in the borderless gallery. Enter a **Playlist** name to make the record open that playlist from your Music library, including private playlists, instead of the album. Choose **Appearance** to adjust the desktop using lightweight white placeholders with the same album count, layout, and hover behavior, and **Settings** for the app theme, logo, and Music behavior. **App logo** offers the three supplied designs and remembers your choice. Switching updates the app header, browser icon, macOS Dock, menu bar, and Finder app icon.
+Launch `Plinth.app`, click its menu bar icon to open the collection, then choose **Add artwork**, or drop image files into the library window. The Enable / Disable button beside Add artwork controls desktop artwork from any page and keeps the window focused. Press Command-A from any page to switch to Collection and add artwork. Click a record’s artwork, caption, or caption spacing to edit it. From the editor, click the artwork to view the original in the borderless gallery. Enter a **Playlist** name to make the record open that playlist from your Music library, including private playlists, instead of the album. Choose **Appearance** to adjust the desktop using lightweight white placeholders with the same album count, layout, and hover behavior, and **Stats** for release-year, month, decade, and artist charts. Open **Settings** from the top-right button or Command-S for the app theme, logo, and history. **App logo** offers the three supplied designs and remembers your choice. Switching updates the app header, browser icon, macOS Dock, menu bar, and Finder app icon.
 
 **Appearance → Spaces** has buttons for **All Spaces**, **This Space**, **1**, **2**, and **3**. All Spaces shows artwork everywhere. This Space uses the active desktop when artwork is enabled or Plinth starts. Numbered choices place artwork directly on that Mission Control desktop without switching Spaces or moving the main window. The number is remembered across launches and follows Mission Control's desktop order, excluding full-screen apps. With separate Spaces per display, artwork appears on the display that owns the chosen desktop. Missing numbered desktops are disabled; create them in Mission Control, then return to Appearance. If a saved desktop no longer exists, choose another option.
 
@@ -60,7 +62,7 @@ Space between rows defaults to **Auto**, which balances the gap below the menu b
 
 The desktop is a transparent native window above the wallpaper and desktop icons, below ordinary windows. It receives clicks and does not scroll. Cover width and height use the same calculated size, so increasing cover spacing shrinks square covers. Incomplete rows are centered; use the Columns setting to fit more covers on screen. Covers enlarge without activating Plinth; this does not draw over your foreground apps. Restart Plinth after changing monitor arrangements. Add Plinth in **System Settings → General → Login Items** if you want it to start at login.
 
-Alt-C, Alt-A, and Alt-S open Collection, Appearance, and Settings (use Option on Mac). The tab buttons show these shortcuts. Option-Q and Option-W move to the previous or next page, wrapping at either end. Window size is remembered when you close or quit; new installations open at 1550 × 840 points.
+Alt-C, Alt-A, and Alt-S open Collection, Appearance, and Stats (use Option on Mac). Settings opens in a modal with Command-S. The tab buttons show these shortcuts. Option-Q and Option-W move to the previous or next page, wrapping at either end. Window size is remembered when you close or quit; new installations open at 1550 × 840 points.
 
 ## Local data and backups
 

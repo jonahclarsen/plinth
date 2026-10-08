@@ -4,7 +4,7 @@ test('tab shortcuts use physical letters and respect text fields, modifiers and 
  await page.goto('/?demo=1')
  const nav=page.getByRole('navigation',{name:'Main navigation'})
  const active=(name:string)=>expect(nav.getByRole('button',{name,exact:true})).toHaveClass('active')
- for(const [name,key] of [['Appearance','A'],['Settings','S'],['Collection','C']]){
+ for(const [name,key] of [['Appearance','A'],['Stats','S'],['Collection','C']]){
   const button=nav.getByRole('button',{name,exact:true})
   await expect(button).toHaveAttribute('aria-keyshortcuts','Alt+'+key)
   await expect(button.locator('kbd')).toHaveText('⌥ '+key)
@@ -30,7 +30,7 @@ test('tab shortcuts use physical letters and respect text fields, modifiers and 
  await page.keyboard.press('Escape')
  await page.keyboard.press('Control+q');await page.keyboard.press('Alt+KeyS');await active('Collection')
  await page.keyboard.press('Escape')
- await page.keyboard.press('Alt+KeyS');await active('Settings')
+ await page.keyboard.press('Alt+KeyS');await active('Stats')
  await page.keyboard.press('Alt+KeyW');await active('Collection')
- await page.keyboard.press('Alt+KeyQ');await active('Settings')
+ await page.keyboard.press('Alt+KeyQ');await active('Stats')
 })

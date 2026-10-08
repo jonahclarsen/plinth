@@ -11,6 +11,7 @@
  import Desktop from './lib/Desktop.svelte'
  import { desktopSpacing } from './lib/spacing'
  import History from './lib/History.svelte'
+ import Stats from './lib/Stats.svelte'
  import { emptyHistory, type HistoryView } from './lib/history'
  import * as api from './lib/api'
  import { dayMask, defaultSettings, ordered, shuffleSeed, today, type Library, type Album, type Layout } from './lib/types'
@@ -20,7 +21,7 @@
  const sortOptions=[{value:'artist',label:'Artist'},{value:'title',label:'Title'},{value:'date',label:'Newest date'},{value:'oldest',label:'Oldest date'},{value:'shuffle',label:'Shuffle'}]
  function chooseSort(value:string){library.settings.sort=value;if(value==='shuffle'){const next=new Uint32Array(1);do{crypto.getRandomValues(next)}while(next[0]===library.settings.shuffleSeed);library.settings.shuffleSeed=next[0]}sortOpen=false;persist()}
  function chooseDaily(daily:boolean){const s=library.settings;s.shuffleSeed=(s.shuffleSeed^dayMask($today))>>>0;s.shuffleDaily=daily;persist()}
- const tabs=[{id:'collection',label:'Collection',icon:'grid',key:'C'},{id:'appearance',label:'Appearance',icon:'settings',key:'A'},{id:'settings',label:'Settings',icon:'info',key:'S'}]
+ const tabs=[{id:'collection',label:'Collection',icon:'grid',key:'C'},{id:'appearance',label:'Appearance',icon:'settings',key:'A'},{id:'stats',label:'Stats',icon:'stats',key:'S'}]
  let page='collection',query='',busy=false,loaded=false,error='',notice='',dragging=false
  let history:HistoryView=emptyHistory,historyBusy=false,historyLoading=false
  let historyRequest=0
@@ -36,6 +37,11 @@
  let artworkTarget:HTMLDivElement
  let replacing=false
  let files:HTMLInputElement
+ let settingsDialog:HTMLDialogElement
+ let settingsView='settings'
+ let settingsBackdropDown=false
+ function showSettings(){finishAppearanceDrag();settingsView='settings';settingsDialog.showModal()}
+ function showHistory(){settingsView='history';void loadHistoryPage()}
  let quitHeading:HTMLHeadingElement
  let quitDialog:HTMLDialogElement
  let quitBackdropDown=false
@@ -69,7 +75,7 @@
   } catch { /* Keep the last preview if a display is disconnected during detection. */ }
  }
  let previousPage=page
- $: if(page!==previousPage){finishAppearanceDrag();previousPage=page;if(page==='appearance'){void refreshSpaces();if(api.native)void refreshDisplays(true)};if(page==='history')void loadHistoryPage()}
+ $: if(page!==previousPage){finishAppearanceDrag();previousPage=page;if(page==='appearance'){void refreshSpaces();if(api.native)void refreshDisplays(true)}}
  $: screen=screens[profile]
  let mediaDark=window.matchMedia('(prefers-color-scheme: dark)').matches
  let saveQueue=Promise.resolve()
@@ -100,7 +106,7 @@
  }
  function changeLayout(key:keyof Layout,value:number|boolean|null) {library.settings[profile]={...layout,[key]:value};persist()}
  async function importPaths(paths:string[]) {if(!paths.length)return;busy=true;error='';try{const r=await api.importPaths(paths);message(`${r.added} artwork${r.added===1?'':'s'} added${r.duplicates?` · ${r.duplicates} already in your collection`:''}`);if(r.errors.length)error=r.errors.join('\n')}catch(e){error=String(e)}finally{busy=false}}
- async function choose() {if(!api.native){files.click();return}try{await importPaths(await api.chooseImages())}catch(e){error=String(e)}}
+ async function choose() {page='collection';if(!api.native){files.click();return}try{await importPaths(await api.chooseImages())}catch(e){error=String(e)}}
  async function browserFiles(selected:File[]) {busy=true;try{const r=await api.importBrowserFiles(selected);message(`${r.added} artworks added${r.duplicates?` · ${r.duplicates} already in your collection`:''}`);if(r.errors.length)error=r.errors.join('\n')}catch(e){error=String(e)}finally{busy=false}}
  async function saveAlbum() {if(!edit||saving||replacing)return;saving=true;try{await api.updateAlbum(edit);closeEditor();message('Album updated')}catch(e){error=String(e)}finally{saving=false}}
  async function replace(input:string|File){if(!edit)return;replacing=true;try{const result=await api.replaceArtwork(edit,input);edit={...edit,cover:result.cover,original:result.original}}catch{await api.showAlert('This image could not be used. Choose a supported image file.')}finally{replacing=false}}
@@ -111,7 +117,7 @@
  function showQuit(){if(!quitDialog?.open){quitDialog?.showModal();quitHeading?.focus()}}
  async function flushSettings(){clearTimeout(saveTimer);await saveQueue;if(settingsDirty){await api.saveSettings(structuredClone(library.settings));settingsDirty=false}}
  async function refreshHistory(){
-  if(desktop||page!=='history')return
+  if(desktop||settingsView!=='history'||!settingsDialog?.open)return
   const request=++historyRequest;historyLoading=true
   try{const result=await api.getHistory();if(request===historyRequest)history=result??emptyHistory}catch(e){if(request===historyRequest)error=String(e)}finally{if(request===historyRequest)historyLoading=false}
  }
@@ -171,7 +177,7 @@
 </script>
 
  <svelte:head><link rel="icon" type="image/png" href={logoUrl(settings.logo)}/><link rel="apple-touch-icon" href={logoUrl(settings.logo)}/></svelte:head>
- <svelte:window onpointerup={stopHoverPreview} onpointercancel={stopHoverPreview} onblur={stopHoverPreview} onpointerdown={(e)=>{beginAppearanceDrag(e);if(!(e.target instanceof Element)||!e.target.closest('.sort-picker'))sortOpen=false}} onkeydown={(e)=>{if(desktop)return;if(quitDialog?.open){if(e.repeat){e.preventDefault();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();void quitApp()}else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow()}else if(e.key==='Escape'){e.preventDefault();quitDialog.close()}return}if(e.repeat&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();return}if(e.key==='Escape'&&sortOpen){sortOpen=false;return}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.isComposing&&!editingText(e.target)&&!modal?.open&&!gallery?.open){const tab=tabs.find(tab=>e.code==='Key'+tab.key);if(tab){e.preventDefault();sortOpen=false;page=tab.id;return}}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&(e.code==='KeyQ'||e.code==='KeyW')){if(modal?.open||quitDialog?.open)return;e.preventDefault();const pages=tabs.map(tab=>tab.id);page=pages[(pages.indexOf(page==='history'?'settings':page)+(e.code==='KeyQ'?-1:1)+pages.length)%pages.length];return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();showQuit();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow();return}if(gallery?.open){if(e.key==='Escape'){e.preventDefault();closeGallery()}return}if(modal?.open&&e.key==='Enter'&&!e.isComposing&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.shiftKey&&!confirmRemove){e.preventDefault();if(!e.repeat&&!saving&&!replacing)editorForm.requestSubmit();return}if((e.metaKey||e.ctrlKey)&&!e.altKey&&e.key.toLowerCase()==='z'&&!modal?.open&&!editingText(e.target)){e.preventDefault();if(!e.repeat)void moveHistory(e.shiftKey?'redo':'undo');return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='a'&&page==='collection'&&!modal?.open&&!(e.target instanceof Element&&e.target.closest('input,textarea,[contenteditable]'))){e.preventDefault();if(!e.repeat&&!busy)void choose();return}if(e.key==='/' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)){e.preventDefault();document.querySelector<HTMLInputElement>('.search input')?.focus()}if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();void choose()}if(e.key==='Escape'){if(quitDialog?.open)quitDialog.close();else closeEditor()}}}/>
+ <svelte:window onpointerup={stopHoverPreview} onpointercancel={stopHoverPreview} onblur={stopHoverPreview} onpointerdown={(e)=>{beginAppearanceDrag(e);if(!(e.target instanceof Element)||!e.target.closest('.sort-picker'))sortOpen=false}} onkeydown={(e)=>{if(desktop)return;if(quitDialog?.open){if(e.repeat){e.preventDefault();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();void quitApp()}else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow()}else if(e.key==='Escape'){e.preventDefault();quitDialog.close()}return}if(e.repeat&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();return}if(e.key==='Escape'&&sortOpen){sortOpen=false;return}if((e.metaKey||e.ctrlKey)&&!e.altKey&&!e.shiftKey&&e.code==='KeyS'&&!modal?.open&&!gallery?.open){e.preventDefault();if(!e.repeat&&!settingsDialog?.open)showSettings();return}if(settingsDialog?.open){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();showQuit()}else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();settingsDialog.close();void hideWindow()}return;}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.isComposing&&!editingText(e.target)&&!modal?.open&&!gallery?.open){const tab=tabs.find(tab=>e.code==='Key'+tab.key);if(tab){e.preventDefault();sortOpen=false;page=tab.id;return}}if(e.altKey&&!e.metaKey&&!e.ctrlKey&&(e.code==='KeyQ'||e.code==='KeyW')){if(modal?.open||quitDialog?.open||gallery?.open||editingText(e.target)||e.shiftKey||e.isComposing)return;e.preventDefault();const pages=tabs.map(tab=>tab.id);page=pages[(pages.indexOf(page)+(e.code==='KeyQ'?-1:1)+pages.length)%pages.length];return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='q'){e.preventDefault();showQuit();return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='w'){e.preventDefault();void hideWindow();return}if(gallery?.open){if(e.key==='Escape'){e.preventDefault();closeGallery()}return}if(modal?.open&&e.key==='Enter'&&!e.isComposing&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.shiftKey&&!confirmRemove){e.preventDefault();if(!e.repeat&&!saving&&!replacing)editorForm.requestSubmit();return}if((e.metaKey||e.ctrlKey)&&!e.altKey&&e.key.toLowerCase()==='z'&&!modal?.open&&!editingText(e.target)){e.preventDefault();if(!e.repeat)void moveHistory(e.shiftKey?'redo':'undo');return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='a'&&!modal?.open&&!(e.target instanceof Element&&e.target.closest('input,textarea,[contenteditable]'))){e.preventDefault();if(!e.repeat&&!busy)void choose();return}if(e.key==='/' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLSelectElement)){e.preventDefault();document.querySelector<HTMLInputElement>('.search input')?.focus()}if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();void choose()}if(e.key==='Escape'){if(quitDialog?.open)quitDialog.close();else closeEditor()}}}/>
 {#if desktop}
  <Desktop {library}/>
 {:else}
@@ -182,10 +188,10 @@
    <a class="brand" href="/" onclick={(e)=>{e.preventDefault();page='collection'}}><span class="brand-mark" data-logo={settings.logo}><Logo logo={settings.logo}/></span>plinth</a>
    <nav aria-label="Main navigation" data-tauri-drag-region>
     {#each tabs as tab}
-     <button class:active={(page==='history'?'settings':page)===tab.id} aria-current={(page==='history'?'settings':page)===tab.id?'page':undefined} title={tab.label+' (Alt+'+tab.key+')'} aria-keyshortcuts={'Alt+'+tab.key} onclick={()=>page=tab.id}><Icon name={tab.icon}/><span>{tab.label}</span><Shortcut keys={['⌥',tab.key]}/></button>
+     <button class:active={page===tab.id} aria-current={page===tab.id?'page':undefined} title={tab.label+' (Alt+'+tab.key+')'} aria-keyshortcuts={'Alt+'+tab.key} onclick={()=>page=tab.id}><Icon name={tab.icon}/><span>{tab.label}</span><Shortcut keys={['⌥',tab.key]}/></button>
     {/each}
    </nav>
-   <div class="header-actions" data-tauri-drag-region><button class="desktop-toggle" onclick={()=>{settings.desktopEnabled=!settings.desktopEnabled;persist()}}>{settings.desktopEnabled?'Disable':'Enable'}</button><button class="primary add-artwork" aria-label={busy?'Importing…':'Add artwork'} aria-keyshortcuts={page==='collection'?'Meta+A Control+A':undefined} onclick={()=>choose()} disabled={busy}>{busy?'Importing…':'Add artwork'}{#if page==='collection'&&!busy}<Shortcut keys={['Cmd','A']}/>{/if}</button></div>
+   <div class="header-actions" data-tauri-drag-region><button class="desktop-toggle" onclick={()=>{settings.desktopEnabled=!settings.desktopEnabled;persist()}}>{settings.desktopEnabled?'Disable':'Enable'}</button><button class="primary add-artwork" aria-label={busy?'Importing…':'Add artwork'} aria-keyshortcuts="Meta+A Control+A" onclick={()=>choose()} disabled={busy}>{busy?'Importing…':'Add artwork'}{#if page==='collection'&&!busy}<Shortcut keys={['Cmd','A']}/>{/if}</button><button aria-label="Settings" aria-keyshortcuts="Meta+S Control+S" title="Settings (Cmd+S)" onclick={showSettings}><Icon name="settings"/><Shortcut keys={['Cmd','S']}/></button></div>
   </header>
   {#if error}<div class="banner error" role="alert"><span>{error}</span><button class="icon-only" aria-label="Dismiss error" onclick={()=>error=''}><Icon name="close"/></button></div>{/if}
   {#if notice}<div class="toast" role="status"><Icon name="check"/>{notice}</div>{/if}
@@ -210,21 +216,8 @@
     <div class="row-spacing-field"><div><label for="row-spacing">Space between rows</label><label class="auto-row-spacing"><input type="checkbox" aria-label="Automatic row spacing" checked={layout.rowGap===null} onchange={(e)=>changeLayout('rowGap',e.currentTarget.checked?null:Math.round(rowSpacing.rowGap))}/>Auto</label><output for="row-spacing">{Math.round(rowSpacing.rowGap)}px</output></div><input id="row-spacing" aria-label="Space between rows" aria-describedby="row-spacing-note" disabled={layout.rowGap===null} type="range" min="0" max={Math.max(80,Math.ceil(desktopSpacing({...layout,rowGap:null},screen.width,screen.height,enabled.length,screen.menuBarHeight).rowGap),layout.rowGap??0)} step="1" value={rowSpacing.rowGap} oninput={(e)=>changeLayout('rowGap',Number(e.currentTarget.value))}/><p id="row-spacing-note" class="field-note">Auto balances the top and bottom margins. Uncheck to set a custom gap.</p></div>
     {/if}{/each}
     <div class="control-divider"></div><label class="toggle-row"><span>Enlarge on hover</span><input class="switch" type="checkbox" bind:checked={settings.hoverEnabled} onchange={persist}/></label><label class="toggle-row"><span>While another app has focus</span><input class="switch" type="checkbox" disabled={!settings.hoverEnabled} bind:checked={settings.hoverInBackground} onchange={persist}/></label><label class="toggle-row"><span>Push nearby artwork</span><input class="switch" type="checkbox" disabled={!settings.hoverEnabled} bind:checked={settings.pushNeighbors} onchange={persist}/></label><label class="slider-field"><span>Hover size<output>{settings.hoverScale.toFixed(1)}×</output></span><input aria-label="Hover size" onpointerdown={startHoverPreview} type="range" min="1" max="3" step=".1" bind:value={settings.hoverScale} oninput={persist}/></label><label class="slider-field"><span>Hover speed<output>{Math.round(250/(settings.hoverSpeed??1))} ms</output></span><input aria-label="Hover speed" onpointerdown={startHoverPreview} type="range" min="83" max="1000" step="1" value={Math.round(250/(settings.hoverSpeed??1))} aria-valuetext={`${Math.round(250/(settings.hoverSpeed??1))} milliseconds`} oninput={(event)=>{settings.hoverSpeed=Math.min(3,250/Number(event.currentTarget.value));persist()}}/></label></section></div>
-   {:else if page==='history'}
-    <div class="history-back"><button onclick={()=>page='settings'}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>Back to Settings</button></div>
-    <History {history} busy={historyBusy||busy} loading={historyLoading} undo={()=>void moveHistory('undo')} redo={()=>void moveHistory('redo')} restore={(id)=>void moveHistory('restore',id)}/>
-   {:else}
-    <section class="panel settings-compact" aria-label="Settings">
-     <div class="setting-row"><span>App appearance</span><div class="appearance-options" role="group" aria-label="App appearance">
-      {#each ['system','light','dark'] as theme}<button class="appearance-option" class:chosen={settings.theme===theme} aria-label={theme[0].toUpperCase()+theme.slice(1)} aria-pressed={settings.theme===theme} onclick={()=>{settings.theme=theme;persist()}}><svg class={`appearance-circle ${theme}`} width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill={theme==='dark'?'#25232a':'#faf9fc'}/>{#if theme==='system'}<path d="M15 2a13 13 0 0 1 0 26Z" fill="#25232a"/>{/if}<circle cx="15" cy="15" r="13" fill="none" stroke="#96909f" stroke-width="1"/></svg><span>{theme[0].toUpperCase()+theme.slice(1)}</span></button>{/each}
-     </div></div>
-     <div class="setting-row logo-setting"><span>App logo</span><div class="logo-options" role="group" aria-label="App logo">
-      {#each logos as logo}<button class="logo-option" class:chosen={settings.logo===logo.id} aria-label={logo.label} aria-pressed={settings.logo===logo.id} onclick={()=>{settings.logo=logo.id;persist()}}><span class="logo-preview"><Logo logo={logo.id} size={60}/></span><span>{logo.label}</span></button>{/each}
-     </div></div>
-     <label class="setting-row"><span>Show artwork on the desktop</span><input class="switch" type="checkbox" bind:checked={settings.desktopEnabled} onchange={persist}/></label>
-     <div class="setting-row"><span>History</span><button onclick={()=>page='history'}><Icon name="history"/>History</button></div>
-     <div class="setting-row"><span>Local storage</span><button disabled={!api.native} onclick={()=>invoke('reveal_data').catch(e=>error=String(e))}><Icon name="folder"/>Open folder</button></div>
-    </section>
+   {:else if page==='stats'}
+    <Stats albums={library.albums}/>
    {/if}
    {#if !api.native}<footer><span>Browser preview · changes last for this session</span></footer>{/if}
   </main>
@@ -233,6 +226,25 @@
  </div>
  <input class="visually-hidden" bind:this={files} type="file" accept="image/*" multiple onchange={(e)=>{void browserFiles(Array.from(e.currentTarget.files??[]));e.currentTarget.value=''}} aria-label="Artwork files"/>
  <input class="visually-hidden" bind:this={replacementFiles} type="file" accept="image/*" aria-label="Replacement image" onchange={(e)=>{const file=e.currentTarget.files?.[0];if(file)void replace(file);e.currentTarget.value=''}}/>
+ <dialog class="settings-dialog" bind:this={settingsDialog} aria-label="Settings" onpointerdown={(e)=>settingsBackdropDown=e.target===settingsDialog&&outsideDialog(settingsDialog,e)} onpointerup={(e)=>{if(settingsBackdropDown&&e.target===settingsDialog&&outsideDialog(settingsDialog,e))settingsDialog.close();settingsBackdropDown=false}}>
+  <div class="settings-heading"><h2>Settings</h2><button class="icon-only" aria-label="Close settings" onclick={()=>settingsDialog.close()}><Icon name="close"/></button></div>
+  {#if settingsView==='history'}
+   <div class="history-back"><button onclick={()=>settingsView='settings'}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>Back to Settings</button></div>
+   <History {history} busy={historyBusy||busy} loading={historyLoading} undo={()=>void moveHistory('undo')} redo={()=>void moveHistory('redo')} restore={(id)=>void moveHistory('restore',id)}/>
+  {:else}
+    <section class="panel settings-compact" aria-label="Settings">
+     <div class="setting-row"><span>App appearance</span><div class="appearance-options" role="group" aria-label="App appearance">
+      {#each ['system','light','dark'] as theme}<button class="appearance-option" class:chosen={settings.theme===theme} aria-label={theme[0].toUpperCase()+theme.slice(1)} aria-pressed={settings.theme===theme} onclick={()=>{settings.theme=theme;persist()}}><svg class={`appearance-circle ${theme}`} width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill={theme==='dark'?'#25232a':'#faf9fc'}/>{#if theme==='system'}<path d="M15 2a13 13 0 0 1 0 26Z" fill="#25232a"/>{/if}<circle cx="15" cy="15" r="13" fill="none" stroke="#96909f" stroke-width="1"/></svg><span>{theme[0].toUpperCase()+theme.slice(1)}</span></button>{/each}
+     </div></div>
+     <div class="setting-row logo-setting"><span>App logo</span><div class="logo-options" role="group" aria-label="App logo">
+      {#each logos as logo}<button class="logo-option" class:chosen={settings.logo===logo.id} aria-label={logo.label} aria-pressed={settings.logo===logo.id} onclick={()=>{settings.logo=logo.id;persist()}}><span class="logo-preview"><Logo logo={logo.id} size={60}/></span><span>{logo.label}</span></button>{/each}
+     </div></div>
+     <label class="setting-row"><span>Show artwork on the desktop</span><input class="switch" type="checkbox" bind:checked={settings.desktopEnabled} onchange={persist}/></label>
+     <div class="setting-row"><span>History</span><button onclick={showHistory}><Icon name="history"/>History</button></div>
+     <div class="setting-row"><span>Local storage</span><button disabled={!api.native} onclick={()=>invoke('reveal_data').catch(e=>error=String(e))}><Icon name="folder"/>Open folder</button></div>
+    </section>
+  {/if}
+ </dialog>
  <dialog class="album-dialog" bind:this={modal} onpointerdown={(e)=>backdropPointerDown=e.target===modal&&outsideDialog(modal,e)} onpointerup={(e)=>{if(backdropPointerDown&&e.target===modal&&outsideDialog(modal,e))closeEditor();backdropPointerDown=false}} onclose={()=>{if(!modal.open){gallery?.close();edit=null;confirmRemove=false}}} oncancel={closeEditor}>
  {#if edit}<form bind:this={editorForm} onsubmit={(e)=>{e.preventDefault();void saveAlbum()}}><button class="icon-only editor-close" type="button" aria-label="Close album editor" onclick={closeEditor}><Icon name="close"/></button><div class="editor-top"><div class="editor-artwork" bind:this={artworkTarget} class:replacing ondragover={(e)=>e.preventDefault()} ondrop={(e)=>{e.preventDefault();if(!api.native&&e.dataTransfer?.files.length===1)void replace(e.dataTransfer.files[0])}} role="presentation"><img draggable="false" ondragstart={(e)=>e.preventDefault()} src={api.originalUrl(edit)} alt={edit.title}/><button type="button" class="artwork-expand" aria-label="View original artwork" onclick={()=>edit&&showGallery(edit)}></button><div class="artwork-actions"><button type="button" class="icon-only" aria-label="Show original artwork in Finder" title="Show original artwork in Finder" onclick={revealArtwork} disabled={replacing||!api.native}><Icon name="folder"/></button><button type="button" class="icon-only" aria-label="Replace artwork" title="Replace artwork" onclick={chooseReplacement} disabled={replacing}><Icon name="upload"/></button></div>{#if replacing}<span class="replacement-progress">Replacing…</span>{/if}</div><div><h3>{edit.title}</h3><p>{edit.artist||'Make it your own.'}</p><button type="button" class="open-music" onclick={()=>edit&&open(edit)}><Icon name="music"/>Open in Music</button></div></div><label>Album title<input required bind:value={edit.title}/></label><div class="two-fields"><label>Artist<input bind:value={edit.artist}/></label><label>Release date<input type="date" bind:value={edit.date}/></label></div><label>Album link <span class="optional">optional</span><input type="url" placeholder="https://music.apple.com/…" bind:value={edit.url} aria-describedby={!edit.url.trim()&&!edit.playlist?.trim()?'album-link-help':undefined}/></label>{#if !edit.url.trim()&&!edit.playlist?.trim()}<p id="album-link-help" class="album-link-help">If no link is provided, the album will be searched for in your Apple Music library. This is often faster than opening an Apple Music link.</p>{/if}<label>Playlist <span class="optional">optional</span><span id="playlist-help" class="field-help">Opens this playlist from your Music library.</span><input placeholder="Playlist name in Music" bind:value={edit.playlist} aria-describedby="playlist-help"/></label><label class="toggle-row"><span>Show on desktop</span><input class="switch" type="checkbox" bind:checked={edit.enabled}/></label><div class="editor-actions">{#if confirmRemove}<button type="button" class="danger" onclick={remove}>Remove this album</button><button type="button" onclick={()=>confirmRemove=false}>Keep it</button>{:else}<button type="button" class="icon-only danger" aria-label="Remove album" onclick={()=>confirmRemove=true}><Icon name="trash"/></button><button type="submit" class="primary" aria-label="Save" aria-keyshortcuts="Enter" disabled={saving||replacing}><Icon name="check"/>Save<Shortcut keys={['Enter']}/></button>{/if}</div></form>{/if}
  </dialog>

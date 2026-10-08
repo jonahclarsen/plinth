@@ -17,6 +17,7 @@ test('Spaces buttons include 1–3, remember the selection, and support undo and
  await page.keyboard.press('Meta+Shift+z');await expect(group.getByRole('button',{pressed:true})).toHaveAccessibleName('Space 3')
  await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'History',exact:true}).click()
  await expect(page.locator('.history-list')).toContainText('Spaces: Space 2 → Space 3')
+ await page.keyboard.press('Escape')
  await page.getByRole('button',{name:'Appearance',exact:true}).click()
  await group.getByRole('button',{name:'All Spaces',exact:true}).click()
  await expect(group.getByRole('button',{pressed:true})).toHaveText('All Spaces')

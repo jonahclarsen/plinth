@@ -1,16 +1,16 @@
 import { test, expect } from '@playwright/test'
 import { createRequire } from 'node:module'
 const sharp:typeof import('sharp').default=createRequire(import.meta.url)('sharp')
-const historyPage=async(page:import('@playwright/test').Page)=>{await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'History',exact:true}).click();await expect(page.locator('.history-list')).toBeVisible()}
+const historyPage=async(page:import('@playwright/test').Page)=>{if(!await page.locator('.settings-dialog').isVisible())await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'History',exact:true}).click();await expect(page.locator('.history-list')).toBeVisible()}
 
 test('History opens from Settings and saves full metadata states',async({page})=>{
  await page.goto('/?demo=1')
- await expect(page.getByRole('navigation',{name:'Main navigation'}).getByRole('button').locator(':scope > span')).toHaveText(['Collection','Appearance','Settings'])
+ await expect(page.getByRole('navigation',{name:'Main navigation'}).getByRole('button').locator(':scope > span')).toHaveText(['Collection','Appearance','Stats'])
  await historyPage(page)
  await expect(page.locator('.history-list>li')).toHaveCount(1)
  await expect(page.getByRole('button',{name:'Undo',exact:true})).toBeDisabled()
  await expect(page.getByRole('button',{name:'Redo',exact:true})).toBeDisabled()
- await page.getByRole('button',{name:'Collection',exact:true}).click()
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'Collection',exact:true}).click()
  await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
  await page.getByLabel('Album title').fill('Soft Focus Remastered')
  await page.getByLabel('Artist',{exact:true}).fill('Mira Vale Ensemble')
@@ -23,7 +23,7 @@ test('History opens from Settings and saves full metadata states',async({page})=
  await expect(page.locator('.history-list')).toContainText('Artist: Mira Vale → Mira Vale Ensemble')
  await page.getByRole('button',{name:'Undo',exact:true}).click()
  await expect(page.locator('.history-list>li.current')).toContainText('Starting state')
- await page.getByRole('button',{name:'Collection',exact:true}).click()
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'Collection',exact:true}).click()
  await expect(page.getByRole('button',{name:'Edit Soft Focus',exact:true})).toBeVisible()
  await page.keyboard.press('Meta+Shift+z')
  await expect(page.getByRole('button',{name:'Edit Soft Focus Remastered',exact:true})).toBeVisible()
@@ -40,7 +40,7 @@ test('undo flushes pending appearance changes and restores the preview and deskt
  await expect(columns).toHaveValue(original)
  await expect(page.locator('.preview-render .desktop-grid')).toHaveCSS('--columns',original)
  await page.keyboard.press('Meta+Shift+z');await expect(columns).toHaveValue('7')
- await page.getByRole('button',{name:'Collection',exact:true}).click()
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'Collection',exact:true}).click()
  await page.getByRole('button',{name:'Disable',exact:true}).click()
  await page.keyboard.press('Meta+z')
  await expect(page.getByRole('button',{name:'Disable',exact:true})).toBeVisible()
@@ -51,9 +51,9 @@ test('undo flushes pending appearance changes and restores the preview and deskt
 test('new changes after undo retain abandoned states and Restore returns to either branch',async({page})=>{
  await page.goto('/?demo=1');await page.getByRole('button',{name:'Settings',exact:true}).click()
  await page.getByRole('button',{name:'Light',exact:true}).click();await historyPage(page)
- await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'Logo 3',exact:true}).click();await historyPage(page)
+ await page.getByRole('button',{name:'Back to Settings',exact:true}).click();await page.getByRole('button',{name:'Logo 3',exact:true}).click();await historyPage(page)
  await page.getByRole('button',{name:'Undo',exact:true}).click()
- await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'System',exact:true}).click();await historyPage(page)
+ await page.getByRole('button',{name:'Back to Settings',exact:true}).click();await page.getByRole('button',{name:'System',exact:true}).click();await historyPage(page)
  await expect(page.locator('.history-list>li')).toHaveCount(4)
  await expect(page.getByRole('button',{name:'Redo',exact:true})).toBeDisabled()
  await expect(page.locator('.history-list>li.current')).toContainText('From state 2')
@@ -93,7 +93,7 @@ test('imports are one state per batch and duplicates and no-op saves do not add 
  await page.getByRole('button',{name:'Edit New Album',exact:true}).click();await page.getByRole('button',{name:'Save',exact:true}).click()
  await historyPage(page);await expect(page.locator('.history-list>li')).toHaveCount(2)
  await page.getByRole('button',{name:'Undo',exact:true}).click()
- await page.getByRole('button',{name:'Collection',exact:true}).click()
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'Collection',exact:true}).click()
  await expect(page.getByRole('heading',{name:'Start with a record you love.'})).toBeVisible()
  await page.keyboard.press('Meta+Shift+z');await expect(page.locator('.album-card')).toHaveCount(1)
 })
@@ -108,8 +108,8 @@ test('text undo and modal shortcuts do not navigate saved history',async({page})
  await expect(page.locator('.album-dialog')).toBeVisible()
  await page.keyboard.press('Escape');await historyPage(page)
  await expect(page.locator('.history-list>li')).toHaveCount(2)
- await expect(page.getByRole('navigation').getByRole('button',{name:'Settings',exact:true})).toHaveAttribute('aria-current','page');await page.getByRole('button',{name:'Back to Settings',exact:true}).click();await expect(page.getByRole('group',{name:'App appearance'})).toBeVisible()
- await historyPage(page);await page.keyboard.press('Alt+KeyQ');await expect(page.locator('.appearance-layout')).toBeVisible();await page.keyboard.press('Alt+KeyW');await expect(page.getByRole('group',{name:'App appearance'})).toBeVisible()
+ await expect(page.getByRole('navigation').getByRole('button',{name:'Collection',exact:true})).toHaveAttribute('aria-current','page');await page.getByRole('button',{name:'Back to Settings',exact:true}).click();await expect(page.getByRole('group',{name:'App appearance'})).toBeVisible()
+ await historyPage(page);await page.keyboard.press('Alt+KeyQ');await expect(page.locator('.history-list')).toBeVisible();await page.keyboard.press('Escape');await page.keyboard.press('Alt+KeyQ');await expect(page.getByRole('heading',{name:'Stats',exact:true})).toBeVisible()
 })
 
 
@@ -117,7 +117,7 @@ test('all history entries remain reachable in a narrow window',async({page})=>{
  await page.setViewportSize({width:640,height:500})
  await page.goto('/?demo=1')
  for(let index=0;index<8;index++){
-  await page.getByRole('button',{name:'Settings',exact:true}).click()
+  if(await page.locator('.settings-dialog').isVisible())await page.getByRole('button',{name:'Back to Settings',exact:true}).click();else await page.getByRole('button',{name:'Settings',exact:true}).click()
   await page.getByRole('button',{name:index%2===0?'Light':'Dark',exact:true}).click()
   await historyPage(page)
  }

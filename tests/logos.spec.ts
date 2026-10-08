@@ -16,6 +16,7 @@ test('all three logos update the header and browser icons without resetting othe
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   const asset = await page.request.get(`/logos/logo-${id}.png`)
   expect(asset.ok()).toBeTruthy()
+  await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'Collection', exact: true }).click()
   await expect(page.locator('.album-card')).toHaveCount(18)
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
