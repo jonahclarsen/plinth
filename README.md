@@ -46,7 +46,7 @@ plinth://album/Glass%20Gardens?artist=North%20Arc
 plinth://artist/North%20Arc
 ```
 
-The pattern is `plinth://playlist/NAME`, `plinth://album/TITLE?artist=NAME`, or `plinth://artist/NAME`. Names match your local Music library, including private playlists and imported music. The album artist option is optional; include it to distinguish albums with the same title. These links reveal music without starting playback, adding anything to the library, or opening the streaming catalog. Albums match the exact title and, when supplied, artist or album artist. With duplicate names, Music opens the first matching item.
+The pattern is `plinth://playlist/NAME`, `plinth://album/TITLE?artist=NAME`, or `plinth://artist/NAME`. Names match your local Music library, including private playlists and imported music. The album artist option is optional; include it to distinguish albums with the same title. These links reveal music without starting playback, adding anything to the library, or opening the streaming catalog. Albums match the exact title and, when supplied, artist or album artist. With duplicate exact names, Music opens the first matching item. Playlist lookup explicitly searches local library sources (including playlists in folders) and waits briefly for Music to load on a cold launch. It prefers the exact spelling, then tolerates capitalization, Unicode composition, and invisible spacing differences only when that leaves one matching playlist; ambiguous normalized names show an alert.
 
 Replace spaces with `%20`. Encode special characters inside names too: `/` → `%2F`, `?` → `%3F`, `#` → `%23`, `&` → `%26`, `%` → `%25`. Names may include Unicode. Playlist and artist links take no query options; album links accept only one `artist` option. Invalid destinations, credentials, ports, fragments, malformed encoding, control characters, and oversized names are rejected. Overlapping link requests are ignored while Music navigation is in progress.
 
@@ -101,6 +101,7 @@ pnpm dev:daemon    # Install/start the always-on live development app
 pnpm dev:web       # Browser UI, without native integration
 pnpm check
 pnpm test:native
+pnpm test:music   # Headless AppleScript playlist-name matching
 pnpm test
 pnpm build:app     # Produces src-tauri/target/release/bundle/macos/Plinth.app
 ```

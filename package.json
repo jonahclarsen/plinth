@@ -13,6 +13,7 @@
     "build:app": "tauri build --bundles app",
     "check": "svelte-check --tsconfig tsconfig.json",
     "test": "playwright test",
+    "test:music": "node --test scripts/tests/music-playlist.test.mjs",
     "test:dev-runner": "node --test scripts/tests/dev-runner.test.mjs",
     "test:native": "cargo test --manifest-path src-tauri/Cargo.toml",
     "icons": "node scripts/icons.mjs",
