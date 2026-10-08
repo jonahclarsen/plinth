@@ -292,9 +292,45 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
     }
     Ok(())
 }
+/// A small square JPEG of a stored cover, center-cropped like `object-fit: cover`.
+/// Full covers are up to 1200 px; decoding them in the webview stalls animated previews.
+pub fn cover_thumbnail(dir: &Path, cover: &str, size: u32) -> Result<Vec<u8>, String> {
+    if cover.is_empty() || cover.starts_with('.') || cover.contains(['/', '\\']) {
+        return Err("Invalid cover".into());
+    }
+    let decoded = image::open(dir.join("covers").join(cover)).map_err(|e| e.to_string())?;
+    let side = decoded.width().min(decoded.height());
+    let size = size.clamp(16, 512).min(side.max(1));
+    let square = decoded.crop_imm(
+        (decoded.width() - side) / 2,
+        (decoded.height() - side) / 2,
+        side,
+        side,
+    );
+    let mut bytes = Vec::new();
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut bytes, 90)
+        .encode_image(&square.thumbnail_exact(size, size).to_rgb8())
+        .map_err(|e| e.to_string())?;
+    Ok(bytes)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn cover_thumbnail_crops_square_and_rejects_paths() {
+        let dir = std::env::temp_dir().join(format!("plinth-thumb-{}", std::process::id()));
+        fs::create_dir_all(dir.join("covers")).unwrap();
+        image::RgbImage::from_pixel(300, 200, image::Rgb([200, 40, 90]))
+            .save(dir.join("covers").join("wide.jpg"))
+            .unwrap();
+        let thumb =
+            image::load_from_memory(&cover_thumbnail(&dir, "wide.jpg", 128).unwrap()).unwrap();
+        assert_eq!((thumb.width(), thumb.height()), (128, 128));
+        for name in ["", "../library.json", "covers/wide.jpg", ".hidden"] {
+            assert!(cover_thumbnail(&dir, name, 128).is_err());
+        }
+        fs::remove_dir_all(dir).unwrap();
+    }
     #[test]
     fn obsolete_open_mode_is_ignored() {
         for mode in ["library", "link"] {

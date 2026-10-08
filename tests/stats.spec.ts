@@ -9,6 +9,8 @@ test('stats counts release precision, hidden albums, artists and invalid dates a
  expect(stats.years).toEqual([{label:'1999',count:1},{label:'2024',count:3}])
  expect(stats.monthYears).toEqual([{label:'1999-12',count:1},{label:'2024-02',count:2}])
  expect(stats.topArtists).toEqual([{label:'Mira Vale',count:4}])
+ const ordered=libraryStats(['2020-11-02','2020','2020-03-09','2020-03'].map((date,i)=>({...demoAlbums[0],id:String(i),date})))
+ expect(ordered.yearAlbums.get('2020')!.map(album=>album.date)).toEqual(['2020','2020-03','2020-03-09','2020-11-02'])
 })
 
 test('Stats charts switch between years and months and settings returns to the prior page',async({page})=>{
@@ -42,16 +44,26 @@ test('Stats has empty and undated states and fits a narrow light window',async({
 
 test('dense dates fit the chart and artwork previews follow the cursor and keyboard',async({page})=>{
  const {defaultSettings}=await import('../src/lib/types')
- const albums=[...Array.from({length:9},(_,i)=>({...demoAlbums[i],id:`stack-${i}`,title:`Stack ${i}`,date:'2024-01-01'})),...Array.from({length:180},(_,i)=>({...demoAlbums[i%18],id:`dense-${i}`,date:`${2000+Math.floor(i/12)}-${String(i%12+1).padStart(2,'0')}-01`}))]
+ const albums=[...Array.from({length:9},(_,i)=>({...demoAlbums[i],id:`stack-${i}`,title:`Stack ${i}`,date:`2024-01-0${i+1}`})).reverse(),{...demoAlbums[0],id:'pair-late',title:'Pair Late',date:'1999-12-01'},{...demoAlbums[1],id:'pair-early',title:'Pair Early',date:'1999-02-01'},...Array.from({length:180},(_,i)=>({...demoAlbums[i%18],id:`dense-${i}`,date:`${2000+Math.floor(i/12)}-${String(i%12+1).padStart(2,'0')}-01`}))]
  await page.addInitScript(({albums,settings})=>{
   let next=1
   Object.assign(window,{isTauri:true,__TAURI_INTERNALS__:{metadata:{currentWindow:{label:'main'},currentWebview:{label:'main'}},transformCallback:()=>next++,unregisterCallback:()=>{},convertFileSrc:(path:string)=>albums.find(album=>path.endsWith(album.cover))?.original??albums[0].original,invoke:async(command:string)=>command==='get_library'?{dataDir:'/synthetic-demo',library:{albums,settings}}:command==='get_displays'?[]:command==='plugin:event|listen'?next++:null},__TAURI_EVENT_PLUGIN_INTERNALS__:{unregisterListener:()=>{}}})
  },{albums:albums.map((album,i)=>({...album,cover:`synthetic-${i}.jpg`,original:album.cover})),settings:defaultSettings})
  await page.setViewportSize({width:640,height:700});await page.goto('/');await page.keyboard.press('Alt+KeyS')
  await expect(page.getByRole('heading',{name:'Stats',exact:true})).toHaveCount(0)
- await expect(page.locator('.stats-chart-heading p')).toHaveText('189 albums')
+ await expect(page.locator('.stats-chart-heading p')).toHaveText('191 albums')
+ // A short group rests against the bottom of the column, earliest above latest.
+ await page.locator('.stats-plot').scrollIntoViewIfNeeded()
+ const pair=(await page.getByRole('button',{name:'1999: 2 albums',exact:true}).locator('.release-hit').boundingBox())!
+ await page.mouse.move(pair.x+pair.width/2,pair.y+pair.height/2)
+ const pairPeek=page.getByRole('tooltip',{name:'1999 artwork',exact:true})
+ const early=pairPeek.getByRole('img',{name:'Pair Early by Low Season',exact:true}),late=pairPeek.getByRole('img',{name:'Pair Late by Mira Vale',exact:true})
+ await expect(late).toHaveClass(/ready/)
+ const pairWindow=(await page.locator('.stats-peek-window').boundingBox())!,earlyBox=(await early.boundingBox())!,lateBox=(await late.boundingBox())!
+ expect(earlyBox.y).toBeLessThan(lateBox.y);expect(lateBox.y+lateBox.height).toBeGreaterThan(pairWindow.y+pairWindow.height-12)
+ await page.mouse.move(5,5);await expect(pairPeek).not.toBeVisible()
  await page.getByRole('button',{name:'Month + year',exact:true}).click()
- await expect(page.locator('.release-bucket')).toHaveCount(181)
+ await expect(page.locator('.release-bucket')).toHaveCount(183)
  expect(await page.locator('.stats-plot').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  const bucket=page.getByRole('button',{name:'Jan 2024: 9 albums',exact:true})
@@ -59,20 +71,29 @@ test('dense dates fit the chart and artwork previews follow the cursor and keybo
  const bounds=(await bucket.locator('.release-hit').boundingBox())!
  await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height-50)
  const peek=page.getByRole('tooltip',{name:'Jan 2024 artwork',exact:true})
- await expect(peek).toBeVisible();await expect(peek.getByRole('img',{name:'Stack 0 by Mira Vale',exact:true})).toBeVisible()
- const first=await peek.getByRole('img',{name:'Stack 0 by Mira Vale',exact:true}).boundingBox()
+ // The bottom of the column shows the latest albums; moving up scrolls back to the earliest.
+ const earliest=peek.getByRole('img',{name:'Stack 0 by Mira Vale',exact:true}),latest=peek.getByRole('img',{name:'Stack 8 by Luca Grey',exact:true})
+ await expect(peek).toBeVisible();await expect(latest).toBeVisible();await expect(earliest).toHaveCount(0)
  const window=(await page.locator('.stats-peek-window').boundingBox())!
- expect(first!.y).toBeGreaterThanOrEqual(window.y)
+ expect((await latest.boundingBox())!.y+54).toBeLessThanOrEqual(window.y+window.height+2)
  await page.mouse.move(bounds.x+bounds.width/2,bounds.y+2)
- await expect(peek.getByRole('img',{name:'Stack 8 by Luca Grey',exact:true})).toBeVisible()
- await expect(peek.getByRole('img',{name:'Stack 0 by Mira Vale',exact:true})).toHaveCount(0)
- const last=await peek.getByRole('img',{name:'Stack 8 by Luca Grey',exact:true}).boundingBox()
- expect(last!.y+last!.height).toBeLessThanOrEqual(window.y+window.height+2)
+ await expect(earliest).toBeVisible();await expect(latest).toHaveCount(0)
+ await expect.poll(async()=>(await earliest.boundingBox())!.y-window.y,{timeout:2000}).toBeLessThan(8)
+ // Clicking while browsing leaves the column where the pointer put it.
+ const track=page.locator('.stats-peek-track'),settled='translate3d(0px, 0px, 0px)'
+ await expect.poll(()=>track.evaluate(el=>el.style.transform)).toBe(settled)
+ await page.mouse.down();await page.mouse.up();await page.waitForTimeout(300)
+ expect(await track.evaluate(el=>el.style.transform)).toBe(settled);await expect(earliest).toBeVisible()
+ expect(await page.evaluate(()=>document.activeElement?.classList.contains('release-bucket'))).toBe(false)
+ // Each cover drifts, sways and breathes on loops of its own.
+ const timings=await peek.locator('.stats-peek-cover').evaluateAll(covers=>covers.map(cover=>[cover,cover.firstElementChild!,cover.querySelector('img')!].map(node=>Math.round(Number(node.getAnimations()[0].effect!.getTiming().duration)))))
+ expect(new Set(timings.map(t=>t.join())).size).toBe(timings.length)
  await bucket.focus();await page.keyboard.press('End')
  await expect(peek.getByRole('img',{name:'Stack 8 by Luca Grey',exact:true})).toBeVisible()
  await page.keyboard.press('Home');await expect(peek.getByRole('img',{name:'Stack 0 by Mira Vale',exact:true})).toBeVisible()
  await page.keyboard.press('Escape');await expect(peek).not.toBeVisible()
  await page.emulateMedia({reducedMotion:'reduce'});await bucket.blur();await bucket.focus()
- await expect(peek.locator('img').first()).toHaveCSS('animation-name','none')
+ await expect(peek.locator('img').first()).toBeVisible()
+ expect(await peek.evaluate(el=>el.getAnimations({subtree:true}).filter(a=>a.playState==='running'&&(a as CSSAnimation).animationName!=='stats-peek-in').length)).toBe(0)
  await page.getByRole('button',{name:'Year',exact:true}).click();await expect(peek).not.toBeVisible()
 })

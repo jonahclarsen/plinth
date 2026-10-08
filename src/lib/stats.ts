@@ -19,6 +19,8 @@ export function libraryStats(albums:Album[]){
   dated++;add(years,match[1]);collect(yearAlbums,match[1],album);add(decades,`${Math.floor(year/10)*10}s`)
   if(match[2]){monthly++;add(monthYears,`${match[1]}-${match[2]}`);collect(monthAlbums,`${match[1]}-${match[2]}`,album)}
  }
+ // Within a date, albums run from earliest (January) to latest; year-only dates come first.
+ for(const group of [...yearAlbums.values(),...monthAlbums.values()])group.sort((a,b)=>a.date.localeCompare(b.date))
  const chronological=(map:Map<string,number>):Bucket[]=>[...map].sort(([a],[b])=>a.localeCompare(b)).map(([label,count])=>({label,count}))
  const ranked=[...artists].sort(([a,ac],[b,bc])=>bc-ac||a.localeCompare(b)).map(([label,count])=>({label,count}))
  return {dated,monthly,yearAlbums,monthAlbums,artists:artists.size,years:chronological(years),monthYears:chronological(monthYears),decades:chronological(decades),topArtists:ranked.slice(0,8)}

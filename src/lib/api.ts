@@ -14,6 +14,13 @@ export async function loadLibrary(): Promise<Library> {
  const result = await invoke<{library: Library; dataDir:string}>('get_library'); dataDir=result.dataDir; return result.library
 }
 export function coverUrl(album: Album) { return native ? convertFileSrc(`${dataDir}/covers/${album.cover}`) : album.cover }
+// A small square copy of a stored cover for animated previews. Browser demo covers are already light.
+export async function coverThumbnail(album: Album, size: number) {
+ if(!native) return album.cover
+ const bytes=await invoke<ArrayBuffer>('cover_thumbnail',{cover:album.cover,size})
+ if(!(bytes instanceof ArrayBuffer)) throw new Error('No thumbnail')
+ return URL.createObjectURL(new Blob([bytes],{type:'image/jpeg'}))
+}
 export async function subscribe(fn:(library: Library)=>void) { if(native) return listen<Library>('library-changed',e=>fn(e.payload)); listeners.add(fn);return ()=>{listeners.delete(fn)} }
 export async function saveSettings(settings:Settings) { if(native) return invoke('save_settings',{settings}); browserLibrary.settings=structuredClone(settings);changed() }
 export async function updateAlbum(album:Album) { if(native) return invoke('update_album',{album}); browserLibrary.albums=browserLibrary.albums.map(a=>a.id===album.id?album:a);changed() }

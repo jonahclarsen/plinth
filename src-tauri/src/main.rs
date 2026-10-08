@@ -126,6 +126,20 @@ fn apply_settings_effects(
     Ok(())
 }
 #[tauri::command]
+async fn cover_thumbnail(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+    cover: String,
+    size: u32,
+) -> Result<tauri::ipc::Response, String> {
+    editor(&window)?;
+    let dir = app.state::<Store>().dir.clone();
+    tauri::async_runtime::spawn_blocking(move || library::cover_thumbnail(&dir, &cover, size))
+        .await
+        .map_err(|e| e.to_string())?
+        .map(tauri::ipc::Response::new)
+}
+#[tauri::command]
 async fn get_history(
     window: tauri::WebviewWindow,
     app: tauri::AppHandle,
@@ -595,6 +609,7 @@ fn main() {
             get_displays,
             get_spaces,
             get_library,
+            cover_thumbnail,
             get_history,
             navigate_history,
             save_settings,
