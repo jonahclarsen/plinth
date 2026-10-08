@@ -25,14 +25,8 @@ fi
 source "$script_dir/dev-signing.sh"
 resolve_dev_signing_identity
 
-temporary_executable="$app_path/Contents/MacOS/plinth.dev-new"
-/bin/cp "$built_executable" "$temporary_executable"
-/bin/chmod +x "$temporary_executable"
-/bin/mv -f "$temporary_executable" "$executable"
-# The installed daemon keeps its bundle between builds. Refresh the protocol
-# metadata as well as the executable so new schemes work without reinstalling.
-"$script_dir/sync-macos-music-links.sh" "$script_dir/../src-tauri/Info.plist" "$app_path/Contents/Info.plist"
-sign_dev_app "$app_path"
+source "$script_dir/dev-app-update.sh"
+update_dev_app "$built_executable" "$app_path"
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app_path"
 
 exec "$executable" "$@"

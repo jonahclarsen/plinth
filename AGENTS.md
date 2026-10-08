@@ -12,6 +12,8 @@
 
 - Defer startup restoration/show until Tao’s queued window-creation positioning finishes, then restore size and center synchronously on the macOS main thread. Tao also queues `set_size`, so following it immediately with `center()` can center the old dimensions. Verify startup and visible placement with the isolated `window-placement` example, including the macOS dev app runner.
 
+- Keep the development supervisor outside the registered app bundle; otherwise Launch Services can deliver Music links to the watcher rather than Tauri. Start as `LSUIElement`, keep startup/link handling hidden, and apply the saved icon before exposing the Dock for an explicit editor action.
+
 - macOS development uses `scripts/macos-tauri-cargo.sh` and `run-macos-dev-app.sh` to run from a generated `PlinthDev.app` with its icon. Keep the Cargo executable as a physical hard link, not a symlink.
 
 - The desktop is a transparent Tauri window at the macOS desktop-icon level plus one. Native pointer tracking checks the topmost window; avoid changing focus to implement hover. Desktop windows must be nonfocusable and nonactivating (these are separate AppKit behaviors), and appear via `orderFrontRegardless` on macOS; Tauri `show()` makes a window key. Verify enable/disable focus with the isolated `desktop-focus` example.

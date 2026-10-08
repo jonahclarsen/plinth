@@ -1,22 +1,46 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::collections::VecDeque;
 
-static LINK_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
-
-// Ignore overlapping OS requests, preventing untrusted link storms from
-// launching concurrent processes or racing artist menu navigation.
-pub struct LinkNavigation;
-impl LinkNavigation {
-    pub fn begin() -> Option<Self> {
-        LINK_IN_PROGRESS
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .ok()
-            .map(|_| Self)
+/// Serialize navigation without discarding an ordinary click while Music is
+/// busy. Coalesce duplicate queued clicks and bound bursts from external sites.
+#[derive(Default)]
+pub struct LinkQueue {
+    running: bool,
+    pending: VecDeque<LibraryLink>,
+}
+impl LinkQueue {
+    pub fn enqueue(&mut self, target: LibraryLink) -> bool {
+        if self.pending.back() != Some(&target) {
+            if self.pending.len() == 8 {
+                self.pending.pop_front();
+            }
+            self.pending.push_back(target);
+        }
+        if self.running {
+            false
+        } else {
+            self.running = true;
+            true
+        }
+    }
+    pub fn next_target(&mut self) -> Option<LibraryLink> {
+        let target = self.pending.pop_front();
+        if target.is_none() {
+            self.running = false;
+        }
+        target
     }
 }
-impl Drop for LinkNavigation {
-    fn drop(&mut self) {
-        LINK_IN_PROGRESS.store(false, Ordering::Release);
-    }
+
+/// A secondary CLI instance must forward a link, not open the editor. Invalid
+/// plinth: arguments are still link requests, so they cannot activate the UI.
+pub fn link_argument(args: &[String]) -> Option<Result<LibraryLink, &'static str>> {
+    args.iter()
+        .skip(1)
+        .find(|arg| {
+            arg.get(..7)
+                .is_some_and(|scheme| scheme.eq_ignore_ascii_case("plinth:"))
+        })
+        .map(|arg| LibraryLink::parse(arg))
 }
 
 pub fn script_command(script: &'static str, args: &[&str]) -> std::process::Command {
@@ -26,7 +50,7 @@ pub fn script_command(script: &'static str, args: &[&str]) -> std::process::Comm
 }
 
 /// The external protocol has no general-purpose URL, file, or command action.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LibraryLink {
     Playlist(String),
     Album { title: String, artist: String },
@@ -125,11 +149,50 @@ mod tests {
     use super::*;
 
     #[test]
-    fn overlapping_link_navigation_is_rejected_and_unlocks_after_completion() {
-        let navigation = LinkNavigation::begin().unwrap();
-        assert!(LinkNavigation::begin().is_none());
-        drop(navigation);
-        assert!(LinkNavigation::begin().is_some());
+    fn clicks_while_music_is_busy_are_delivered_and_idle_workers_restart() {
+        let mut queue = LinkQueue::default();
+        let first = LibraryLink::Playlist("First".into());
+        let second = LibraryLink::Playlist("Second".into());
+        assert!(queue.enqueue(first.clone()));
+        assert_eq!(queue.next_target(), Some(first.clone()));
+        assert!(!queue.enqueue(second.clone()));
+        assert!(!queue.enqueue(second.clone())); // queued duplicate is coalesced
+        assert_eq!(queue.next_target(), Some(second));
+        assert_eq!(queue.next_target(), None);
+        assert!(queue.enqueue(first.clone()));
+        assert_eq!(queue.next_target(), Some(first));
+        assert_eq!(queue.next_target(), None);
+    }
+
+    #[test]
+    fn link_bursts_stay_bounded_and_keep_the_latest_requests() {
+        let mut queue = LinkQueue::default();
+        for i in 0..20 {
+            assert_eq!(queue.enqueue(LibraryLink::Playlist(i.to_string())), i == 0);
+        }
+        for i in 12..20 {
+            assert_eq!(
+                queue.next_target(),
+                Some(LibraryLink::Playlist(i.to_string()))
+            );
+        }
+        assert_eq!(queue.next_target(), None);
+    }
+
+    #[test]
+    fn secondary_instances_distinguish_links_from_editor_requests() {
+        assert_eq!(link_argument(&["plinth".into()]), None);
+        assert_eq!(
+            link_argument(&[
+                "plinth".into(),
+                "plinth://playlist/Evening%20records".into()
+            ]),
+            Some(Ok(LibraryLink::Playlist("Evening records".into())))
+        );
+        assert!(matches!(
+            link_argument(&["plinth".into(), "PLINTH://run/script".into()]),
+            Some(Err(_))
+        ));
     }
 
     #[test]

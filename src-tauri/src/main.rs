@@ -265,6 +265,50 @@ fn run_music_script(script: &'static str, args: &[&str]) -> Result<(), String> {
         Err(String::from_utf8_lossy(&output.stderr).trim().to_owned())
     }
 }
+fn dispatch_music_link(app: tauri::AppHandle, target: music::LibraryLink) {
+    let start_worker = app
+        .state::<Mutex<music::LinkQueue>>()
+        .lock()
+        .unwrap()
+        .enqueue(target);
+    if !start_worker {
+        return;
+    }
+    tauri::async_runtime::spawn(async move {
+        let mut failed = false;
+        loop {
+            let target = app
+                .state::<Mutex<music::LinkQueue>>()
+                .lock()
+                .unwrap()
+                .next_target();
+            let Some(target) = target else { break };
+            eprintln!("Opening Music library link");
+            let result = tauri::async_runtime::spawn_blocking(move || {
+                let (script, args) = target.script_and_args();
+                run_music_script(script, &args)
+            })
+            .await;
+            match result {
+                Ok(Ok(())) => eprintln!("Music library link finished"),
+                Ok(Err(error)) => {
+                    eprintln!("Music library link failed: {error}");
+                    failed = true;
+                }
+                Err(error) => {
+                    eprintln!("Music library link worker failed: {error}");
+                    failed = true;
+                }
+            }
+        }
+        // Release the queue before displaying an error; a dismissed or hidden
+        // alert must not cause subsequent clicks to be silently discarded.
+        if failed {
+            let _ = show_alert("Music couldn’t open this library link. Allow Plinth in System Settings → Privacy & Security → Automation. Artist navigation also requires Accessibility permission and Music’s Show Artist in Library command.".into()).await;
+        }
+    });
+}
+
 #[tauri::command]
 async fn open_album(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let result = tauri::async_runtime::spawn_blocking(move || {
@@ -438,12 +482,13 @@ fn command_held() -> bool {
 }
 
 fn show_main(app: &tauri::AppHandle) {
-    #[cfg(target_os = "macos")]
-    let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
     let logo = app.state::<Store>().library.lock().unwrap().settings.logo;
     if let Err(e) = branding::apply(app, logo, false) {
         let _ = app.emit("app-error", e);
     }
+    // Set the saved icon before exposing the app in the Dock.
+    #[cfg(target_os = "macos")]
+    let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
         let _ = w.set_focus();
@@ -523,10 +568,19 @@ fn main() {
         eprintln!("{e}");
         std::process::exit(1)
     });
+    let initial_link = music::link_argument(&args).and_then(Result::ok);
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            show_main(app)
-        }))
+        .plugin(tauri_plugin_single_instance::init(
+            |app, args, _| match music::link_argument(&args) {
+                Some(Ok(target)) => dispatch_music_link(app.clone(), target),
+                Some(Err(_)) => {}
+                None => {
+                    let handle = app.clone();
+                    let _ = app.run_on_main_thread(move || show_main(&handle));
+                }
+            },
+        ))
+        .manage(Mutex::new(music::LinkQueue::default()))
         .manage(Store {
             dir,
             library: Mutex::new(lib),
@@ -551,7 +605,7 @@ fn main() {
             open_album,
             reveal_data
         ])
-        .setup(|app| {
+        .setup(move |app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let open = MenuItem::with_id(app, "open", "Open Plinth", true, None::<&str>)?;
@@ -657,7 +711,11 @@ fn main() {
             let handle = app.handle().clone();
             window_placement::after_window_creation(move || {
                 restore_window_size(&handle);
-                show_main(&handle);
+                // Startup and URL launches stay behind other apps. Only an
+                // explicit tray/menu/reopen action reveals the editor.
+                if let Some(target) = initial_link {
+                    dispatch_music_link(handle, target);
+                }
             });
             Ok(())
         })
@@ -681,21 +739,12 @@ fn main() {
             #[cfg(target_os = "macos")]
             tauri::RunEvent::Opened { urls } => {
                 // OS URLs never enter the import CLI or the general URL opener.
-                let target = urls
+                for target in urls
                     .iter()
-                    .find_map(|url| music::LibraryLink::parse(url.as_str()).ok());
-                if let (Some(target), Some(navigation)) = (target, music::LinkNavigation::begin()) {
-                    tauri::async_runtime::spawn(async move {
-                        let _navigation = navigation;
-                        let result = tauri::async_runtime::spawn_blocking(move || {
-                            let (script, args) = target.script_and_args();
-                            run_music_script(script, &args)
-                        })
-                        .await;
-                        if !matches!(result, Ok(Ok(()))) {
-                            let _ = show_alert("Music couldn’t open this library link. Allow Plinth in System Settings → Privacy & Security → Automation. Artist navigation also requires Accessibility permission and Music’s Show Artist in Library command.".into()).await;
-                        }
-                    });
+                    .skip(urls.len().saturating_sub(8))
+                    .filter_map(|url| music::LibraryLink::parse(url.as_str()).ok())
+                {
+                    dispatch_music_link(app.clone(), target);
                 }
             }
             #[cfg(target_os = "macos")]

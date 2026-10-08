@@ -9,6 +9,11 @@ if [[ -f "$agent_path" ]]; then
   destination="$HOME/.Trash/$label-$(date +%Y%m%d-%H%M%S).plist"
   mv "$agent_path" "$destination"
 fi
+supervisor_path="$HOME/Library/Application Support/Plinth/dev-supervisor"
+if [[ -f "$supervisor_path" ]]; then
+  destination="$HOME/.Trash/Plinth-dev-supervisor-$(date +%Y%m%d-%H%M%S)"
+  mv "$supervisor_path" "$destination"
+fi
 app_path="$HOME/Applications/Plinth.app"
 if [[ -d "$app_path" ]]; then
   destination="$HOME/.Trash/Plinth-$(date +%Y%m%d-%H%M%S).app"

@@ -11,7 +11,8 @@ rustc_bin="$(command -v rustc)"
 app_source="$repo_dir/src-tauri/target/debug/bundle/macos/Plinth.app"
 app_dir="$HOME/Applications"
 app_path="$app_dir/Plinth.app"
-executable="$app_path/Contents/MacOS/plinth"
+supervisor_dir="$HOME/Library/Application Support/Plinth"
+executable="$supervisor_dir/dev-supervisor"
 agent_dir="$HOME/Library/LaunchAgents"
 log_dir="$HOME/Library/Logs/Plinth"
 agent_path="$agent_dir/$label.plist"
@@ -30,9 +31,13 @@ launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
 mkdir -p "$app_dir" "$agent_dir" "$log_dir"
 /usr/bin/ditto "$app_source" "$app_path"
 sign_dev_app "$app_path"
+# launchd must never run the app bundle as its watcher: Launch Services can
+# otherwise send URL events to that process instead of the actual Tauri app.
+mkdir -p "$supervisor_dir"
+"$script_dir/install-dev-supervisor.sh" "$app_path/Contents/MacOS/plinth" "$executable" "$signing_identity"
 
 sed \
-  -e "s|__EXECUTABLE__|$executable|g" \
+  -e "s|__SUPERVISOR_EXECUTABLE__|$executable|g" \
   -e "s|__REPO__|$repo_dir|g" \
   -e "s|__PNPM__|$pnpm_bin|g" \
   -e "s|__CARGO__|$cargo_bin|g" \
