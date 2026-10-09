@@ -57,7 +57,9 @@ test('light-mode Collection and Stats captures', async ({ page }) => {
  await sharp(await page.screenshot({ fullPage: true, animations: 'disabled' })).webp({ quality: 86, effort: 6 }).toFile(`${output}/stats.webp`)
 })
 
+// The website's first screen is a full-viewport desktop; the app's 1470×956 screen lays out 16 columns and 9 rows.
 async function openWebsite(page: Page, albumCount?: number) {
+ await page.setViewportSize({ width: 1470, height: 956 })
  const mime: Record<string, string> = { '.html': 'text/html', '.js': 'application/javascript', '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg' }
  await page.route('http://plinth-preview.local/**', async route => {
   const pathname = new URL(route.request().url()).pathname
@@ -76,10 +78,12 @@ test('website desktop preview hero', async ({ page }) => {
  test.skip(!websitePath, 'Set PLINTH_SCREENSHOT_WEBSITE to capture the website preview')
  // Capture the website unchanged: it already contains exported local albums and their covers.
  await page.emulateMedia({ colorScheme: 'light' })
- await page.setViewportSize({ width: 1550, height: 1200 })
  await openWebsite(page)
  await expect(page.locator('#stage .cell')).toHaveCount(144)
- await page.locator('.screen').scrollIntoViewIfNeeded()
+ // Close the intro window the way a visitor would so every cover shows.
+ await expect(page.locator('#win.open')).toBeVisible()
+ await page.getByRole('button', { name: 'Close window' }).click()
+ await expect(page.locator('#win')).toHaveCSS('opacity', '0')
  await page.evaluate(async () => {
   await document.fonts.ready
   await Promise.all(Array.from(document.querySelectorAll<HTMLImageElement>('#stage img')).map(image => image.decode()))
@@ -96,7 +100,7 @@ test('website desktop preview hero', async ({ page }) => {
  await expect.poll(async () => hovered.locator('img').evaluate(image => image.getBoundingClientRect().width / image.parentElement!.getBoundingClientRect().width)).toBeGreaterThan(2.4)
  await page.waitForTimeout(400)
  await mkdir(output, { recursive: true })
- await sharp(await page.locator('.screen').screenshot({ animations: 'disabled' }))
+ await sharp(await page.screenshot({ animations: 'disabled' }))
   .webp({ quality: 86, effort: 6 }).toFile(`${output}/hero.webp`)
 })
 

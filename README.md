@@ -20,7 +20,7 @@ Plinth is a macOS app that turns your album artwork into an interactive desktop 
 
 ![Release-date charts and library stats in light mode](docs/screenshots/stats.webp)
 
-The hero captures the website’s Mac desktop preview unchanged: its exported local albums, 16 columns, 9 rows, and hover enlargement. Collection and Stats also show the local album collection; only rendered screenshots are included, not library databases or original artwork files.
+The hero captures the website’s full-screen Mac desktop unchanged at 1470×956, with its intro window closed: its exported local albums, 16 columns, 9 rows, and hover enlargement. Collection and Stats also show the local album collection; only rendered screenshots are included, not library databases or original artwork files.
 
 ## Use it
 
