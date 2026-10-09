@@ -1,5 +1,6 @@
 import {test,expect,webkit} from '@playwright/test'
 import {createRequire} from 'node:module'
+import {demoAlbums} from '../src/lib/demo'
 const sharp:typeof import('sharp').default=createRequire(import.meta.url)('sharp')
 
 test('WebKit keeps stationary bitmap artwork unchanged across hover and its delayed repaint',async({baseURL})=>{
@@ -39,10 +40,13 @@ test('WebKit keeps stationary bitmap artwork unchanged across hover and its dela
 test('render a synthetic desktop README capture',async({page})=>{
  const {mkdir}=await import('node:fs/promises')
  await page.setViewportSize({width:1550,height:840})
+ const records=Array.from({length:72},(_,i)=>({...demoAlbums[i%demoAlbums.length],id:`capture-${i}`}))
+ await page.route('**/src/lib/demo.ts',route=>route.fulfill({contentType:'application/javascript',body:`export const demoAlbums = ${JSON.stringify(records)}`}))
  await page.goto('/?desktop=1&demo=1')
- await expect(page.locator('.desktop-cell')).toHaveCount(18)
+ await expect(page.locator('.desktop-cell')).toHaveCount(72)
+ await page.addStyleTag({content:'.desktop-surface{background:radial-gradient(ellipse at 20% 10%,#817489,transparent 65%),linear-gradient(135deg,#405b6b,#242936 55%,#5c665b)}'})
  await page.evaluate(async()=>Promise.all([...document.images].map(image=>image.decode())))
- await page.locator('.desktop-cell').nth(7).hover()
+ await page.locator('.desktop-cell').nth(31).hover()
  await page.waitForTimeout(300)
  await mkdir('test-results/hover-readme',{recursive:true})
  await sharp(await page.screenshot({animations:'disabled'})).webp({quality:88}).toFile('test-results/hover-readme/hero.webp')

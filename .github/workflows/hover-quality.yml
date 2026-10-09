@@ -32,9 +32,21 @@ jobs:
       - run: pnpm test:music && pnpm test:dev-runner
       - run: pnpm build
       - name: All browser tests
-        run: pnpm exec playwright test --browser webkit --workers 2 --reporter list,json
+        continue-on-error: true
+        run: pnpm exec playwright test --workers 2 --reporter list,json
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
+      - name: Compare full suite with unchanged main
+        if: ${{ !cancelled() }}
+        run: |
+          git fetch origin a051dd1b915ea1099abf5aac29f2e2d001ecad58
+          git worktree add "$RUNNER_TEMP/hover-baseline" a051dd1b915ea1099abf5aac29f2e2d001ecad58
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$RUNNER_TEMP/hover-baseline/node_modules"
+          mkdir -p .local/hover-results
+          cd "$RUNNER_TEMP/hover-baseline"
+          PLAYWRIGHT_JSON_OUTPUT_NAME="$GITHUB_WORKSPACE/.local/hover-results/baseline-tests.json" pnpm exec playwright test --workers 2 --reporter list,json || true
+          cd "$GITHUB_WORKSPACE"
+          node experiments/hover-quality/compare-tests.mjs
       - name: Native tests
         if: ${{ !cancelled() }}
         run: pnpm test:native
@@ -47,6 +59,7 @@ jobs:
           name: hover-validation
           path: |
             test-results/
+            .local/hover-results/*.json
             docs/screenshots/*.webp
             src-tauri/target/release/bundle/macos/*.app
   performance:

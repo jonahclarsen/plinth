@@ -43,7 +43,6 @@ test('Command-A adds artwork from Collection and keeps Select All in text fields
  await expect(add.locator('kbd')).toHaveText('Cmd A')
  await expect(add).toHaveAttribute('aria-keyshortcuts','Meta+A Control+A')
  await expect(add.locator('kbd svg')).toHaveCount(1)
- await add.focus()
  let pickers=0;page.on('filechooser',()=>pickers++)
  const picker=page.waitForEvent('filechooser')
  await page.keyboard.press('Meta+a');await picker
