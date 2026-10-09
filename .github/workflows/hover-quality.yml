@@ -63,7 +63,7 @@ jobs:
             docs/screenshots/*.webp
             src-tauri/target/release/bundle/macos/*.app
   performance:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.scope != 'tests' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || (inputs.scope != 'tests' && inputs.scope != 'browser') }}
     runs-on: macos-15
     timeout-minutes: 25
     steps:
