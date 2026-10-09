@@ -292,15 +292,16 @@ pub fn validate_settings(s: &Settings) -> Result<(), String> {
     }
     Ok(())
 }
+const THUMBNAIL_SIZE: u32 = 128;
+fn valid_cover(cover: &str) -> bool {
+    !cover.is_empty() && !cover.starts_with('.') && !cover.contains(['/', '\\'])
+}
 /// A small square JPEG of a stored cover, center-cropped like `object-fit: cover`.
 /// Full covers are up to 1200 px; decoding them in the webview stalls animated previews.
-pub fn cover_thumbnail(dir: &Path, cover: &str, size: u32) -> Result<Vec<u8>, String> {
-    if cover.is_empty() || cover.starts_with('.') || cover.contains(['/', '\\']) {
-        return Err("Invalid cover".into());
-    }
+fn render_thumbnail(dir: &Path, cover: &str, size: u32) -> Result<Vec<u8>, String> {
     let decoded = image::open(dir.join("covers").join(cover)).map_err(|e| e.to_string())?;
     let side = decoded.width().min(decoded.height());
-    let size = size.clamp(16, 512).min(side.max(1));
+    let size = size.min(side.max(1));
     let square = decoded.crop_imm(
         (decoded.width() - side) / 2,
         (decoded.height() - side) / 2,
@@ -313,6 +314,55 @@ pub fn cover_thumbnail(dir: &Path, cover: &str, size: u32) -> Result<Vec<u8>, St
         .map_err(|e| e.to_string())?;
     Ok(bytes)
 }
+/// The cached thumbnail of a cover, made on first use. Cover names are content hashes,
+/// so a cached copy never goes stale.
+pub fn cover_thumbnail(dir: &Path, cover: &str) -> Result<Vec<u8>, String> {
+    if !valid_cover(cover) {
+        return Err("Invalid cover".into());
+    }
+    let folder = dir.join("thumbnails");
+    if let Ok(bytes) = fs::read(folder.join(cover)) {
+        return Ok(bytes);
+    }
+    let bytes = render_thumbnail(dir, cover, THUMBNAIL_SIZE)?;
+    // Write beside the final name, then rename, so a reader never sees a partial file.
+    static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let partial = folder.join(format!(
+        ".{cover}.{}.{}",
+        std::process::id(),
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    if fs::create_dir_all(&folder).is_ok() && fs::write(&partial, &bytes).is_ok() {
+        if fs::rename(&partial, folder.join(cover)).is_err() {
+            let _ = fs::remove_file(&partial);
+        }
+    }
+    Ok(bytes)
+}
+/// Caches thumbnails for covers that lack one, on a few threads.
+pub fn warm_thumbnails(dir: &Path, covers: &[String]) {
+    let missing: Vec<&String> = covers
+        .iter()
+        .filter(|cover| valid_cover(cover) && !dir.join("thumbnails").join(cover).is_file())
+        .collect();
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let workers = std::thread::available_parallelism()
+        .map_or(2, |n| n.get() / 2)
+        .clamp(1, 4)
+        .min(missing.len());
+    std::thread::scope(|scope| {
+        for _ in 0..workers {
+            scope.spawn(|| loop {
+                let Some(cover) =
+                    missing.get(next.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+                else {
+                    break;
+                };
+                let _ = cover_thumbnail(dir, cover);
+            });
+        }
+    });
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -323,11 +373,27 @@ mod tests {
         image::RgbImage::from_pixel(300, 200, image::Rgb([200, 40, 90]))
             .save(dir.join("covers").join("wide.jpg"))
             .unwrap();
-        let thumb =
-            image::load_from_memory(&cover_thumbnail(&dir, "wide.jpg", 128).unwrap()).unwrap();
+        let fresh = cover_thumbnail(&dir, "wide.jpg").unwrap();
+        let thumb = image::load_from_memory(&fresh).unwrap();
         assert_eq!((thumb.width(), thumb.height()), (128, 128));
+        assert_eq!(
+            fs::read(dir.join("thumbnails").join("wide.jpg")).unwrap(),
+            fresh
+        );
+        fs::write(dir.join("thumbnails").join("wide.jpg"), b"cached").unwrap();
+        assert_eq!(cover_thumbnail(&dir, "wide.jpg").unwrap(), b"cached");
+        image::RgbImage::from_pixel(64, 90, image::Rgb([20, 40, 90]))
+            .save(dir.join("covers").join("tall.jpg"))
+            .unwrap();
+        warm_thumbnails(
+            &dir,
+            &["tall.jpg".into(), "missing.jpg".into(), "../x".into()],
+        );
+        let warmed = image::open(dir.join("thumbnails").join("tall.jpg")).unwrap();
+        assert_eq!((warmed.width(), warmed.height()), (64, 64));
+        assert_eq!(fs::read_dir(dir.join("thumbnails")).unwrap().count(), 2);
         for name in ["", "../library.json", "covers/wide.jpg", ".hidden"] {
-            assert!(cover_thumbnail(&dir, name, 128).is_err());
+            assert!(cover_thumbnail(&dir, name).is_err());
         }
         fs::remove_dir_all(dir).unwrap();
     }

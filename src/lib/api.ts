@@ -14,10 +14,10 @@ export async function loadLibrary(): Promise<Library> {
  const result = await invoke<{library: Library; dataDir:string}>('get_library'); dataDir=result.dataDir; return result.library
 }
 export function coverUrl(album: Album) { return native ? convertFileSrc(`${dataDir}/covers/${album.cover}`) : album.cover }
-// A small square copy of a stored cover for animated previews. Browser demo covers are already light.
-export async function coverThumbnail(album: Album, size: number) {
+// A small square copy of a stored cover for animated previews, cached on disk by the app. Browser demo covers are already light.
+export async function coverThumbnail(album: Album) {
  if(!native) return album.cover
- const bytes=await invoke<ArrayBuffer>('cover_thumbnail',{cover:album.cover,size})
+ const bytes=await invoke<ArrayBuffer>('cover_thumbnail',{cover:album.cover})
  if(!(bytes instanceof ArrayBuffer)) throw new Error('No thumbnail')
  return URL.createObjectURL(new Blob([bytes],{type:'image/jpeg'}))
 }

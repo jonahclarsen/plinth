@@ -3,16 +3,16 @@ import type { Album } from './types'
 
 // Release-chart artwork peek: a column of small covers that scrolls with the pointer.
 export const peekStride=64,peekSlots=4,peekHeight=256
-const coverSize=54,overscan=2,thumbSize=128
+const coverSize=54,overscan=2
 
 // Full covers are up to 1200 px; decoding them while the column scrolls freezes it and leaves
-// blank covers. Small copies are made natively, a few at a time, and kept for the session.
+// blank covers. The app caches small copies on disk; they load a few at a time and stay for the session.
 const thumbs=new Map<string,string>(),pending=new Map<string,Album>(),waiting=new Map<string,Set<(src:string)=>void>>()
 let running=0
 function pump(){
- while(running<3&&pending.size){
+ while(running<8&&pending.size){
   const [cover,album]=pending.entries().next().value!;pending.delete(cover);running++
-  coverThumbnail(album,thumbSize).catch(()=>coverUrl(album)).then(src=>{
+  coverThumbnail(album).catch(()=>coverUrl(album)).then(src=>{
    thumbs.set(cover,src);for(const done of waiting.get(cover)??[])done(src);waiting.delete(cover);running--;pump()
   })
  }

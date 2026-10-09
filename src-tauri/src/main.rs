@@ -42,6 +42,23 @@ fn broadcast(app: &tauri::AppHandle, library: &Library) {
         }
     });
     let _ = app.emit("library-changed", library);
+    if let Some(store) = app.try_state::<Store>() {
+        warm_thumbnails(store.dir.clone(), library);
+    }
+}
+// Cache thumbnails for new covers in the background, one pass at a time, so Stats opens
+// with its artwork ready.
+fn warm_thumbnails(dir: PathBuf, library: &Library) {
+    static WARMING: Mutex<()> = Mutex::new(());
+    let covers: Vec<String> = library
+        .albums
+        .iter()
+        .map(|album| album.cover.clone())
+        .collect();
+    std::thread::spawn(move || {
+        let _pass = WARMING.lock();
+        library::warm_thumbnails(&dir, &covers);
+    });
 }
 fn update_finder_icon() -> bool {
     std::env::var_os("PLINTH_DEV_DAEMON").is_none()
@@ -130,11 +147,10 @@ async fn cover_thumbnail(
     window: tauri::WebviewWindow,
     app: tauri::AppHandle,
     cover: String,
-    size: u32,
 ) -> Result<tauri::ipc::Response, String> {
     editor(&window)?;
     let dir = app.state::<Store>().dir.clone();
-    tauri::async_runtime::spawn_blocking(move || library::cover_thumbnail(&dir, &cover, size))
+    tauri::async_runtime::spawn_blocking(move || library::cover_thumbnail(&dir, &cover))
         .await
         .map_err(|e| e.to_string())?
         .map(tauri::ipc::Response::new)
@@ -621,6 +637,10 @@ fn main() {
             reveal_data
         ])
         .setup(move |app| {
+            {
+                let store = app.state::<Store>();
+                warm_thumbnails(store.dir.clone(), &store.library.lock().unwrap());
+            }
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let open = MenuItem::with_id(app, "open", "Open Plinth", true, None::<&str>)?;
