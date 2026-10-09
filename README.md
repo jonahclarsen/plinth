@@ -4,7 +4,7 @@
 
 Plinth is a macOS menu bar app that turns your album artwork into an interactive desktop collection. Add images, arrange your covers, and open a record in Music—all from one app. Built fresh with **Tauri 2, Svelte 5, and Rust**, with an interface inspired by Trilly.
 
-![Plinth’s collection view, using fictional records and generated artwork](docs/screenshots/collection.webp)
+![Album artwork on the desktop, captured from the website preview](docs/screenshots/hero.webp)
 
 ## What it does
 
@@ -16,19 +16,11 @@ Plinth is a macOS menu bar app that turns your album artwork into an interactive
 - **Revisit every saved change.** Open History from Settings → History. Undo with Command-Z, redo with Shift-Command-Z, or restore any listed state. Imports, removals, metadata, artwork replacements, appearance, and app settings are included. Each entry shows when it was saved and what changed. New edits after undo keep the abandoned states available to restore. Text fields keep their normal text undo.
 - **Keep everything local.** No account, cloud service, analytics, or encryption setup. The production app does not run an HTTP server or depend on Plash or Python.
 
-![Live appearance controls](docs/screenshots/appearance.webp)
+![Collection in light mode](docs/screenshots/collection.webp)
 
-![History and earlier states](docs/screenshots/history.webp)
+![Release-date charts and library stats in light mode](docs/screenshots/stats.webp)
 
-![Release-date charts and library stats](docs/screenshots/stats.webp)
-
-![App settings](docs/screenshots/settings.webp)
-
-![Original artwork and hover controls](docs/screenshots/album.webp)
-
-![Borderless artwork gallery](docs/screenshots/gallery.webp)
-
-The screenshots contain only synthetic artwork and fictional album metadata. No personal music collection is included in this repository.
+The hero is captured from the website’s desktop preview. Collection and Stats show the local album collection; only rendered screenshots are included, not library databases or original artwork files.
 
 ## Use it
 
@@ -119,7 +111,7 @@ Daemon builds use a Developer ID Application certificate from the login keychain
 
 Appearance performance measurements for 150 visible albums in the development build, including rejected experiments and every test result, are recorded in [the preview performance report](experiments/preview/results/README.md).
 
-Run `pnpm screenshots` after any UI change to refresh the README WebPs. Tests use isolated browser contexts and temporary native fixture directories, never the real library. The hover animation matches the previous app’s jQuery swing curve: 250 ms in and 251 ms out. The native hover behavior also needs a macOS smoke test because a browser cannot reproduce desktop window ordering. Run `cargo run --manifest-path src-tauri/Cargo.toml --example desktop-focus` to check repeated enable/disable with an isolated, invisible editor window; it restores the previously focused app afterward and never opens the library. Run `cargo run --manifest-path src-tauri/Cargo.toml --example space-placement` to verify numbered placement using invisible temporary windows, without opening the library. Numbered placement uses dynamically loaded macOS APIs and verifies the resulting Space membership; existing desktop windows are retained if a replacement cannot be placed.
+Run `pnpm screenshots` to check light-mode demo captures in `test-results/readme-screenshots/`. To refresh the published README WebPs with the local collection and website preview, explicitly set `PLINTH_SCREENSHOT_LIBRARY` to the app-data `library.json`, `PLINTH_SCREENSHOT_WEBSITE` to the website’s `public` directory, and `PLINTH_SCREENSHOT_PUBLISH=1`. The capture reads the library and compressed covers without modifying them; only the three rendered WebPs belong in Git. Other tests use isolated browser contexts and temporary native fixture directories. The hover animation matches the previous app’s jQuery swing curve: 250 ms in and 251 ms out. The native hover behavior also needs a macOS smoke test because a browser cannot reproduce desktop window ordering. Run `cargo run --manifest-path src-tauri/Cargo.toml --example desktop-focus` to check repeated enable/disable with an isolated, invisible editor window; it restores the previously focused app afterward and never opens the library. Run `cargo run --manifest-path src-tauri/Cargo.toml --example space-placement` to verify numbered placement using invisible temporary windows, without opening the library. Numbered placement uses dynamically loaded macOS APIs and verifies the resulting Space membership; existing desktop windows are retained if a replacement cannot be placed.
 
 Work on a task branch in a separate Git worktree, verify it, merge into `main`, and push. See [AGENTS.md](AGENTS.md).
 

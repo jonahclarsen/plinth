@@ -1,62 +1,84 @@
 import { test, expect } from '@playwright/test'
 import { createRequire } from 'node:module'
+import { mkdir, readFile } from 'node:fs/promises'
+import { dirname, extname, resolve } from 'node:path'
+import type { Album } from '../src/lib/types'
 const sharp: typeof import('sharp').default = createRequire(import.meta.url)('sharp')
-import { mkdir } from 'node:fs/promises'
-test('README screenshots use only synthetic demo artwork',async({page})=>{
- await page.addInitScript(()=>{Date.now=()=>Date.UTC(2026,8,10,17,0)})
- await page.setViewportSize({width:1550,height:840})
- await page.goto('/?demo=1');await expect(page.locator('.album-card')).toHaveCount(18)
- await page.evaluate(async()=>{await Promise.all(Array.from(document.images).map(i=>i.decode()))})
- await mkdir('docs/screenshots',{recursive:true})
- await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).hover()
- await sharp(await page.screenshot({fullPage:true,animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/collection.webp')
- await page.getByRole('button',{name:'Appearance',exact:true}).click()
- await page.getByRole('button',{name:/4K monitor/}).click()
- await page.evaluate(()=>{Math.random=()=>.5})
- const hoverSlider=page.getByRole('slider',{name:'Hover size',exact:true})
- await hoverSlider.scrollIntoViewIfNeeded()
- const hoverBounds=(await hoverSlider.boundingBox())!
- await page.mouse.move(hoverBounds.x+hoverBounds.width*.55,hoverBounds.y+hoverBounds.height/2)
- await page.mouse.down()
- await expect(page.locator('.preview-render .desktop-cover.enlarged')).toHaveCount(1)
- await page.waitForTimeout(300)
- await sharp(await page.screenshot({fullPage:true,animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/appearance.webp')
- await page.mouse.up()
- await page.getByRole('button',{name:'Stats',exact:true}).click()
- await page.locator('.release-bucket').first().focus()
- await expect(page.locator('.stats-peek img:not(.ready)')).toHaveCount(0);await expect(page.locator('.stats-peek img.ready').first()).toBeVisible()
- await sharp(await page.screenshot({fullPage:true,animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/stats.webp')
- await page.getByRole('button',{name:'Settings',exact:true}).click()
- await expect(page.getByLabel('Clicking an album')).toHaveCount(0)
- await page.mouse.move(0,0)
- await sharp(await page.screenshot({animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/settings.webp')
+
+// Publishing is explicit: ordinary tests never replace the approved local-library captures.
+const publish = process.env.PLINTH_SCREENSHOT_PUBLISH === '1'
+const libraryPath = process.env.PLINTH_SCREENSHOT_LIBRARY
+const websitePath = process.env.PLINTH_SCREENSHOT_WEBSITE
+const output = publish ? 'docs/screenshots' : 'test-results/readme-screenshots'
+
+test('light-mode Collection and Stats captures', async ({ page }) => {
+ if (publish && (!libraryPath || !websitePath)) throw new Error('Publishing requires explicit library and website paths')
+ let count = 18
+ if (libraryPath) {
+  const library = JSON.parse(await readFile(libraryPath, 'utf8')) as { albums: Album[] }
+  count = library.albums.length
+  // Only display fields enter the isolated browser; links, playlists, history, and paths stay out.
+  const albums = library.albums.map(({ id, title, artist, date, enabled }, index) => ({
+   id, title, artist, date, enabled, url: '', playlist: '', original: '', cover: `/readme-cover/${index}`,
+  }))
+  await page.route('**/src/lib/demo.ts', route => route.fulfill({
+   contentType: 'application/javascript', body: `export const demoAlbums = ${JSON.stringify(albums)}`,
+  }))
+  await page.route('**/readme-cover/*', async route => {
+   const index = Number(new URL(route.request().url()).pathname.split('/').pop())
+   const cover = library.albums[index].cover
+   if (cover !== cover.split('/').pop()) throw new Error('Expected a cover filename')
+   const body = await sharp(await readFile(resolve(dirname(libraryPath), 'covers', cover)))
+    .resize(420, 420, { fit: 'cover', withoutEnlargement: true }).webp({ quality: 88 }).toBuffer()
+   await route.fulfill({ contentType: 'image/webp', body })
+  })
+ }
+ await page.emulateMedia({ colorScheme: 'light' })
+ await page.setViewportSize({ width: 1550, height: 1000 })
+ await page.goto('/?demo=1')
+ await expect(page.locator('.album-card')).toHaveCount(count)
+ await page.getByRole('button', { name: 'Settings', exact: true }).click()
+ await page.getByRole('button', { name: 'Light', exact: true }).click()
  await page.keyboard.press('Escape')
- await page.getByRole('button',{name:'Collection',exact:true}).click()
- await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
- await page.setViewportSize({width:1550,height:1000})
- await page.locator('.editor-artwork').hover()
- await sharp(await page.locator('.album-dialog').screenshot({animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/album.webp')
- await page.setViewportSize({width:1550,height:840})
- await page.getByRole('button',{name:'View original artwork',exact:true}).click()
- await page.locator('.artwork-gallery img').evaluate(async(image:HTMLImageElement)=>image.decode())
- await page.mouse.move(0,0)
- await sharp(await page.screenshot({animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/gallery.webp')
- await page.keyboard.press('Escape')
- await page.getByRole('button',{name:'Close album editor'}).click()
- await page.keyboard.press('Control+q')
- await sharp(await page.getByRole('dialog',{name:'Quit Plinth?'}).screenshot()).webp({quality:86}).toFile('docs/screenshots/quit.webp')
- await page.keyboard.press('Escape')
- await page.evaluate(()=>{Date.now=()=>Date.UTC(2026,8,10,17,12)})
- await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
- await page.getByLabel('Album title').fill('Soft Focus — Remastered')
- await page.getByLabel('Release date').fill('2026-09-01')
- await page.getByRole('button',{name:'Save',exact:true}).click()
- await page.evaluate(()=>{Date.now=()=>Date.UTC(2026,8,10,17,18)})
- await page.getByRole('button',{name:'Disable',exact:true}).click()
- await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'History',exact:true}).click()
- await expect(page.locator('.history-list>li')).toHaveCount(3)
- await page.locator('.history-list summary').click()
- await page.mouse.move(0,0)
- await expect(page.locator('.toast')).not.toBeVisible({timeout:8000})
- await sharp(await page.screenshot({animations:'disabled'})).webp({quality:86}).toFile('docs/screenshots/history.webp')
+ await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+ await page.evaluate(async () => {
+  await document.fonts.ready
+  await Promise.all(Array.from(document.images).filter(image => image.getBoundingClientRect().top < innerHeight).map(image => image.decode()))
+ })
+ await mkdir(output, { recursive: true })
+ await page.mouse.move(0, 0)
+ const lastCard = await page.locator('.album-card').nth(Math.min(count - 1, 20)).boundingBox()
+ await page.setViewportSize({ width: 1550, height: Math.ceil(lastCard!.y + lastCard!.height + 16) })
+ await page.evaluate(() => (document.activeElement as HTMLElement)?.blur())
+ await sharp(await page.screenshot({ animations: 'disabled' })).webp({ quality: 86, effort: 6 }).toFile(`${output}/collection.webp`)
+ await page.setViewportSize({ width: 1550, height: 840 })
+ await page.getByRole('button', { name: 'Stats', exact: true }).click()
+ await expect(page.locator('.release-bucket').first()).toBeVisible()
+ await sharp(await page.screenshot({ fullPage: true, animations: 'disabled' })).webp({ quality: 86, effort: 6 }).toFile(`${output}/stats.webp`)
+})
+
+test('website desktop preview hero', async ({ page }) => {
+ test.skip(!websitePath, 'Set PLINTH_SCREENSHOT_WEBSITE to capture the website preview')
+ const mime: Record<string, string> = { '.html': 'text/html', '.js': 'application/javascript', '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg' }
+ await page.route('http://plinth-preview.local/**', async route => {
+  const pathname = new URL(route.request().url()).pathname
+  const file = resolve(websitePath!, `.${pathname === '/' ? '/index.html' : pathname}`)
+  if (!file.startsWith(`${resolve(websitePath!)}/`)) return route.abort()
+  try { await route.fulfill({ contentType: mime[extname(file)] ?? 'application/octet-stream', body: await readFile(file) }) }
+  catch { await route.fulfill({ status: 404, body: '' }) }
+ })
+ await page.emulateMedia({ colorScheme: 'light' })
+ await page.setViewportSize({ width: 1550, height: 1200 })
+ await page.goto('http://plinth-preview.local/')
+ await expect(page.locator('#stage .cell').first()).toBeVisible()
+ await page.locator('.screen').scrollIntoViewIfNeeded()
+ await page.evaluate(async () => {
+  await document.fonts.ready
+  await Promise.all(Array.from(document.querySelectorAll<HTMLImageElement>('#stage img')).map(image => image.decode()))
+  const wallpaper = new Image(); wallpaper.src = '/img/wallpaper.webp'; await wallpaper.decode()
+ })
+ await page.mouse.move(0, 0)
+ await mkdir(output, { recursive: true })
+ await sharp(await page.locator('.screen').screenshot({ animations: 'disabled' }))
+  .webp({ quality: 86, effort: 6 }).toFile(`${output}/hero.webp`)
 })
