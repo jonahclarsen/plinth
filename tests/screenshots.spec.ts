@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { createRequire } from 'node:module'
 import { mkdir, readFile } from 'node:fs/promises'
 import { dirname, extname, resolve } from 'node:path'
@@ -57,50 +57,40 @@ test('light-mode Collection and Stats captures', async ({ page }) => {
  await sharp(await page.screenshot({ fullPage: true, animations: 'disabled' })).webp({ quality: 86, effort: 6 }).toFile(`${output}/stats.webp`)
 })
 
-test('website desktop preview hero', async ({ page }) => {
- test.skip(!websitePath, 'Set PLINTH_SCREENSHOT_WEBSITE to capture the website preview')
- if (publish && !libraryPath) throw new Error('Publishing the hero requires the local library')
- const library = libraryPath ? JSON.parse(await readFile(libraryPath, 'utf8')) as { albums: Album[] } : undefined
- const albums = library?.albums.filter(album => album.enabled)
+async function openWebsite(page: Page, albumCount?: number) {
  const mime: Record<string, string> = { '.html': 'text/html', '.js': 'application/javascript', '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg' }
  await page.route('http://plinth-preview.local/**', async route => {
   const pathname = new URL(route.request().url()).pathname
-  if (albums && pathname === '/') {
-   let columns = 16
-   // Keep positive row clearance when the current collection exceeds the website's 144 covers.
-   while (Math.ceil(albums.length / columns) * ((1470 - 12 - (columns - 1)) / columns) > 956 - 88 + 33) columns++
-   const html = (await readFile(resolve(websitePath!, 'index.html'), 'utf8')).replace('COLS=16', `COLS=${columns}`)
-   return route.fulfill({ contentType: 'text/html', body: html })
-  }
-  if (albums && pathname === '/albums.js') return route.fulfill({
-   contentType: 'application/javascript', body: `window.ALBUMS = ${JSON.stringify(albums.map(({ title, artist }) => [title, artist]))}`,
-  })
-  if (albums && /^\/covers\/\d+\.webp$/.test(pathname)) {
-   const index = Number(pathname.match(/\d+/)![0])
-   const cover = albums[index]?.cover
-   if (!cover || cover !== cover.split('/').pop()) return route.abort()
-   const body = await sharp(await readFile(resolve(dirname(libraryPath!), 'covers', cover)))
-    .resize(420, 420, { fit: 'cover', withoutEnlargement: true }).webp({ quality: 90 }).toBuffer()
-   return route.fulfill({ contentType: 'image/webp', body })
-  }
   const file = resolve(websitePath!, `.${pathname === '/' ? '/index.html' : pathname}`)
   if (!file.startsWith(`${resolve(websitePath!)}/`)) return route.abort()
-  try { await route.fulfill({ contentType: mime[extname(file)] ?? 'application/octet-stream', body: await readFile(file) }) }
-  catch { await route.fulfill({ status: 404, body: '' }) }
+  try {
+   let body = await readFile(file)
+   if (albumCount !== undefined && pathname === '/albums.js') body = Buffer.from(`${body.toString()}\nwindow.ALBUMS = window.ALBUMS.slice(0, ${albumCount})`)
+   await route.fulfill({ contentType: mime[extname(file)] ?? 'application/octet-stream', body })
+  } catch { await route.fulfill({ status: 404, body: '' }) }
  })
+ await page.goto('http://plinth-preview.local/')
+}
+
+test('website desktop preview hero', async ({ page }) => {
+ test.skip(!websitePath, 'Set PLINTH_SCREENSHOT_WEBSITE to capture the website preview')
+ // Capture the website unchanged: it already contains exported local albums and their covers.
  await page.emulateMedia({ colorScheme: 'light' })
  await page.setViewportSize({ width: 1550, height: 1200 })
- await page.goto('http://plinth-preview.local/')
- await expect(page.locator('#stage .cell').first()).toBeVisible()
+ await openWebsite(page)
+ await expect(page.locator('#stage .cell')).toHaveCount(144)
  await page.locator('.screen').scrollIntoViewIfNeeded()
  await page.evaluate(async () => {
   await document.fonts.ready
   await Promise.all(Array.from(document.querySelectorAll<HTMLImageElement>('#stage img')).map(image => image.decode()))
   const wallpaper = new Image(); wallpaper.src = '/img/wallpaper.webp'; await wallpaper.decode()
  })
- if (albums) await expect(page.locator('#stage .cell')).toHaveCount(albums.length)
- const featured = albums?.findIndex(album => album.title.toLowerCase() === 'channel orange') ?? -1
- const hovered = page.locator('#stage .cell').nth(featured >= 0 ? featured : 71)
+ const geometry = await page.locator('#stage .cell').evaluateAll(cells => ({
+  columns: cells.filter(cell => (cell as HTMLElement).style.top === (cells[0] as HTMLElement).style.top).length,
+  rows: new Set(cells.map(cell => (cell as HTMLElement).style.top)).size,
+ }))
+ expect(geometry).toEqual({ columns: 16, rows: 9 })
+ const hovered = page.getByRole('link', { name: 'Channel ORANGE by Frank Ocean', exact: true })
  await hovered.hover()
  // Let the website's enlargement and neighbor push finish before capturing the live scene.
  await expect.poll(async () => hovered.locator('img').evaluate(image => image.getBoundingClientRect().width / image.parentElement!.getBoundingClientRect().width)).toBeGreaterThan(2.4)
@@ -109,3 +99,19 @@ test('website desktop preview hero', async ({ page }) => {
  await sharp(await page.locator('.screen').screenshot({ animations: 'disabled' }))
   .webp({ quality: 86, effort: 6 }).toFile(`${output}/hero.webp`)
 })
+
+for (const albumCount of [141, 3]) {
+ test(`website centers ${albumCount === 3 ? 'a single' : 'an incomplete'} desktop row`, async ({ page }) => {
+  test.skip(!websitePath, 'Set PLINTH_SCREENSHOT_WEBSITE to check website geometry')
+  await openWebsite(page, albumCount)
+  await expect(page.locator('#stage .cell')).toHaveCount(albumCount)
+  const row = await page.locator('#stage .cell').evaluateAll(cells => {
+   const lastTop = (cells.at(-1) as HTMLElement).style.top
+   const last = cells.filter(cell => (cell as HTMLElement).style.top === lastTop) as HTMLElement[]
+   const first = last[0], final = last.at(-1)!
+   return { center: (parseFloat(first.style.left) + parseFloat(final.style.left) + parseFloat(final.style.width)) / 2, vertical: parseFloat(first.style.top) + parseFloat(first.style.height) / 2 }
+  })
+  expect(row.center).toBeCloseTo(1470 / 2, 0)
+  if (albumCount === 3) expect(row.vertical).toBeCloseTo((956 + 33) / 2, 0)
+ })
+}

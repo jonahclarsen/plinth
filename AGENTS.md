@@ -2,7 +2,7 @@
 
 - Always rebuild, relaunch, commit, and push after changes.
 - Always make changes in a separate Git worktree. When finished and verified, merge them into main and push main. Then remove your worktree.
-- Whenever changing the UI, update the relevant README screenshot with a freshly rendered WebP. The README has a website-preview hero (fake Mac wallpaper, actual local albums, one enlarged on hover) plus light-mode Collection and Stats captures. Never replace the published hero with a synthetic desktop or generic covers. The user has authorized their local albums in these rendered captures; read the library without modifying it and never commit databases or individual artwork files. Synthetic demo captures remain the default for tests.
+- Whenever changing the UI, update the relevant README screenshot with a freshly rendered WebP. The README has a website-preview hero captured from the unchanged website source and assets (fake Mac wallpaper, exported local albums, one enlarged on hover); do not override its artwork list, columns, row count, or styling. It also has light-mode Collection and Stats captures. Never replace the published hero with a synthetic desktop or generic covers. The user has authorized their local albums in these rendered captures; read the library without modifying it and never commit databases or individual artwork files. Synthetic demo captures remain the default for tests.
 - Prefer pnpm over npm.
 - Do not run native GUI probes, switch Spaces, or open/activate apps unless explicitly requested. Compile native examples and use headless checks by default.
 - Keep albums, imported images, local library databases, personal paths, credentials, and build artifacts out of Git. Runtime data belongs in the OS app-data directory.
