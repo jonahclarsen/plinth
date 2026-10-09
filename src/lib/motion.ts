@@ -23,8 +23,10 @@ export function swingScale(node: HTMLElement, options: {active:boolean;factor:nu
   target=end;targetRadius=endRadius;speed=next.speed;cancelAnimationFrame(frame)
   const start=scale,startRadius=radius,started=performance.now(),duration=(next.active?250:251)/next.speed
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){scale=box=end;radius=endRadius;paint();return}
-  box=Math.max(start,end)
-  function tick(now:number){const p=Math.min(1,(now-started)/duration),eased=.5-Math.cos(Math.PI*p)/2;scale=start+(end-start)*eased;radius=startRadius+(endRadius-startRadius)*eased;paint();if(p<1)frame=requestAnimationFrame(tick);else if(end>1){since=now;box=end+(end-1)*breathDepth;paint();frame=requestAnimationFrame(breathe)}else{box=end;paint()}}
+  // Reserve the breathing maximum before the first frame, avoiding a second resize
+  // (and rasterization) when swing hands over to compositor-only breathing.
+  box=Math.max(start,end>1?end+(end-1)*breathDepth:end)
+  function tick(now:number){const p=Math.min(1,(now-started)/duration),eased=.5-Math.cos(Math.PI*p)/2;scale=start+(end-start)*eased;radius=startRadius+(endRadius-startRadius)*eased;paint();if(p<1)frame=requestAnimationFrame(tick);else if(end>1){since=now;frame=requestAnimationFrame(breathe)}else{box=end;paint()}}
   // Starts at the swing's end value, so the swing hands over without a jump.
   function breathe(now:number){scale=end+(end-1)*breathDepth*Math.sin(2*Math.PI*(now-since)/breathPeriod);paint(true);frame=requestAnimationFrame(breathe)}
   let since=0
