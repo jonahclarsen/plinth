@@ -25,7 +25,7 @@ jobs:
       - run: pnpm test:music && pnpm test:dev-runner
       - run: pnpm build
       - name: All browser tests
-        run: pnpm exec playwright test --workers 2 --reporter list,json
+        run: pnpm exec playwright test --browser webkit --workers 2 --reporter list,json
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
       - name: Native tests

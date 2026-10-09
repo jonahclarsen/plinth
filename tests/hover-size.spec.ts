@@ -128,6 +128,8 @@ test('hovering pushes nearby artwork away, less with distance, and the toggle re
  const cells=page.locator('.preview-render .desktop-cell')
  const offset=(i:number)=>cells.nth(i).evaluate(el=>{const m=new DOMMatrix(getComputedStyle(el).transform);return {x:m.m41,y:m.m42}})
  await cells.nth(3).scrollIntoViewIfNeeded();await cells.nth(3).hover()
+ console.log('hover fixture',await cells.evaluateAll(els=>els.map((el,i)=>{const r=el.getBoundingClientRect();return {i,x:r.x,y:r.y,width:r.width,transform:el.style.transform,active:!!el.querySelector('.enlarged')}})))
+ await expect(cells.nth(3).locator('.desktop-cover')).toHaveClass(/enlarged/)
  await expect.poll(async()=>(await offset(4)).x).toBeGreaterThan(5)
  await page.waitForTimeout(400)
  const [left,right,farther,below,far]=await Promise.all([2,4,5,9,17].map(offset))
