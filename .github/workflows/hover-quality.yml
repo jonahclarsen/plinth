@@ -2,11 +2,18 @@ name: Hover quality validation and performance
 on:
   push:
     branches: [fix/hover-quality]
+    paths: [src/**, tests/**]
   workflow_dispatch:
+    inputs:
+      scope:
+        type: choice
+        options: [all, tests, performance]
+        default: all
 permissions:
   contents: read
 jobs:
   tests:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.scope != 'performance' }}
     runs-on: macos-15
     timeout-minutes: 30
     steps:
@@ -43,6 +50,7 @@ jobs:
             docs/screenshots/*.webp
             src-tauri/target/release/bundle/macos/*.app
   performance:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.scope != 'tests' }}
     runs-on: macos-15
     timeout-minutes: 25
     steps:

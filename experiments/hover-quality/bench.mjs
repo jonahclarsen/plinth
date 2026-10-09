@@ -17,19 +17,21 @@ const bitmap='data:image/png;base64,'+(await sharp(Buffer.from('<svg xmlns="http
 const {port}=JSON.parse(readFileSync('port.json','utf8')),origin=`http://127.0.0.1:${port}`
 const server=spawn('pnpm',['exec','vite','preview','--outDir',resolve('.local/hover-dist'),'--host','127.0.0.1','--port',String(port)],{stdio:'inherit'})
 function cpu(){
- let total=0
- for(const line of execFileSync('ps',['-axo','time,command'],{encoding:'utf8'}).split('\n')){
+ const processes=new Map()
+ for(const line of execFileSync('ps',['-axo','pid,time,command'],{encoding:'utf8'}).split('\n')){
   if(!/webkit-\d+|com\.apple\.WebKit\.(WebContent|GPU|Networking)/.test(line))continue
-  const match=line.trim().match(/^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+(?:\.\d+)?)/)
-  if(match)total+=Number(match[1]||0)*86400+Number(match[2]||0)*3600+Number(match[3])*60+Number(match[4])
+  const match=line.trim().match(/^(\d+)\s+(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+(?:\.\d+)?)/)
+  if(match)processes.set(Number(match[1]),Number(match[2]||0)*86400+Number(match[3]||0)*3600+Number(match[4])*60+Number(match[5]))
  }
- return total
+ return processes
 }
 const rows=[];let browser
 try{
  for(let i=0;i<100;i++){try{if((await fetch(origin)).ok)break}catch{}await new Promise(r=>setTimeout(r,100))}
- browser=await webkit.launch()
  async function sample(variant,count,kind){
+  // Each sample owns its browser processes, so an old page's teardown cannot subtract CPU.
+  const preexisting=cpu()
+  browser=await webkit.launch()
   const page=await browser.newPage({viewport:{width:1512,height:982},deviceScaleFactor:2})
   await page.addInitScript(({count,bitmap})=>{
    const layout={columns:count===18?12:18,gap:6,rowGap:null,top:42,radius:5,shadow:.4,roundedOnHover:false}
@@ -66,9 +68,13 @@ try{
    const sorted=[...frames].sort((a,b)=>a-b),q=p=>sorted[Math.ceil(sorted.length*p)-1]
    return {medianFrameMs:q(.5),p95FrameMs:q(.95),framesOver25ms:frames.filter(t=>t>25).length,frames:frames.length,styleMutations:mutations}
   },{points,kind})
-  const elapsedMs=performance.now()-started,cpuSeconds=cpu()-before
-  await page.close()
-  return {...result,cpuSeconds,elapsedMs,cpuPercent:100*cpuSeconds/(elapsedMs/1000)}
+  const elapsedMs=performance.now()-started,after=cpu()
+  const retired=[...before.keys()].filter(pid=>!preexisting.has(pid)&&!after.has(pid))
+  const cpuSeconds=[...after].reduce((sum,[pid,seconds])=>sum+(preexisting.has(pid)?0:seconds-(before.get(pid)||0)),0)
+  await browser.close();browser=undefined
+  // Never publish a CPU total if a measured process vanished before its final reading.
+  if(retired.length||cpuSeconds<0)throw Error(`Invalid process CPU sample: ${JSON.stringify({retired,cpuSeconds})}`)
+  return {...result,cpuSeconds,elapsedMs,cpuPercent:100*cpuSeconds/(elapsedMs/1000),processes:after.size-preexisting.size}
  }
  for(const count of [18,150])for(const kind of ['idle','hold','sweep']){
   for(const variant of ['baseline','fixed'])await sample(variant,count,kind)
