@@ -4,7 +4,7 @@
 
 Plinth is a macOS menu bar app that turns your album artwork into an interactive desktop collection. Add images, arrange your covers, and open a record in Music—all from one app. Built fresh with **Tauri 2, Svelte 5, and Rust**, with an interface inspired by Trilly.
 
-![Album artwork on the desktop, captured from the website preview](docs/screenshots/hero.webp)
+![Synthetic album artwork showing desktop hover](docs/screenshots/hero.webp)
 
 ## What it does
 

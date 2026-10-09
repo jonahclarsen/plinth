@@ -47,6 +47,13 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_NAME="$GITHUB_WORKSPACE/.local/hover-results/baseline-tests.json" pnpm exec playwright test --workers 1 --reporter list,json || true
           cd "$GITHUB_WORKSPACE"
           node experiments/hover-quality/compare-tests.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hover-browser-validation
+          path: |
+            test-results/
+            .local/hover-results/*.json
       - name: Native tests
         if: ${{ !cancelled() && inputs.scope != 'browser' }}
         run: pnpm test:native
