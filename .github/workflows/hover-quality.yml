@@ -7,7 +7,7 @@ on:
     inputs:
       scope:
         type: choice
-        options: [all, tests, performance]
+        options: [all, tests, browser, performance]
         default: all
 permissions:
   contents: read
@@ -33,7 +33,7 @@ jobs:
       - run: pnpm build
       - name: All browser tests
         continue-on-error: true
-        run: pnpm exec playwright test --workers 2 --reporter list,json
+        run: pnpm exec playwright test --workers 1 --reporter list,json
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
       - name: Compare full suite with unchanged main
@@ -44,14 +44,14 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/node_modules" "$RUNNER_TEMP/hover-baseline/node_modules"
           mkdir -p .local/hover-results
           cd "$RUNNER_TEMP/hover-baseline"
-          PLAYWRIGHT_JSON_OUTPUT_NAME="$GITHUB_WORKSPACE/.local/hover-results/baseline-tests.json" pnpm exec playwright test --workers 2 --reporter list,json || true
+          PLAYWRIGHT_JSON_OUTPUT_NAME="$GITHUB_WORKSPACE/.local/hover-results/baseline-tests.json" pnpm exec playwright test --workers 1 --reporter list,json || true
           cd "$GITHUB_WORKSPACE"
           node experiments/hover-quality/compare-tests.mjs
       - name: Native tests
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && inputs.scope != 'browser' }}
         run: pnpm test:native
       - name: Standalone build
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && inputs.scope != 'browser' }}
         run: pnpm build:app
       - uses: actions/upload-artifact@v4
         if: always()
