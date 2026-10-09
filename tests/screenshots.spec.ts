@@ -59,9 +59,30 @@ test('light-mode Collection and Stats captures', async ({ page }) => {
 
 test('website desktop preview hero', async ({ page }) => {
  test.skip(!websitePath, 'Set PLINTH_SCREENSHOT_WEBSITE to capture the website preview')
+ if (publish && !libraryPath) throw new Error('Publishing the hero requires the local library')
+ const library = libraryPath ? JSON.parse(await readFile(libraryPath, 'utf8')) as { albums: Album[] } : undefined
+ const albums = library?.albums.filter(album => album.enabled)
  const mime: Record<string, string> = { '.html': 'text/html', '.js': 'application/javascript', '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg' }
  await page.route('http://plinth-preview.local/**', async route => {
   const pathname = new URL(route.request().url()).pathname
+  if (albums && pathname === '/') {
+   let columns = 16
+   // Keep positive row clearance when the current collection exceeds the website's 144 covers.
+   while (Math.ceil(albums.length / columns) * ((1470 - 12 - (columns - 1)) / columns) > 956 - 88 + 33) columns++
+   const html = (await readFile(resolve(websitePath!, 'index.html'), 'utf8')).replace('COLS=16', `COLS=${columns}`)
+   return route.fulfill({ contentType: 'text/html', body: html })
+  }
+  if (albums && pathname === '/albums.js') return route.fulfill({
+   contentType: 'application/javascript', body: `window.ALBUMS = ${JSON.stringify(albums.map(({ title, artist }) => [title, artist]))}`,
+  })
+  if (albums && /^\/covers\/\d+\.webp$/.test(pathname)) {
+   const index = Number(pathname.match(/\d+/)![0])
+   const cover = albums[index]?.cover
+   if (!cover || cover !== cover.split('/').pop()) return route.abort()
+   const body = await sharp(await readFile(resolve(dirname(libraryPath!), 'covers', cover)))
+    .resize(420, 420, { fit: 'cover', withoutEnlargement: true }).webp({ quality: 90 }).toBuffer()
+   return route.fulfill({ contentType: 'image/webp', body })
+  }
   const file = resolve(websitePath!, `.${pathname === '/' ? '/index.html' : pathname}`)
   if (!file.startsWith(`${resolve(websitePath!)}/`)) return route.abort()
   try { await route.fulfill({ contentType: mime[extname(file)] ?? 'application/octet-stream', body: await readFile(file) }) }
@@ -77,7 +98,13 @@ test('website desktop preview hero', async ({ page }) => {
   await Promise.all(Array.from(document.querySelectorAll<HTMLImageElement>('#stage img')).map(image => image.decode()))
   const wallpaper = new Image(); wallpaper.src = '/img/wallpaper.webp'; await wallpaper.decode()
  })
- await page.mouse.move(0, 0)
+ if (albums) await expect(page.locator('#stage .cell')).toHaveCount(albums.length)
+ const featured = albums?.findIndex(album => album.title.toLowerCase() === 'channel orange') ?? -1
+ const hovered = page.locator('#stage .cell').nth(featured >= 0 ? featured : 71)
+ await hovered.hover()
+ // Let the website's enlargement and neighbor push finish before capturing the live scene.
+ await expect.poll(async () => hovered.locator('img').evaluate(image => image.getBoundingClientRect().width / image.parentElement!.getBoundingClientRect().width)).toBeGreaterThan(2.4)
+ await page.waitForTimeout(400)
  await mkdir(output, { recursive: true })
  await sharp(await page.locator('.screen').screenshot({ animations: 'disabled' }))
   .webp({ quality: 86, effort: 6 }).toFile(`${output}/hero.webp`)

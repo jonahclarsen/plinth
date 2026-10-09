@@ -20,7 +20,7 @@ Plinth is a macOS menu bar app that turns your album artwork into an interactive
 
 ![Release-date charts and library stats in light mode](docs/screenshots/stats.webp)
 
-The hero is captured from the website’s desktop preview. Collection and Stats show the local album collection; only rendered screenshots are included, not library databases or original artwork files.
+The hero shows the local collection on the website’s Mac desktop preview, including its hover enlargement. Collection and Stats also show the local album collection; only rendered screenshots are included, not library databases or original artwork files.
 
 ## Use it
 
