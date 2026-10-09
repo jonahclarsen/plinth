@@ -36,7 +36,7 @@ test('Stats has empty and undated states and fits a narrow light window',async({
  await page.setViewportSize({width:640,height:650});await page.goto('/')
  await page.keyboard.press('Alt+KeyS');await expect(page.getByText('Your collection starts here.')).toBeVisible()
  await page.goto('/?demo=1');await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
- await page.getByLabel('Release date').fill('');await page.getByRole('button',{name:'Save',exact:true}).click()
+ await page.getByLabel('Release date').fill('');await page.keyboard.press('Escape')
  await page.keyboard.press('Alt+KeyS');await expect(page.locator('.stats-chart')).toContainText('17 of 18 albums')
  await page.keyboard.press('Meta+s');await page.getByRole('button',{name:'Light',exact:true}).click();await page.keyboard.press('Escape')
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
