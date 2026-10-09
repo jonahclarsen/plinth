@@ -2,7 +2,7 @@
 
 - Always rebuild, relaunch, commit, and push after changes.
 - Always make changes in a separate Git worktree. When finished and verified, merge them into main and push main. Then remove your worktree.
-- Whenever changing the UI, update the README screenshot with a freshly rendered WebP. Use synthetic demo artwork and metadata only.
+- Whenever changing the UI, update the relevant README screenshot with a freshly rendered WebP. The README has a website-preview hero plus light-mode Collection and Stats captures. The user has authorized their local albums in these rendered captures; read the library without modifying it and never commit databases or individual artwork files. Synthetic demo captures remain the default for tests.
 - Prefer pnpm over npm.
 - Do not run native GUI probes, switch Spaces, or open/activate apps unless explicitly requested. Compile native examples and use headless checks by default.
 - Keep albums, imported images, local library databases, personal paths, credentials, and build artifacts out of Git. Runtime data belongs in the OS app-data directory.
@@ -20,7 +20,7 @@
 
 - The desktop is a transparent Tauri window at the macOS desktop-icon level plus one. Native pointer tracking checks the topmost window; avoid changing focus to implement hover. Desktop windows must be nonfocusable and nonactivating (these are separate AppKit behaviors), and appear via `orderFrontRegardless` on macOS; Tauri `show()` makes a window key. Verify enable/disable focus with the isolated `desktop-focus` example.
 - Production has no HTTP server. Native imports and metadata live under the `com.plinth.desktop` OS data directory. Never point test imports at the real library.
-- Browser demo mode (`?demo=1`) uses generated SVG artwork and fictional records. Keep README captures in this mode.
+- Browser demo mode (`?demo=1`) uses generated SVG artwork and fictional records. The README capture test can substitute a read-only local collection only when explicitly configured; normal test runs must not overwrite published README images.
 - Load sharp with `createRequire` in Playwright tests; Node 24.2 has an ESM/semver loader issue with direct imports under Playwright.
 
 ## UI preferences
