@@ -38,3 +38,18 @@ The bitmap regression test compares a stationary distant cover before hover,
 during entry, after the delayed repaint window, during breathing, and after exit.
 It reproduces changed pixels on the old implementation and unchanged pixels with
 the fix. It also verifies that breathing retains its GPU layer and backing size.
+
+## Validation
+
+[Final browser comparison](https://github.com/jonahclarsen/plinth/actions/runs/37897320410)
+ran the complete suite on both revisions with sequential browser execution. The fix
+has 73 passing tests, one skipped optional website capture, and one inherited
+failure: the neighbor-push preview test also fails on unchanged main. There are no
+new failures. The WebKit raster check runs before Chromium's keyboard/file-picker
+checks to avoid cross-browser interference on macOS.
+
+Native tests and the standalone release build passed in the
+[full CI build](https://github.com/jonahclarsen/plinth/actions/runs/37896031563).
+That earlier run's browser comparison failed on a file-picker test; the sequential
+run above resolved that test interference. No local tests or builds continued
+after the user requested CI-only verification.
