@@ -122,6 +122,9 @@ test('rounded corners on hover default off and restore independently for each di
 test('hovering pushes nearby artwork away, less with distance, and the toggle restores through history',async({page})=>{
  await page.goto('/?demo=1');await page.getByRole('button',{name:'Appearance',exact:true}).click()
  await page.getByRole('button',{name:/Mac display/}).click();await page.getByRole('slider',{name:'Columns',exact:true}).fill('6')
+ // Keep the three fixture rows inside the scaled preview so pointer input reaches artwork.
+ await page.getByRole('checkbox',{name:'Automatic row spacing',exact:true}).uncheck()
+ await page.getByRole('slider',{name:'Space between rows',exact:true}).fill('6')
  const cells=page.locator('.preview-render .desktop-cell')
  const offset=(i:number)=>cells.nth(i).evaluate(el=>{const m=new DOMMatrix(getComputedStyle(el).transform);return {x:m.m41,y:m.m42}})
  await cells.nth(3).scrollIntoViewIfNeeded();await cells.nth(3).hover()

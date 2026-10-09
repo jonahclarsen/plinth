@@ -1,0 +1,65 @@
+name: Hover quality validation and performance
+on:
+  push:
+    branches: [fix/hover-quality]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install chromium webkit
+      - run: pnpm check
+      - run: pnpm test:music && pnpm test:dev-runner
+      - run: pnpm build
+      - name: All browser tests
+        run: pnpm exec playwright test --workers 2 --reporter list,json
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/results.json
+      - name: Native tests
+        if: ${{ !cancelled() }}
+        run: pnpm test:native
+      - name: Standalone build
+        if: ${{ !cancelled() }}
+        run: pnpm build:app
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hover-validation
+          path: |
+            test-results/
+            docs/screenshots/*.webp
+            src-tauri/target/release/bundle/macos/*.app
+  performance:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install webkit
+      - name: Alternating old and new WebKit measurements
+        run: node experiments/hover-quality/bench.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hover-performance
+          path: .local/hover-results/*.json
