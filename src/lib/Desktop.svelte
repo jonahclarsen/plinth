@@ -32,8 +32,8 @@
  let bounds:Cell[]|undefined
  function invalidateBounds(){bounds=undefined}
  const push=neighborPush()
- // Measure resting cells: remove any push offset (renderer pixels) in viewport scale.
- function cells(){return bounds??=Array.from(grid?.querySelectorAll<HTMLElement>('.desktop-cell')??[],el=>{const r=el.getBoundingClientRect(),s=r.width/(el.offsetWidth||1),o=push.offset(el);return {id:el.dataset.id??'',el,rect:new DOMRect(r.left-o.x*s,r.top-o.y*s,r.width,r.height)}})}
+ // Measure resting cells: remove any push offset (renderer pixels) and squeeze in viewport scale.
+ function cells(){return bounds??=Array.from(grid?.querySelectorAll<HTMLElement>('.desktop-cell')??[],el=>{const r=el.getBoundingClientRect(),o=push.offset(el),w=r.width/o.k,h=r.height/o.k,s=w/(el.offsetWidth||1),x=r.left+r.width/2-o.x*s,y=r.top+r.height/2-o.y*s;return {id:el.dataset.id??'',el,rect:new DOMRect(x-w/2,y-h/2,w,h)}})}
  // The desktop's edges in viewport pixels: the surface below the menu bar.
  function edges(){const surface=grid.parentElement!,r=surface.getBoundingClientRect(),menu=(preview?menuBarHeight:detectedMenuBarHeight)*r.width/(surface.offsetWidth||1);return {left:r.left,top:r.top+menu,right:r.right,bottom:r.bottom}}
  let pointer:{x:number;y:number}|undefined

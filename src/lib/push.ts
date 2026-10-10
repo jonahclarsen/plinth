@@ -3,17 +3,19 @@ import { scaleOf, scaled } from './motion'
 // current (breathing) enlargement, fading with distance from the pointer; the hovered cover
 // itself drifts slightly away from the pointer. Pointer moves only recompute per-cell weights;
 // one frame loop writes compositor-only transforms to the cells within reach (promoted while
-// moving, released at rest). Nothing crosses the desktop's edges: covers there, enlargement
-// included, stop against them.
+// moving, released at rest). Nothing crosses the desktop's edges: a cover there, enlargement
+// included, rests against the edge and moves from that spot; motion into the edge squeezes it,
+// shrinking it against the edge so its inner side still moves.
 export type Cell={id:string;el:HTMLElement;rect:DOMRect}
 export type Edges={left:number;top:number;right:number;bottom:number}
 // Offsets are renderer pixels: push = (kx,ky) × current strength, plus fixed drift (fx,fy).
-// (l,t,r,b) is the room between the resting cell and the edges; (px,py) is the painted,
-// edge-bound offset.
-type Offset={x:number;y:number;kx:number;ky:number;fx:number;fy:number;px:number;py:number;l:number;t:number;r:number;b:number}
+// (l,t,r,b) is the room between the resting cell and the edges; (px,py,pk) is the painted,
+// edge-bound offset and squeeze.
+type Offset={x:number;y:number;kx:number;ky:number;fx:number;fy:number;px:number;py:number;pk:number;l:number;t:number;r:number;b:number}
 const reach=2.6 // Cover widths from the pointer at which the push fades out.
 const pushShare=.4 // Largest push as a share of the enlargement's overhang.
 const drift=.12 // Hovered cover moves this share of the pointer's offset from its center.
+const squeeze=.16 // Largest shrink of a cover pressed into an edge, as a share of its painted size.
 const within=(v:number,lo:number,hi:number)=>lo>hi?(lo+hi)/2:Math.max(lo,Math.min(hi,v))
 export function neighborPush(){
  const moving=new Map<HTMLElement,Offset>()
@@ -21,16 +23,22 @@ export function neighborPush(){
  function strength(){return home&&push?cover*Math.max(0,scaleOf(home.firstElementChild)-1)*pushShare:0}
  function entry(el:HTMLElement){
   let o=moving.get(el)
-  if(!o){o={x:0,y:0,kx:0,ky:0,fx:0,fy:0,px:0,py:0,l:0,t:0,r:0,b:0};moving.set(el,o);el.style.willChange='transform'}
+  if(!o){o={x:0,y:0,kx:0,ky:0,fx:0,fy:0,px:0,py:0,pk:1,l:0,t:0,r:0,b:0};moving.set(el,o);el.style.willChange='transform'}
   return o
  }
  // Paint the offset with the cover, enlargement included, held inside the edges. Covers place
  // themselves as they scale, so the edge never lags the enlargement by a frame.
  function place(el:HTMLElement,o:Offset){
-  let g=cover*(scaleOf(el.firstElementChild)-1)/2
+  const painted=cover*scaleOf(el.firstElementChild)
+  let g=(painted-cover)/2
   if(g<.05)g=0
-  const x=within(o.x,o.l+g,o.r-g),y=within(o.y,o.t+g,o.b-g)
-  if(o.px!==x||o.py!==y){o.px=x;o.py=y;el.style.transform=`translate3d(${x}px,${y}px,0)`}
+  // Motion starts where the enlarged cover fits; what an edge blocks becomes a squeeze that
+  // eases toward its limit, letting the cover move that much further as it shrinks.
+  const sx=within(0,o.l+g,o.r-g)+o.x,sy=within(0,o.t+g,o.b-g)+o.y
+  const blocked=Math.hypot(sx-within(sx,o.l+g,o.r-g),sy-within(sy,o.t+g,o.b-g)),most=painted*squeeze/2
+  const m=blocked>.05&&most?most*Math.tanh(blocked/most/3):0
+  const x=within(sx,o.l+g-m,o.r-g+m),y=within(sy,o.t+g-m,o.b-g+m),k=1-2*m/painted
+  if(o.px!==x||o.py!==y||o.pk!==k){o.px=x;o.py=y;o.pk=k;el.style.transform=`translate3d(${x}px,${y}px,0)${k<1?` scale(${k})`:''}`}
   return g
  }
  const follow=(node:Element)=>{const el=node.parentElement,o=el&&moving.get(el);if(o)place(el,o)}
@@ -53,7 +61,7 @@ export function neighborPush(){
    }
    // A cover still shrinking keeps the loop until it can be released.
    if(place(el,o)&&tau)busy=true
-   if(!o.px&&!o.py&&!o.x&&!o.y&&!tx&&!ty){moving.delete(el);el.style.transform='';el.style.willChange=''}
+   if(!o.px&&!o.py&&o.pk===1&&!o.x&&!o.y&&!tx&&!ty){moving.delete(el);el.style.transform='';el.style.willChange=''}
   }
   if(busy)frame=requestAnimationFrame(tick)
  }
@@ -84,7 +92,7 @@ export function neighborPush(){
   }
   if(!frame&&moving.size){last=performance.now();frame=requestAnimationFrame(tick)}
  }
- function offset(el:HTMLElement){const o=moving.get(el);return o?{x:o.px,y:o.py}:{x:0,y:0}}
- function destroy(){scaled.delete(follow);cancelAnimationFrame(frame);for(const [el,o] of moving){moving.delete(el);el.style.transform='';el.style.willChange='';o.x=o.y=o.px=o.py=0}}
+ function offset(el:HTMLElement){const o=moving.get(el);return o?{x:o.px,y:o.py,k:o.pk}:{x:0,y:0,k:1}}
+ function destroy(){scaled.delete(follow);cancelAnimationFrame(frame);for(const [el,o] of moving){moving.delete(el);el.style.transform='';el.style.willChange='';o.x=o.y=o.px=o.py=0;o.pk=1}}
  return {update,offset,destroy}
 }

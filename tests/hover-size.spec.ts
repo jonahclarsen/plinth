@@ -206,11 +206,39 @@ test('covers near the edges stay on screen while enlarged, breathing, and pushed
   await page.mouse.move(r.x+r.width*fx,r.y+r.height*fy)
   for(let t=0;t<12;t++){await page.clock.runFor(t<6?50:1000);expect(await overhang()).toBeLessThanOrEqual(.01)}
   const cover=(await cells.nth(i).locator('.desktop-cover').boundingBox())!
-  // Stopped against the edge, not short of it.
-  expect(Math.min(cover.x,cover.y,1512-cover.x-cover.width,982-cover.y-cover.height)).toBeLessThan(1)
+  // Resting against the edge, drifting only a little away from it with the pointer.
+  expect(Math.min(cover.x,cover.y,1512-cover.x-cover.width,982-cover.y-cover.height)).toBeLessThan(r.width*.06)
   await page.mouse.move(r.x+r.width*fx,r.y+r.height*fy+(fy>.5?-1:1)*r.height*1.4);await page.clock.runFor(100)
   expect(await overhang()).toBeLessThanOrEqual(.01)
  }
+ await page.mouse.move(1510,980);await page.clock.runFor(1500)
+ await expect.poll(()=>cells.evaluateAll(els=>els.filter(el=>el.style.transform||el.style.willChange).length)).toBe(0)
+})
+
+test('covers pressed into an edge squeeze against it instead of stopping dead',async({page})=>{
+ await page.setViewportSize({width:1512,height:982})
+ await page.clock.install()
+ await page.goto('/?desktop=1&demo=1')
+ const cells=page.locator('.desktop-cell');await expect(cells).toHaveCount(18)
+ const rects=await cells.evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}}))
+ const squeeze=(i:number)=>cells.nth(i).evaluate(el=>new DOMMatrix(getComputedStyle(el).transform).a)
+ const box=async(i:number)=>(await cells.nth(i).locator('.desktop-cover').boundingBox())!
+ // A neighbor pushed into the left edge shrinks against it, so its inner side still moves left.
+ const r=rects[1]
+ await page.mouse.move(r.x+r.width/2,r.y+r.height/2);await page.clock.runFor(500)
+ await page.mouse.move(r.x+r.width*.15,r.y+r.height/2);await page.clock.runFor(1500)
+ expect(await squeeze(0)).toBeLessThan(.99);expect(await squeeze(0)).toBeGreaterThan(.83)
+ const pressed=await box(0)
+ expect(pressed.x+pressed.width).toBeLessThan(rects[0].x+rects[0].width-1)
+ expect(pressed.x).toBeGreaterThanOrEqual(-.01)
+ // An enlarged cover drifting into an edge squeezes too; drifting away from it, it moves freely.
+ const corner=rects[0]
+ await page.mouse.move(corner.x+corner.width*.9,corner.y+corner.height*.9);await page.clock.runFor(1500)
+ expect(await squeeze(0)).toBeLessThan(1)
+ const into=await box(0);expect(Math.min(into.x,into.y)).toBeGreaterThanOrEqual(-.01)
+ await page.mouse.move(corner.x+corner.width*.1,corner.y+corner.height*.1);await page.clock.runFor(1500)
+ expect(await squeeze(0)).toBe(1)
+ const away=await box(0);expect(away.x).toBeGreaterThan(into.x+2);expect(away.y).toBeGreaterThan(into.y+2)
  await page.mouse.move(1510,980);await page.clock.runFor(1500)
  await expect.poll(()=>cells.evaluateAll(els=>els.filter(el=>el.style.transform||el.style.willChange).length)).toBe(0)
 })
