@@ -130,8 +130,8 @@ test('hovering pushes nearby artwork away, less with distance, and the toggle re
  const [left,right,farther,below,far]=await Promise.all([2,4,5,9,17].map(offset))
  expect(left.x).toBeLessThan(-5);expect(right.x).toBeGreaterThan(farther.x);expect(farther.x).toBeGreaterThan(0)
  expect(below.y).toBeGreaterThan(5);expect(far).toEqual({x:0,y:0})
- // Hovered at its center, the enlarged cover does not drift.
- const self=await offset(3);expect(Math.abs(self.x)).toBeLessThan(.5);expect(Math.abs(self.y)).toBeLessThan(.5)
+ // Hovered at its center, the enlarged cover does not drift sideways (the top edge moves it down).
+ const self=await offset(3);expect(Math.abs(self.x)).toBeLessThan(.5)
  await page.mouse.move(0,0)
  await expect.poll(()=>cells.nth(4).evaluate(el=>el.style.transform+el.style.willChange)).toBe('')
  const toggle=page.getByRole('checkbox',{name:'Push nearby artwork',exact:true})
@@ -181,14 +181,36 @@ test('the enlarged cover drifts slightly away from the pointer and breathes, pus
  const ratio=()=>cells.nth(1).locator('.desktop-cover').evaluate(el=>el.getBoundingClientRect().width/el.parentElement!.getBoundingClientRect().width)
  const r=(await cells.nth(1).boundingBox())!
  await page.mouse.move(r.x+r.width*.9,r.y+r.height*.9);await page.clock.runFor(1000)
- // 40% of half a cover, times the 12% drift share: toward the top left, and only a little.
+ // 40% of half a cover, times the 12% drift share: to the left, and only a little. Every row
+ // here meets the top or bottom edge, so the vertical offset belongs to the edge.
  const drifted=await offset(1)
- for(const v of [drifted.x,drifted.y]){expect(v).toBeLessThan(-r.width*.03);expect(v).toBeGreaterThan(-r.width*.07)}
+ expect(drifted.x).toBeLessThan(-r.width*.03);expect(drifted.x).toBeGreaterThan(-r.width*.07)
  await page.mouse.move(r.x+r.width/2,r.y+r.height/2);await page.clock.runFor(1000)
- const centered=await offset(1);expect(Math.abs(centered.x)).toBeLessThan(.5);expect(Math.abs(centered.y)).toBeLessThan(.5)
+ const centered=await offset(1);expect(Math.abs(centered.x)).toBeLessThan(.5)
  const samples:{size:number;push:number}[]=[]
  for(let i=0;i<8;i++){await page.clock.runFor(1000);samples.push({size:await ratio(),push:(await offset(2)).x})}
  const sizes=samples.map(s=>s.size),largest=samples[sizes.indexOf(Math.max(...sizes))],smallest=samples[sizes.indexOf(Math.min(...sizes))]
  expect(largest.size-smallest.size).toBeGreaterThan(.05);expect(largest.size-smallest.size).toBeLessThan(.07)
  expect(largest.push).toBeGreaterThan(smallest.push+.3)
+})
+
+test('covers near the edges stay on screen while enlarged, breathing, and pushed',async({page})=>{
+ await page.setViewportSize({width:1512,height:982})
+ await page.clock.install()
+ await page.goto('/?desktop=1&demo=1')
+ const cells=page.locator('.desktop-cell');await expect(cells).toHaveCount(18)
+ const overhang=()=>page.locator('.desktop-cover').evaluateAll(els=>Math.max(...els.map(el=>{const r=el.getBoundingClientRect();return Math.max(-r.left,-r.top,r.right-innerWidth,r.bottom-innerHeight)})))
+ // Top left corner, right edge, and the bottom row; pointers toward the edge drift away from it.
+ for(const [i,fx,fy] of [[0,.1,.1],[11,.9,.5],[15,.5,.9]]){
+  const r=(await cells.nth(i).boundingBox())!
+  await page.mouse.move(r.x+r.width*fx,r.y+r.height*fy)
+  for(let t=0;t<12;t++){await page.clock.runFor(t<6?50:1000);expect(await overhang()).toBeLessThanOrEqual(.01)}
+  const cover=(await cells.nth(i).locator('.desktop-cover').boundingBox())!
+  // Stopped against the edge, not short of it.
+  expect(Math.min(cover.x,cover.y,1512-cover.x-cover.width,982-cover.y-cover.height)).toBeLessThan(1)
+  await page.mouse.move(r.x+r.width*fx,r.y+r.height*fy+(fy>.5?-1:1)*r.height*1.4);await page.clock.runFor(100)
+  expect(await overhang()).toBeLessThanOrEqual(.01)
+ }
+ await page.mouse.move(1510,980);await page.clock.runFor(1500)
+ await expect.poll(()=>cells.evaluateAll(els=>els.filter(el=>el.style.transform||el.style.willChange).length)).toBe(0)
 })

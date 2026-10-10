@@ -7,6 +7,8 @@ const breathPeriod=8000,breathDepth=.03 // Share of the enlargement, e.g. 2.1× 
 const scales=new WeakMap<Element,number>()
 // The painted scale of a cover, including breathing; 1 at rest.
 export function scaleOf(node:Element|null){return node&&scales.get(node)||1}
+// Called with each cover as it paints a new scale, in the same frame.
+export const scaled=new Set<(node:Element)=>void>()
 export function swingScale(node: HTMLElement, options: {active:boolean;factor:number;speed:number;radius:number;roundedOnHover:boolean}) {
  let scale=1,box=1,radius=options.radius,frame=0,target=1,targetRadius=radius,speed=options.speed,laid=0
  function paint(breathing=false){
@@ -14,7 +16,7 @@ export function swingScale(node: HTMLElement, options: {active:boolean;factor:nu
   // Counter the transform so corners keep their painted radius. Breathing keeps the radius
   // (within 2% of exact) so the compositor scales the layer without repainting it. The layer
   // also keeps the page's other artwork from repainting at low quality while this one moves.
-  const shrink=scale/box;node.style.transform=shrink<1?`scale(${shrink})`:'';node.style.willChange=box>1?'transform':'';if(!breathing)node.style.borderRadius=`${radius/shrink}px`;scales.set(node,scale)
+  const shrink=scale/box;node.style.transform=shrink<1?`scale(${shrink})`:'';node.style.willChange=box>1?'transform':'';if(!breathing)node.style.borderRadius=`${radius/shrink}px`;scales.set(node,scale);for(const f of scaled)f(node)
  }
  paint()
  function update(next:typeof options) {

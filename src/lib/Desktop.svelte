@@ -34,9 +34,11 @@
  const push=neighborPush()
  // Measure resting cells: remove any push offset (renderer pixels) in viewport scale.
  function cells(){return bounds??=Array.from(grid?.querySelectorAll<HTMLElement>('.desktop-cell')??[],el=>{const r=el.getBoundingClientRect(),s=r.width/(el.offsetWidth||1),o=push.offset(el);return {id:el.dataset.id??'',el,rect:new DOMRect(r.left-o.x*s,r.top-o.y*s,r.width,r.height)}})}
+ // The desktop's edges in viewport pixels: the surface below the menu bar.
+ function edges(){const surface=grid.parentElement!,r=surface.getBoundingClientRect(),menu=(preview?menuBarHeight:detectedMenuBarHeight)*r.width/(surface.offsetWidth||1);return {left:r.left,top:r.top+menu,right:r.right,bottom:r.bottom}}
  let pointer:{x:number;y:number}|undefined
  $: coverSize=desktopCoverSize(layout,viewportWidth??width)
- $: if(grid)push.update(cells,activeHover,activeHover===hovered?pointer:undefined,{cover:coverSize,push:settings.pushNeighbors!==false,speed:settings.hoverSpeed??1})
+ $: if(grid)push.update(cells,activeHover,activeHover===hovered?pointer:undefined,{cover:coverSize,push:settings.pushNeighbors!==false,speed:settings.hoverSpeed??1,edges})
  // Rectangles use viewport coordinates, including the scaled preview and scrolling.
  $: { spacing; albums; width; height; viewportWidth; viewportHeight; previewScale; invalidateBounds() }
  onMount(()=>{
