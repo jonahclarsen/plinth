@@ -34,15 +34,9 @@ on playlistIndex(playlistName, names)
     return matchIndex
 end playlistIndex
 
--- Switch the main window to the playlist and bring it on screen. Music's
--- `view` property can keep reporting an earlier playlist after the window has
--- switched, so it is not read back as proof. `reveal` follows as a fallback.
--- Object references come only from the local library, never from link text.
+-- Bring Music's main window on screen after navigation.
 on showPlaylist(targetPlaylist, browserWindow)
     using terms from application "Music"
-        try
-            set view of browserWindow to targetPlaylist
-        end try
         set visible of browserWindow to true
         set collapsed of browserWindow to false
     end using terms from
@@ -71,10 +65,23 @@ repeat with attempt from 1 to 20
         end if
         if matchIndex > 0 then
             set targetPlaylist to contents of item matchIndex of candidates
-            -- A closed browser needs reveal to create its window.
-            if (count of browser windows) is 0 then reveal targetPlaylist
+            -- Music ignores `reveal` and `set view` aimed at a playlist itself,
+            -- but revealing one of its tracks switches the window to it.
+            -- Object references come only from the local library, never from link text.
+            if (count of tracks of targetPlaylist) > 0 then
+                reveal track 1 of targetPlaylist
+            else
+                reveal targetPlaylist
+            end if
             my showPlaylist(targetPlaylist, browser window 1)
-            reveal targetPlaylist
+            repeat 10 times
+                if (persistent ID of view of browser window 1) is (persistent ID of targetPlaylist) then return
+                delay 0.1
+            end repeat
+            -- Empty playlists have no track to reveal; try the window's view directly.
+            try
+                set view of browser window 1 to targetPlaylist
+            end try
             return
         end if
     end repeat

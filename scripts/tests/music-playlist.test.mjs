@@ -34,35 +34,29 @@ test('playlist matching rejects ambiguous normalized names and preserves executa
   assert.equal(resolve(literal, ['Another playlist', literal]), 2)
 })
 
-test('playlist navigation changes the browser view and shows its window without playing tracks', {skip: process.platform !== 'darwin'}, () => {
+test('playlist navigation shows a hidden or minimized window without playing tracks', {skip: process.platform !== 'darwin'}, () => {
   const fixture = `${helpers}
 using terms from application "Music"
-    script requestedPlaylist
-        property persistent ID : "SYNTHETIC-PLAYLIST"
-    end script
-    script previousPlaylist
-        property persistent ID : "PREVIOUS-PLAYLIST"
-    end script
     script syntheticWindow
-        property view : previousPlaylist
         property visible : false
         property collapsed : true
     end script
-    my showPlaylist(requestedPlaylist, syntheticWindow)
+    my showPlaylist(missing value, syntheticWindow)
     if not visible of syntheticWindow then error "Window remained hidden"
     if collapsed of syntheticWindow then error "Window remained minimized"
-    return persistent ID of view of syntheticWindow
+    return "shown"
 end using terms from
 `
   const result = spawnSync('/usr/bin/osascript', ['-e', fixture], {encoding: 'utf8'})
   assert.equal(result.status, 0, result.stderr)
-  assert.equal(result.stdout.trim(), 'SYNTHETIC-PLAYLIST')
+  assert.equal(result.stdout.trim(), 'shown')
 })
 
-test('a found playlist is shown once without waiting on Music to report its view', {skip: process.platform !== 'darwin'}, () => {
+test('a found playlist is opened by revealing one of its tracks, with a short bounded wait', {skip: process.platform !== 'darwin'}, () => {
   const run = script.slice(entrypoint)
-  // Music's `view` property can stay stale after switching; polling it delayed links and raised false errors.
-  assert.doesNotMatch(run, /persistent ID of view/)
+  // Music ignores reveal/set view on the playlist object itself; revealing a member track switches the window.
+  assert.match(run, /reveal track 1 of targetPlaylist/)
+  assert.match(run, /repeat 10 times[\s\S]*persistent ID of view of browser window 1[\s\S]*delay 0\.1/)
   assert.doesNotMatch(run, /navigationAttempt/)
-  assert.match(run, /my showPlaylist\(targetPlaylist, browser window 1\)\s+reveal targetPlaylist\s+return/)
+  assert.doesNotMatch(run, /\berror \(/)
 })
