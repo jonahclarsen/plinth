@@ -1,3 +1,4 @@
+use crate::permissions::Permission;
 use std::collections::VecDeque;
 
 /// Serialize navigation without discarding an ordinary click while Music is
@@ -120,6 +121,26 @@ impl LibraryLink {
                 })
             }
             _ => Err("Unsupported library destination"),
+        }
+    }
+
+    /// Only what this link's script actually uses, so the UI never asks for more.
+    pub fn permissions(&self) -> &'static [Permission] {
+        match self {
+            Self::Playlist(_) | Self::Album { .. } => &[Permission::Music],
+            Self::Artist(_) => &[
+                Permission::Music,
+                Permission::SystemEvents,
+                Permission::Accessibility,
+            ],
+        }
+    }
+
+    pub fn describe(&self) -> String {
+        match self {
+            Self::Playlist(name) => format!("the playlist “{name}”"),
+            Self::Album { title, .. } => format!("the album “{title}”"),
+            Self::Artist(name) => format!("the artist “{name}”"),
         }
     }
 

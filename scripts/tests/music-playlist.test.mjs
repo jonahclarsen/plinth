@@ -48,7 +48,7 @@ using terms from application "Music"
         property visible : false
         property collapsed : true
     end script
-    if not my showPlaylist(requestedPlaylist, syntheticWindow) then error "Wrong playlist displayed"
+    my showPlaylist(requestedPlaylist, syntheticWindow)
     if not visible of syntheticWindow then error "Window remained hidden"
     if collapsed of syntheticWindow then error "Window remained minimized"
     return persistent ID of view of syntheticWindow
@@ -57,4 +57,12 @@ end using terms from
   const result = spawnSync('/usr/bin/osascript', ['-e', fixture], {encoding: 'utf8'})
   assert.equal(result.status, 0, result.stderr)
   assert.equal(result.stdout.trim(), 'SYNTHETIC-PLAYLIST')
+})
+
+test('a found playlist is shown once without waiting on Music to report its view', {skip: process.platform !== 'darwin'}, () => {
+  const run = script.slice(entrypoint)
+  // Music's `view` property can stay stale after switching; polling it delayed links and raised false errors.
+  assert.doesNotMatch(run, /persistent ID of view/)
+  assert.doesNotMatch(run, /navigationAttempt/)
+  assert.match(run, /my showPlaylist\(targetPlaylist, browser window 1\)\s+reveal targetPlaylist\s+return/)
 })

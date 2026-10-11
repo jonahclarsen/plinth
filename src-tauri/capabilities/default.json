@@ -3,7 +3,8 @@
   "description": "Local library and desktop events",
   "windows": [
     "main",
-    "desktop-*"
+    "desktop-*",
+    "music-access"
   ],
   "permissions": [
     "core:default",

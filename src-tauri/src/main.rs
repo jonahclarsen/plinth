@@ -5,6 +5,7 @@ mod displays;
 mod history;
 mod library;
 mod music;
+mod permissions;
 mod spaces;
 mod window_placement;
 use library::{Album, Library, Settings};
@@ -12,7 +13,7 @@ use std::{path::PathBuf, process::Command, sync::Mutex};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager, State,
+    Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder,
 };
 struct DesktopMenu(MenuItem<tauri::Wry>);
 fn desktop_action(enabled: bool) -> &'static str {
@@ -295,6 +296,165 @@ fn run_music_script(script: &'static str, args: &[&str]) -> Result<(), String> {
         Err(String::from_utf8_lossy(&output.stderr).trim().to_owned())
     }
 }
+/// osascript reports `path:range: execution error: Message (-1234)`; keep the message.
+fn script_message(error: &str) -> String {
+    let message = error
+        .split_once("execution error: ")
+        .map_or(error, |(_, message)| message);
+    let message = match message.rfind(" (-") {
+        Some(code) if message.ends_with(')') => &message[..code],
+        _ => message,
+    };
+    message.trim().to_owned()
+}
+
+/// Something Plinth was asked to open in Music, kept so the access window can retry it.
+#[derive(Clone)]
+enum MusicRequest {
+    Link(music::LibraryLink),
+    Album(String),
+}
+#[derive(Clone)]
+struct PendingAccess {
+    request: MusicRequest,
+    subject: String,
+    permissions: &'static [permissions::Permission],
+}
+#[derive(Default)]
+struct AccessPrompt(Mutex<Option<PendingAccess>>);
+const ACCESS_WINDOW: &str = "music-access";
+enum MusicFailure {
+    Access,
+    Message(String),
+}
+/// Skip a script macOS will refuse anyway, so the access window appears at once.
+/// Accessibility isn't pre-checked: the script's own attempt registers Plinth in
+/// that list and shows the system prompt.
+fn automation_denied(needed: &[permissions::Permission]) -> bool {
+    needed.iter().any(|permission| {
+        *permission != permissions::Permission::Accessibility
+            && permission.check(false) == permissions::Access::Denied
+    })
+}
+fn classify(error: String) -> MusicFailure {
+    if permissions::is_denial(&error) {
+        MusicFailure::Access
+    } else {
+        MusicFailure::Message(script_message(&error))
+    }
+}
+
+fn show_music_access(app: &tauri::AppHandle, pending: PendingAccess) {
+    let rows = pending.permissions.len() as f64;
+    *app.state::<AccessPrompt>().0.lock().unwrap() = Some(pending);
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        if let Some(window) = handle.get_webview_window(ACCESS_WINDOW) {
+            let _ = window.emit("music-access-changed", ());
+            let _ = window.set_size(tauri::LogicalSize::new(460., 182. + 66. * rows));
+            let _ = window.show();
+            let _ = window.set_focus();
+            return;
+        }
+        let built = WebviewWindowBuilder::new(
+            &handle,
+            ACCESS_WINDOW,
+            WebviewUrl::App("index.html?access=1".into()),
+        )
+        .title("Music Access")
+        .inner_size(460., 182. + 66. * rows)
+        .resizable(false)
+        .minimizable(false)
+        .maximizable(false)
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true)
+        .center()
+        .focused(true)
+        .build();
+        match built {
+            Ok(window) => {
+                let _ = window.set_focus();
+            }
+            Err(error) => eprintln!("Could not open the Music access window: {error}"),
+        }
+    });
+}
+fn access_window(window: &tauri::WebviewWindow) -> Result<(), String> {
+    if window.label() == ACCESS_WINDOW {
+        Ok(())
+    } else {
+        Err("Only the Music access window can do this".into())
+    }
+}
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MusicAccess {
+    subject: String,
+    permissions: Vec<permissions::Status>,
+}
+#[tauri::command]
+async fn music_access(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+) -> Result<MusicAccess, String> {
+    access_window(&window)?;
+    let pending = app
+        .state::<AccessPrompt>()
+        .0
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone()
+        .ok_or("Nothing is waiting on Music access")?;
+    tauri::async_runtime::spawn_blocking(move || MusicAccess {
+        subject: pending.subject,
+        permissions: pending.permissions.iter().map(|p| p.status()).collect(),
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+/// Shows the system's own consent prompt for an automation target macOS hasn't asked about.
+#[tauri::command]
+async fn request_music_access(
+    window: tauri::WebviewWindow,
+    permission: permissions::Permission,
+) -> Result<(), String> {
+    access_window(&window)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        permission.check(true);
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+#[tauri::command]
+fn open_privacy_settings(
+    window: tauri::WebviewWindow,
+    permission: permissions::Permission,
+) -> Result<(), String> {
+    access_window(&window)?;
+    let url = permission.settings_url();
+    Command::new("open")
+        .arg(url)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+#[tauri::command]
+fn retry_music_request(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
+    access_window(&window)?;
+    let pending = app.state::<AccessPrompt>().0.lock().unwrap().take();
+    let _ = window.close();
+    match pending.map(|pending| pending.request) {
+        Some(MusicRequest::Link(target)) => dispatch_music_link(app, target),
+        Some(MusicRequest::Album(id)) => {
+            tauri::async_runtime::spawn(async move {
+                let _ = open_album_now(app, id).await;
+            });
+        }
+        None => {}
+    }
+    Ok(())
+}
+
 fn dispatch_music_link(app: tauri::AppHandle, target: music::LibraryLink) {
     let start_worker = app
         .state::<Mutex<music::LinkQueue>>()
@@ -305,7 +465,7 @@ fn dispatch_music_link(app: tauri::AppHandle, target: music::LibraryLink) {
         return;
     }
     tauri::async_runtime::spawn(async move {
-        let mut failed = false;
+        let mut failure = None;
         loop {
             let target = app
                 .state::<Mutex<music::LinkQueue>>()
@@ -314,48 +474,81 @@ fn dispatch_music_link(app: tauri::AppHandle, target: music::LibraryLink) {
                 .next_target();
             let Some(target) = target else { break };
             eprintln!("Opening Music library link");
+            let request = target.clone();
             let result = tauri::async_runtime::spawn_blocking(move || {
+                if automation_denied(target.permissions()) {
+                    return Err(MusicFailure::Access);
+                }
                 let (script, args) = target.script_and_args();
-                run_music_script(script, &args)
+                run_music_script(script, &args).map_err(classify)
             })
             .await;
             match result {
                 Ok(Ok(())) => eprintln!("Music library link finished"),
-                Ok(Err(error)) => {
+                Ok(Err(MusicFailure::Access)) => {
+                    eprintln!("Music library link needs permission");
+                    show_music_access(
+                        &app,
+                        PendingAccess {
+                            subject: request.describe(),
+                            permissions: request.permissions(),
+                            request: MusicRequest::Link(request),
+                        },
+                    );
+                }
+                Ok(Err(MusicFailure::Message(error))) => {
                     eprintln!("Music library link failed: {error}");
-                    failed = true;
+                    failure = Some((request.describe(), error));
                 }
                 Err(error) => {
                     eprintln!("Music library link worker failed: {error}");
-                    failed = true;
+                    failure = Some((request.describe(), error.to_string()));
                 }
             }
         }
         // Release the queue before displaying an error; a dismissed or hidden
         // alert must not cause subsequent clicks to be silently discarded.
-        if failed {
-            let _ = show_alert("Music couldn’t open this library link. Allow Plinth in System Settings → Privacy & Security → Automation. Artist navigation also requires Accessibility permission and Music’s Show Artist in Library command.".into()).await;
+        if let Some((subject, error)) = failure {
+            let _ = show_alert(format!("Music couldn’t open {subject}.\n\n{error}")).await;
         }
     });
 }
 
 #[tauri::command]
 async fn open_album(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    open_album_now(app, id).await
+}
+async fn open_album_now(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let handle = app.clone();
+    let album_id = id.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
-        let store = app.state::<Store>();
+        let store = handle.state::<Store>();
         let lib = store.library.lock().map_err(|e| e.to_string())?;
         let album = lib
             .albums
             .iter()
-            .find(|a| a.id == id)
+            .find(|a| a.id == album_id)
             .ok_or("Album not found")?
             .clone();
         drop(lib);
+        let subject = format!("the album “{}”", album.title);
+        let scripted = |script, args: &[&str]| {
+            if automation_denied(&[permissions::Permission::Music]) {
+                return Err(Some(subject.clone()));
+            }
+            run_music_script(script, args).map_err(|error| {
+                if permissions::is_denial(&error) {
+                    Some(subject.clone())
+                } else {
+                    None
+                }
+            })
+        };
         if !album.playlist.is_empty() {
-            return run_music_script(
+            return Ok(scripted(
                 include_str!("open_playlist.applescript"),
                 &[&album.playlist],
-            );
+            ));
         }
         if let Some(url) = music::apple_music_link(&album.url) {
             let status = Command::new("open")
@@ -364,26 +557,36 @@ async fn open_album(app: tauri::AppHandle, id: String) -> Result<(), String> {
                 .status()
                 .map_err(|e| e.to_string())?;
             return if status.success() {
-                Ok(())
+                Ok(Ok(()))
             } else {
                 Err("Could not open album link".into())
             };
         }
-        run_music_script(
+        Ok(scripted(
             include_str!("open_album.applescript"),
             &[&album.title, &album.artist],
-        )
+        ))
     })
     .await
     .map_err(|e| e.to_string())
     .and_then(|result| result);
-    if let Err(error) = result {
-        let message = if error.contains("-1743") {
-            "Allow Plinth to control Music in System Settings → Privacy & Security → Automation."
-        } else {
-            "Apple Music couldn’t open this album. Check that it is in your library, or add an album link in Plinth."
-        };
-        show_alert(message.into()).await?;
+    match result {
+        Ok(Ok(())) => {}
+        Ok(Err(Some(subject))) => show_music_access(
+            &app,
+            PendingAccess {
+                request: MusicRequest::Album(id),
+                subject,
+                permissions: &[permissions::Permission::Music],
+            },
+        ),
+        Ok(Err(None)) | Err(_) => {
+            show_alert(
+                "Apple Music couldn’t open this album. Check that it is in your library, or add an album link in Plinth."
+                    .into(),
+            )
+            .await?;
+        }
     }
     Ok(())
 }
@@ -611,6 +814,7 @@ fn main() {
             },
         ))
         .manage(Mutex::new(music::LinkQueue::default()))
+        .manage(AccessPrompt::default())
         .manage(Store {
             dir,
             library: Mutex::new(lib),
@@ -634,6 +838,10 @@ fn main() {
             update_album,
             remove_album,
             open_album,
+            music_access,
+            request_music_access,
+            open_privacy_settings,
+            retry_music_request,
             reveal_data
         ])
         .setup(move |app| {
@@ -786,4 +994,35 @@ fn main() {
             tauri::RunEvent::Reopen { .. } => show_main(app),
             _ => {}
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn script_failures_keep_only_the_message() {
+        assert_eq!(
+            script_message("/tmp/a.scpt:4099:4170: execution error: Music’s Show Artist in Library command is unavailable. (-2700)"),
+            "Music’s Show Artist in Library command is unavailable."
+        );
+        assert_eq!(
+            script_message("Could not start osascript"),
+            "Could not start osascript"
+        );
+    }
+
+    #[test]
+    fn privacy_refusals_open_the_access_window_and_other_errors_do_not() {
+        assert!(matches!(
+            classify(
+                "execution error: Not authorized to send Apple events to Music. (-1743)".into()
+            ),
+            MusicFailure::Access
+        ));
+        assert!(matches!(
+            classify("execution error: Music got an error: Can’t get playlist 1. (-1728)".into()),
+            MusicFailure::Message(message) if message == "Music got an error: Can’t get playlist 1."
+        ));
+    }
 }
