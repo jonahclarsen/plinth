@@ -43,11 +43,23 @@ export async function importBrowserFiles(files: File[]) {
 
 export function originalUrl(album:Album){return native?convertFileSrc(`${dataDir}/originals/${album.original}`):(album.original||album.cover)}
 export async function revealArtwork(album:Album){if(native)return invoke('reveal_artwork',{id:album.id});throw new Error('Finder is available in the installed Plinth app.')}
-export async function replaceArtwork(album:Album,input:string|File):Promise<Album>{
+export async function replaceArtwork(album:Album,input:string|File,source=''):Promise<Album>{
  if(native)return invoke('replace_artwork',{id:album.id,path:input})
  const file=input as File;const original=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=reject;reader.readAsDataURL(file)})
  const bitmap=await createImageBitmap(file);const canvas=document.createElement('canvas');const scale=Math.min(1,1200/Math.max(bitmap.width,bitmap.height));canvas.width=bitmap.width*scale;canvas.height=bitmap.height*scale;canvas.getContext('2d')!.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close()
- const updated={...album,cover:canvas.toDataURL('image/jpeg',.9),original};browserLibrary.albums=browserLibrary.albums.map(a=>a.id===album.id?updated:a);changed();return updated
+ const updated={...album,cover:canvas.toDataURL('image/jpeg',.9),original,source};browserLibrary.albums=browserLibrary.albums.map(a=>a.id===album.id?updated:a);changed();return updated
+}
+// Downloads full-resolution iTunes artwork in the webview (Apple allows cross-origin reads) and keeps it as the album's original.
+export async function downloadArtwork(album:Album,source:string):Promise<Album>{
+ const response=await fetch(source);if(!response.ok)throw new Error(`iTunes artwork returned ${response.status}`)
+ const bytes=new Uint8Array(await response.arrayBuffer())
+ if(native)return invoke('download_artwork',bytes,{headers:{'plinth-album':album.id,'plinth-source':source}})
+ return replaceArtwork(album,new File([bytes],'itunes.jpg',{type:'image/jpeg'}),source)
+}
+// Switches back to a local original the album used before; originals are never deleted, so it is re-imported from storage.
+export async function restoreArtwork(album:Album,local:Album):Promise<Album>{
+ if(native)return invoke('replace_artwork',{id:album.id,path:`${dataDir}/originals/${local.original}`})
+ const updated={...album,cover:local.cover,original:local.original,source:''};browserLibrary.albums=browserLibrary.albums.map(a=>a.id===album.id?updated:a);changed();return updated
 }
 export async function showAlert(message:string){if(native)await invoke('show_alert',{message});else window.alert(message)}
 

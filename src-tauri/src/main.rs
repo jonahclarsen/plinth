@@ -608,6 +608,44 @@ async fn replace_artwork(
     .await
     .map_err(|e| e.to_string())?
 }
+// The webview fetches the iTunes cover and sends its bytes as a raw body with the album and source in headers.
+#[tauri::command]
+async fn download_artwork(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+    request: tauri::ipc::Request<'_>,
+) -> Result<Album, String> {
+    editor(&window)?;
+    // The postMessage fallback IPC delivers a byte array as JSON instead of a raw body.
+    let bytes = match request.body() {
+        tauri::ipc::InvokeBody::Raw(bytes) => bytes.clone(),
+        tauri::ipc::InvokeBody::Json(value) => {
+            serde_json::from_value(value.clone()).map_err(|_| "Expected artwork bytes")?
+        }
+    };
+    let header = |name: &str| {
+        request
+            .headers()
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_owned)
+            .ok_or_else(|| format!("Missing {name}"))
+    };
+    let (id, source, bytes) = (
+        header("plinth-album")?,
+        header("plinth-source")?,
+        bytes.clone(),
+    );
+    tauri::async_runtime::spawn_blocking(move || {
+        let store = app.state::<Store>();
+        let mut lib = store.library.lock().map_err(|e| e.to_string())?;
+        let album = library::replace_artwork_download(&store.dir, &mut lib, &id, bytes, &source)?;
+        broadcast(&app, &lib);
+        Ok(album)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
 #[tauri::command]
 async fn reveal_artwork(
     window: tauri::WebviewWindow,
@@ -824,6 +862,7 @@ fn main() {
             hide_window,
             quit_app,
             replace_artwork,
+            download_artwork,
             reveal_artwork,
             show_alert,
             get_displays,

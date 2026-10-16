@@ -26,7 +26,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost 'self'; script-src 'self'",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: blob: https://*.mzstatic.com; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost 'self' https://itunes.apple.com https://*.mzstatic.com; script-src 'self'",
       "assetProtocol": {
         "enable": true,
         "scope": [

@@ -18,6 +18,9 @@ pub struct Album {
     pub cover: String,
     pub original: String,
     pub enabled: bool,
+    /// The iTunes artwork URL a downloaded cover came from; empty for a local file.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub source: String,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", default)]
@@ -146,6 +149,13 @@ pub fn prepare_artwork(dir: &Path, path: &Path) -> Result<Album, String> {
         return Err("Image exceeds 100 MB".into());
     }
     let bytes = fs::read(path).map_err(|e| e.to_string())?;
+    let name = path.file_name().unwrap_or_default().to_string_lossy();
+    prepare_artwork_bytes(dir, bytes, &name)
+}
+fn prepare_artwork_bytes(dir: &Path, bytes: Vec<u8>, name: &str) -> Result<Album, String> {
+    if bytes.len() > 100 * 1024 * 1024 {
+        return Err("Image exceeds 100 MB".into());
+    }
     let id = format!("{:x}", Sha256::digest(&bytes));
     let mut reader = image::ImageReader::new(std::io::Cursor::new(&bytes))
         .with_guessed_format()
@@ -166,7 +176,8 @@ pub fn prepare_artwork(dir: &Path, path: &Path) -> Result<Album, String> {
     let cover = format!("{id}.jpg");
     let original = format!(
         "{id}.{}",
-        path.extension()
+        Path::new(name)
+            .extension()
             .unwrap_or_default()
             .to_string_lossy()
             .to_lowercase()
@@ -180,8 +191,7 @@ pub fn prepare_artwork(dir: &Path, path: &Path) -> Result<Album, String> {
     use std::io::Write;
     out.flush().map_err(|e| e.to_string())?;
     fs::write(dir.join("originals").join(&original), bytes).map_err(|e| e.to_string())?;
-    let (title, artist, date, url) =
-        metadata(&path.file_name().unwrap_or_default().to_string_lossy());
+    let (title, artist, date, url) = metadata(name);
     Ok(Album {
         id,
         title,
@@ -192,6 +202,7 @@ pub fn prepare_artwork(dir: &Path, path: &Path) -> Result<Album, String> {
         cover,
         original,
         enabled: true,
+        source: String::new(),
     })
 }
 pub fn import(
@@ -244,15 +255,41 @@ pub fn replace_artwork(
     id: &str,
     path: &Path,
 ) -> Result<Album, String> {
+    let artwork = prepare_artwork(dir, path)?;
+    use_artwork(dir, library, id, artwork)
+}
+/// Replaces an album's artwork with a cover downloaded from the iTunes Search API.
+pub fn replace_artwork_download(
+    dir: &Path,
+    library: &mut Library,
+    id: &str,
+    bytes: Vec<u8>,
+    source: &str,
+) -> Result<Album, String> {
+    let url = tauri::Url::parse(source).map_err(|_| "Invalid artwork address")?;
+    let host = url.host_str().unwrap_or_default();
+    if url.scheme() != "https" || !(host == "mzstatic.com" || host.ends_with(".mzstatic.com")) {
+        return Err("Artwork must come from Apple's image server".into());
+    }
+    let mut artwork = prepare_artwork_bytes(dir, bytes, "itunes.jpg")?;
+    artwork.source = source.to_owned();
+    use_artwork(dir, library, id, artwork)
+}
+fn use_artwork(
+    dir: &Path,
+    library: &mut Library,
+    id: &str,
+    artwork: Album,
+) -> Result<Album, String> {
     let index = library
         .albums
         .iter()
         .position(|a| a.id == id)
         .ok_or("Album not found")?;
-    let artwork = prepare_artwork(dir, path)?;
     let mut updated = library.clone();
     updated.albums[index].cover = artwork.cover;
     updated.albums[index].original = artwork.original;
+    updated.albums[index].source = artwork.source;
     save(dir, &updated)?;
     *library = updated;
     Ok(library.albums[index].clone())
@@ -552,6 +589,48 @@ mod tests {
         assert_ne!(album.original, old.original);
         assert!(dir.join("originals").join(old.original).exists());
         assert_eq!(load(&dir).unwrap().albums.len(), 1);
+        fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn downloaded_artwork_records_its_source_until_a_local_file_replaces_it() {
+        let dir = std::env::temp_dir().join(format!("plinth-download-test-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let first = dir.join("Artist - Title.png");
+        image::RgbImage::new(20, 20).save(&first).unwrap();
+        let mut lib = Library::default();
+        import(&dir, &mut lib, vec![first.clone()]).unwrap();
+        let id = lib.albums[0].id.clone();
+        let mut jpeg = Vec::new();
+        image::RgbImage::new(30, 30)
+            .write_to(
+                &mut std::io::Cursor::new(&mut jpeg),
+                image::ImageFormat::Jpeg,
+            )
+            .unwrap();
+        let source = "https://is1-ssl.mzstatic.com/image/thumb/a.png/10000x10000bb.jpg";
+        for rejected in [
+            "http://is1-ssl.mzstatic.com/a.jpg",
+            "https://mzstatic.com.example/a.jpg",
+        ] {
+            assert!(replace_artwork_download(&dir, &mut lib, &id, jpeg.clone(), rejected).is_err());
+        }
+        assert!(
+            replace_artwork_download(&dir, &mut lib, &id, b"not an image".to_vec(), source)
+                .is_err()
+        );
+        let album = replace_artwork_download(&dir, &mut lib, &id, jpeg, source).unwrap();
+        assert_eq!(
+            (album.title.as_str(), album.source.as_str()),
+            ("Title", source)
+        );
+        assert!(
+            album.original.ends_with(".jpg")
+                && dir.join("originals").join(&album.original).exists()
+        );
+        assert_eq!(load(&dir).unwrap().albums[0].source, source);
+        let local = replace_artwork(&dir, &mut lib, &id, &first).unwrap();
+        assert!(local.source.is_empty());
+        assert!(!serde_json::to_string(&local).unwrap().contains("source"));
         fs::remove_dir_all(dir).unwrap();
     }
     #[test]
