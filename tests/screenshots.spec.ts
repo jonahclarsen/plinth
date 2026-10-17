@@ -57,7 +57,7 @@ test('light-mode Collection and Stats captures', async ({ page }) => {
  await sharp(await page.screenshot({ fullPage: true, animations: 'disabled' })).webp({ quality: 86, effort: 6 }).toFile(`${output}/stats.webp`)
 })
 
-// The website's first screen is a full-viewport desktop; the app's 1470×956 screen lays out 16 columns and 9 rows.
+// The website's first screen is a full-viewport desktop; the app's 1470×956 screen lays out 18 columns and 8 rows.
 async function openWebsite(page: Page, albumCount?: number) {
  await page.setViewportSize({ width: 1470, height: 956 })
  const mime: Record<string, string> = { '.html': 'text/html', '.js': 'application/javascript', '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg' }
@@ -93,7 +93,7 @@ test('website desktop preview hero', async ({ page }) => {
   columns: cells.filter(cell => (cell as HTMLElement).style.top === (cells[0] as HTMLElement).style.top).length,
   rows: new Set(cells.map(cell => (cell as HTMLElement).style.top)).size,
  }))
- expect(geometry).toEqual({ columns: 16, rows: 9 })
+ expect(geometry).toEqual({ columns: 18, rows: 8 })
  const hovered = page.getByRole('link', { name: 'Channel ORANGE by Frank Ocean', exact: true })
  await hovered.hover()
  // Let the website's enlargement and neighbor push finish before capturing the live scene.
