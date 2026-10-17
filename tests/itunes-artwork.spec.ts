@@ -26,12 +26,14 @@ async function mockItunes(page:Page){
 test('the editor offers iTunes artwork beside your file and switches between them',async({page})=>{
  const {searches,downloads}=await mockItunes(page)
  await page.goto('/?demo=1');await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
- const yours=page.getByRole('button',{name:'Use your file'}),choices=page.getByRole('group',{name:'Artwork source'}).getByRole('button',{name:/^Use iTunes artwork/})
+ const yours=page.getByRole('button',{name:'Use your file'}),choices=page.getByRole('group',{name:'Artwork source'}).getByRole('button',{name:/^Use artwork for/})
  await expect(choices).toHaveCount(2);await expect(yours).toHaveAttribute('aria-pressed','true')
  // The exact title ranks first; duplicate artwork and other artists are left out.
- await expect(choices.first()).toHaveAccessibleName('Use iTunes artwork for Soft Focus by Mira Vale');await expect(choices.first().locator('img')).toHaveAttribute('src',art('standard').replace('100x100','300x300'))
+ await expect(choices.first()).toHaveAccessibleName('Use artwork for Soft Focus by Mira Vale');await expect(choices.first().locator('img')).toHaveAttribute('src',art('standard').replace('100x100','300x300'))
  expect(searches).toHaveLength(1);expect(searches[0].searchParams.get('entity')).toBe('album')
  const image=page.locator('.editor-artwork>img'),local=await image.getAttribute('src')
+ // Matches carry no visible text, so nothing suggests the album opens in iTunes.
+ await expect(choices).toHaveText(['','']);await expect(page.getByRole('group',{name:'Artwork source'})).not.toContainText('iTunes')
  await choices.first().click()
  await expect(choices.first()).toHaveAttribute('aria-pressed','true');await expect(yours).toHaveAttribute('aria-pressed','false')
  await expect(image).toHaveAttribute('src',/^data:image\/jpeg/);expect(downloads).toEqual([art('standard').replace('100x100','10000x10000')])
@@ -42,13 +44,13 @@ test('the editor offers iTunes artwork beside your file and switches between the
  await expect(choices.nth(1)).toHaveAttribute('aria-pressed','true');await expect(page.getByRole('button',{name:'Choose a file'})).toHaveAttribute('aria-pressed','false')
  expect(searches).toHaveLength(1)
  // Typing waits for a pause before searching, and a miss says so.
- await page.getByLabel('Album title').pressSequentially('zzz');await expect(page.getByRole('status').filter({hasText:'No iTunes match'})).toBeVisible()
+ await page.getByLabel('Album title').pressSequentially('zzz');await expect(page.getByRole('status').filter({hasText:'No match'})).toBeVisible()
  expect(searches).toHaveLength(2)
  await page.getByLabel('Artist').fill('');await expect(page.getByRole('group',{name:'Artwork source'})).toHaveCount(0)
 })
 test('an unavailable iTunes search leaves the editor usable',async({page})=>{
  await page.route('https://itunes.apple.com/search?**',route=>route.fulfill({status:403,body:''}))
  await page.goto('/?demo=1');await page.getByRole('button',{name:'Edit Soft Focus',exact:true}).click()
- await expect(page.getByRole('status').filter({hasText:'iTunes unavailable'})).toBeVisible()
+ await expect(page.getByRole('status').filter({hasText:'Search unavailable'})).toBeVisible()
  await expect(page.getByRole('button',{name:'Use your file'})).toHaveAttribute('aria-pressed','true')
 })
